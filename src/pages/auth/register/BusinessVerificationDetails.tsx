@@ -1,17 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useRegistration } from '@/hooks/useRegistration';
+
+import { ErrorMessage } from '@/components/ui/ErrorMessage';
 
 interface BusinessVerificationDetailsProps {
   onNext?: (data: any) => void;
 }
 
 export default function BusinessVerificationDetails({ onNext }: BusinessVerificationDetailsProps) {
-  const [businessRegNumber, setBusinessRegNumber] = useState('');
-  const [storeName, setStoreName] = useState('');
-  const [businessAddress, setBusinessAddress] = useState('');
-  const [taxId, setTaxId] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { 
+    formData, 
+    error, 
+    setFormData, 
+    clearError 
+  } = useRegistration();
+
+  const [businessRegNumber, setBusinessRegNumber] = useState(formData.businessRegNumber || '');
+  const [storeName, setStoreName] = useState(formData.storeName || '');
+  const [businessAddress, setBusinessAddress] = useState(formData.businessAddress || '');
+  const [taxId, setTaxId] = useState(formData.taxIdNumber || '');
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const navigate = useNavigate();
+
+  // Clear API errors when user starts typing
+  useEffect(() => {
+    if (error) {
+      clearError();
+    }
+  }, [businessRegNumber, storeName, businessAddress, taxId, clearError]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -24,14 +41,23 @@ export default function BusinessVerificationDetails({ onNext }: BusinessVerifica
       newErrors.businessAddress = 'Business address is required';
     }
 
-    setErrors(newErrors);
+    setFormErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      const data = { businessRegNumber, storeName, businessAddress, taxId };
+      const data = { 
+        businessRegNumber, 
+        storeName, 
+        businessAddress, 
+        taxIdNumber: taxId 
+      };
+      
+      // Save data to registration store
+      setFormData(data);
+      
       if (onNext) {
         onNext(data);
       } else {
@@ -43,6 +69,8 @@ export default function BusinessVerificationDetails({ onNext }: BusinessVerifica
 
   return (
     <div className="space-y-6">
+      {error && <ErrorMessage message={error} className="mb-4" />}
+      
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="businessRegNumber" className="block text-sm font-medium text-gray-700 mb-2">
@@ -55,9 +83,9 @@ export default function BusinessVerificationDetails({ onNext }: BusinessVerifica
             value={businessRegNumber}
             onChange={(e) => setBusinessRegNumber(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            placeholder="John Doe"
+            placeholder="RC-12345"
           />
-          {errors.businessRegNumber && <p className="mt-1 text-sm text-red-600">{errors.businessRegNumber}</p>}
+          {formErrors.businessRegNumber && <p className="mt-1 text-sm text-red-600">{formErrors.businessRegNumber}</p>}
         </div>
 
         <div>
@@ -71,24 +99,24 @@ export default function BusinessVerificationDetails({ onNext }: BusinessVerifica
             value={storeName}
             onChange={(e) => setStoreName(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            placeholder="Trisile company"
+            placeholder="Your Store Name"
           />
-          {errors.storeName && <p className="mt-1 text-sm text-red-600">{errors.storeName}</p>}
+          {formErrors.storeName && <p className="mt-1 text-sm text-red-600">{formErrors.storeName}</p>}
         </div>
 
         <div>
           <label htmlFor="businessAddress" className="block text-sm font-medium text-gray-700 mb-2">
             Business Address
           </label>
-          <input
+          <textarea
             id="businessAddress"
-            type="text"
+            rows={3}
             value={businessAddress}
             onChange={(e) => setBusinessAddress(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            placeholder="Trisile company"
+            placeholder="Enter your complete business address"
           />
-          {errors.businessAddress && <p className="mt-1 text-sm text-red-600">{errors.businessAddress}</p>}
+          {formErrors.businessAddress && <p className="mt-1 text-sm text-red-600">{formErrors.businessAddress}</p>}
         </div>
 
         <div>
@@ -102,9 +130,9 @@ export default function BusinessVerificationDetails({ onNext }: BusinessVerifica
             value={taxId}
             onChange={(e) => setTaxId(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            placeholder="080 892 8172 ..."
+            placeholder="Enter your TIN if available"
           />
-          {errors.taxId && <p className="mt-1 text-sm text-red-600">{errors.taxId}</p>}
+          {formErrors.taxId && <p className="mt-1 text-sm text-red-600">{formErrors.taxId}</p>}
         </div>
 
         <button

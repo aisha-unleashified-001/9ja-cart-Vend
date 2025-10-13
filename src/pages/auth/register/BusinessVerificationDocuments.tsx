@@ -114,108 +114,80 @@
 //   );
 // }
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useRegistration } from '@/hooks/useRegistration';
+import { DocumentUpload } from '@/components/ui/DocumentUpload';
+import { LoadingButton } from '@/components/ui/LoadingSpinner';
+import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { validateRegistrationDocuments } from '@/lib/registration.utils';
 
 interface BusinessVerificationDocumentsProps {
   onNext?: (data: any) => void;
 }
 
 export default function BusinessVerificationDocuments({ onNext }: BusinessVerificationDocumentsProps) {
-  const [nationalId, setNationalId] = useState<File | null>(null);
-  const [businessCertificate, setBusinessCertificate] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { 
+    formData, 
+    isLoading, 
+    error, 
+    submitStep3, 
+    clearError 
+  } = useRegistration();
 
-  const handleFileUpload = (type: 'nationalId' | 'businessCertificate') => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (type === 'nationalId') {
-        setNationalId(file);
-      } else {
-        setBusinessCertificate(file);
-      }
+  const [idDocument, setIdDocument] = useState<File | null>(formData.idDocument || null);
+  const [businessRegCertificate, setBusinessRegCertificate] = useState<File | null>(formData.businessRegCertificate || null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const navigate = useNavigate();
+
+  // Clear API errors when user changes files
+  useEffect(() => {
+    if (error) {
+      clearError();
     }
+  }, [idDocument, businessRegCertificate, clearError]);
+
+  const validateDocuments = () => {
+    const errors = validateRegistrationDocuments(idDocument, businessRegCertificate);
+    setValidationErrors(errors);
+    return errors.length === 0;
   };
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
+    if (!validateDocuments()) {
+      return;
+    }
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Submit to API via registration store
+      await submitStep3({
+        emailAddress: formData.emailAddress || '',
+        businessRegNumber: formData.businessRegNumber || '',
+        storeName: formData.storeName || '',
+        businessAddress: formData.businessAddress || '',
+        taxIdNumber: formData.taxIdNumber || '',
+        idDocument: idDocument!,
+        businessRegCertificate: businessRegCertificate!,
+      });
+
+      // Success - navigate to success page
+      toast.success("Registration completed successfully!");
       
-      const data = { nationalId, businessCertificate };
       if (onNext) {
-        onNext(data);
+        onNext({ idDocument, businessRegCertificate });
+      } else {
+        navigate('/register/success');
       }
     } catch (error) {
-      console.error('Submission failed:', error);
-    } finally {
-      setIsSubmitting(false);
+      // Error is handled by the registration store
+      console.error("Step 3 submission failed:", error);
     }
   };
 
-  const FileUploadBox = ({ 
-    label, 
-    file, 
-    onChange, 
-    id 
-  }: { 
-    label: string; 
-    file: File | null; 
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    id: string;
-  }) => (
-    <div className="space-y-3">
-      <label 
-        htmlFor={id}
-        className="flex items-center space-x-4 cursor-pointer group"
-      >
-        {/* Upload Box */}
-        <div className={`
-          w-20 h-20 border-2 border-dashed rounded-lg flex items-center justify-center
-          transition-all duration-200 group-hover:border-green-400
-          ${file ? 'border-green-500 bg-green-50' : 'border-gray-300 bg-gray-50'}
-        `}>
-          {file ? (
-            <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-            </svg>
-          ) : (
-            <svg className="w-6 h-6 text-gray-400 group-hover:text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-            </svg>
-          )}
-        </div>
-        
-        {/* Label */}
-        <div className="flex-1">
-          <p className="text-base font-medium text-gray-900 group-hover:text-green-700 transition-colors">
-            {label}
-          </p>
-          {file && (
-            <p className="text-sm text-green-600 mt-1">
-              ✓ {file.name}
-            </p>
-          )}
-          {!file && (
-            <p className="text-sm text-gray-500 mt-1">
-              Click to upload (PDF, JPG, PNG)
-            </p>
-          )}
-        </div>
-      </label>
-      
-      {/* Hidden File Input */}
-      <input
-        id={id}
-        type="file"
-        accept=".pdf,.jpg,.jpeg,.png"
-        onChange={onChange}
-        className="hidden"
-      />
-    </div>
-  );
-
-  if (isSubmitting) {
+  if (isLoading) {
     return (
       <div className="text-center space-y-4 py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-700 mx-auto"></div>
@@ -226,35 +198,48 @@ export default function BusinessVerificationDocuments({ onNext }: BusinessVerifi
   }
 
   return (
-    <div className="max-w-md mx-auto space-y-8 p-6">
+    <div className="space-y-6">
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold text-gray-900">Document Upload</h1>
-        <p className="text-gray-600">Upload your verification documents</p>
+        <p className="text-gray-600">Upload your verification documents to complete registration</p>
       </div>
 
-      <div className="space-y-6">
-        <FileUploadBox
-          label="Upload your National ID or Government ID"
-          file={nationalId}
-          onChange={handleFileUpload('nationalId')}
-          id="nationalId"
+      {error && <ErrorMessage message={error} />}
+      
+      {validationErrors.length > 0 && (
+        <div className="space-y-1">
+          {validationErrors.map((error, index) => (
+            <ErrorMessage key={index} message={error} />
+          ))}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <DocumentUpload
+          label="ID Document"
+          file={idDocument}
+          onFileChange={setIdDocument}
+          accept="image/*,.pdf"
+          required
         />
 
-        <FileUploadBox
+        <DocumentUpload
           label="Business Registration Certificate"
-          file={businessCertificate}
-          onChange={handleFileUpload('businessCertificate')}
-          id="businessCertificate"
+          file={businessRegCertificate}
+          onFileChange={setBusinessRegCertificate}
+          accept="image/*,.pdf"
+          required
         />
 
-        <button
-          onClick={handleSubmit}
-          disabled={!nationalId || !businessCertificate || isSubmitting}
+        <LoadingButton
+          type="submit"
+          isLoading={isLoading}
+          disabled={!idDocument || !businessRegCertificate}
           className="w-full py-3 px-4 bg-green-700 hover:bg-green-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
-          Submit for Verification
-        </button>
-      </div>
+          {isLoading ? "Submitting..." : "Submit for Verification"}
+        </LoadingButton>
+      </form>
 
       <div className="text-center text-xs text-gray-500">
         By continuing, you agree to 9ja-cart's Conditions of Use and Privacy Notice.

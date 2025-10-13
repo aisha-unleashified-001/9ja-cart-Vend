@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
+import { useRegistration } from "@/hooks/useRegistration";
+import { LoadingButton } from "@/components/ui/LoadingSpinner";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
 
 interface RegisterEmailPasswordProps {
   onNext: (data: {
@@ -14,12 +18,28 @@ export default function RegisterEmailPassword({
   onNext,
   initialData,
 }: RegisterEmailPasswordProps) {
-  const [email, setEmail] = useState(initialData?.email || "");
+  const { 
+    formData, 
+    isLoading, 
+    error, 
+    submitStep1, 
+ 
+    clearError 
+  } = useRegistration();
+
+  const [email, setEmail] = useState(initialData?.email || formData.emailAddress || "");
   const [password, setPassword] = useState(initialData?.password || "");
   const [confirmPassword, setConfirmPassword] = useState(
     initialData?.confirmPassword || ""
   );
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Clear API errors when user starts typing
+  useEffect(() => {
+    if (error) {
+      clearError();
+    }
+  }, [email, password, confirmPassword, clearError]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -42,14 +62,31 @@ export default function RegisterEmailPassword({
       newErrors.confirmPassword = "Passwords do not match";
     }
 
-    setErrors(newErrors);
+    setFormErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      // Submit to API via registration store
+      await submitStep1({
+        emailAddress: email,
+        password,
+        confirmPassword,
+      });
+
+      // Success - call onNext for UI navigation
+      toast.success("Account created successfully!");
       onNext({ email, password, confirmPassword });
+    } catch (error) {
+      // Error is handled by the registration store
+      console.error("Step 1 submission failed:", error);
     }
   };
 
@@ -69,6 +106,8 @@ export default function RegisterEmailPassword({
         </p>
       </div>
 
+      {error && <ErrorMessage message={error} className="mb-4" />}
+
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
           <label
@@ -82,11 +121,12 @@ export default function RegisterEmailPassword({
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            disabled={isLoading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
             placeholder="Enter your email"
           />
-          {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+          {formErrors.email && (
+            <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
           )}
         </div>
 
@@ -102,11 +142,12 @@ export default function RegisterEmailPassword({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            disabled={isLoading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
             placeholder="Create a password"
           />
-          {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+          {formErrors.password && (
+            <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
           )}
         </div>
 
@@ -122,22 +163,24 @@ export default function RegisterEmailPassword({
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            disabled={isLoading}
+            className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
             placeholder="Confirm your password"
           />
-          {errors.confirmPassword && (
+          {formErrors.confirmPassword && (
             <p className="mt-1 text-sm text-red-600">
-              {errors.confirmPassword}
+              {formErrors.confirmPassword}
             </p>
           )}
         </div>
 
-        <button
+        <LoadingButton
           type="submit"
-          className="w-full py-3 px-4 bg-primary hover:bg-primary/90  text-white font-medium rounded-md transition-colors focus:outline-none"
+          isLoading={isLoading}
+          className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-md transition-colors focus:outline-none"
         >
-          Continue
-        </button>
+          {isLoading ? "Creating Account..." : "Continue"}
+        </LoadingButton>
       </form>
       <button
         type="button"

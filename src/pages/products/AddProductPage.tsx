@@ -1,49 +1,138 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
+import { LoadingButton } from '@/components/ui/LoadingSpinner';
+import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { ImageUpload } from '@/components/ui/ImageUpload';
+import { TagsInput } from '@/components/ui/TagsInput';
+import type { CreateProductRequest } from '@/types';
+
+interface ProductForm {
+  productName: string;
+  categoryId: string;
+  productDescription: string;
+  unitPrice: string;
+  discountType: string;
+  discountValue: string;
+  stock: string;
+  minStock: string;
+  productTags: string[];
+  images: File[];
+}
 
 export default function AddProductPage() {
   const navigate = useNavigate();
-  const [product, setProduct] = useState({
-    name: '',
-    description: '',
-    price: '',
-    comparePrice: '',
-    cost: '',
-    sku: '',
-    barcode: '',
-    trackQuantity: true,
-    quantity: '',
-    category: '',
-    tags: '',
-    weight: '',
-    dimensions: {
-      length: '',
-      width: '',
-      height: ''
-    },
-    seoTitle: '',
-    seoDescription: '',
-    status: 'draft'
+  const { createProduct, isLoading: isCreating } = useProducts();
+  const { categories, isLoading: categoriesLoading, fetchCategories } = useCategories();
+
+  const [form, setForm] = useState<ProductForm>({
+    productName: '',
+    categoryId: '',
+    productDescription: '',
+    unitPrice: '',
+    discountType: '1', // Default to percentage
+    discountValue: '0',
+    stock: '',
+    minStock: '',
+    productTags: [],
+    images: [],
   });
 
-  const [images, setImages] = useState<File[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Creating product:', product);
-    // Handle product creation logic here
-    navigate('/products');
+  // Load categories on component mount
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!form.productName.trim()) {
+      newErrors.productName = 'Product name is required';
+    }
+
+    if (!form.categoryId) {
+      newErrors.categoryId = 'Please select a category';
+    }
+
+    if (!form.productDescription.trim()) {
+      newErrors.productDescription = 'Product description is required';
+    }
+
+    if (!form.unitPrice || parseFloat(form.unitPrice) <= 0) {
+      newErrors.unitPrice = 'Please enter a valid price';
+    }
+
+    if (!form.stock || parseInt(form.stock) < 0) {
+      newErrors.stock = 'Please enter a valid stock quantity';
+    }
+
+    if (!form.minStock || parseInt(form.minStock) < 0) {
+      newErrors.minStock = 'Please enter a valid minimum stock';
+    }
+
+    if (form.images.length === 0) {
+      newErrors.images = 'At least one product image is required';
+    }
+
+    if (form.productTags.length === 0) {
+      newErrors.productTags = 'At least one tag is required';
+    }
+
+    // Validate discount
+    if (form.discountValue && parseFloat(form.discountValue) > 0) {
+      if (form.discountType === '1' && parseFloat(form.discountValue) > 100) {
+        newErrors.discountValue = 'Percentage discount cannot exceed 100%';
+      }
+      if (form.discountType === '2' && parseFloat(form.discountValue) >= parseFloat(form.unitPrice)) {
+        newErrors.discountValue = 'Fixed discount cannot be greater than or equal to the price';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newImages = Array.from(e.target.files);
-      setImages(prev => [...prev, ...newImages]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form');
+      return;
+    }
+
+    try {
+      const productData: CreateProductRequest = {
+        productName: form.productName,
+        categoryId: form.categoryId,
+        productDescription: form.productDescription,
+        productTags: form.productTags,
+        unitPrice: form.unitPrice,
+        discountType: form.discountValue === '0' ? undefined : form.discountType,
+        discountValue: form.discountValue === '0' ? undefined : form.discountValue,
+        stock: form.stock,
+        minStock: form.minStock,
+        images: form.images,
+        isActive: '1', // Active by default
+      };
+
+      await createProduct(productData);
+      toast.success('Product created successfully!');
+      navigate('/products');
+    } catch (error) {
+      toast.error('Failed to create product. Please try again.');
     }
   };
 
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+  const updateForm = (field: keyof ProductForm, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   return (
@@ -53,25 +142,31 @@ export default function AddProductPage() {
           <h1 className="text-2xl font-bold text-foreground">Add Product</h1>
           <p className="text-muted-foreground">Create a new product for your store</p>
         </div>
-        <div className="flex space-x-2">
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Action Buttons */}
+        <div className="flex justify-end space-x-2">
           <button
+            type="button"
             onClick={() => navigate('/products')}
-            className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors"
+            disabled={isCreating}
+            className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
-          <button
-            onClick={handleSubmit}
+          <LoadingButton
+            type="submit"
+            isLoading={isCreating}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
           >
-            Save Product
-          </button>
+            {isCreating ? 'Creating...' : 'Create Product'}
+          </LoadingButton>
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
           {/* Basic Information */}
           <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4">Basic Information</h2>
@@ -82,25 +177,28 @@ export default function AddProductPage() {
                 </label>
                 <input
                   type="text"
-                  value={product.name}
-                  onChange={(e) => setProduct(prev => ({ ...prev, name: e.target.value }))}
+                  value={form.productName}
+                  onChange={(e) => updateForm('productName', e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                   placeholder="Enter product name"
-                  required
+                  disabled={isCreating}
                 />
+                {errors.productName && <ErrorMessage message={errors.productName} className="mt-1" />}
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Description
+                  Description *
                 </label>
                 <textarea
                   rows={4}
-                  value={product.description}
-                  onChange={(e) => setProduct(prev => ({ ...prev, description: e.target.value }))}
+                  value={form.productDescription}
+                  onChange={(e) => updateForm('productDescription', e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                   placeholder="Describe your product"
+                  disabled={isCreating}
                 />
+                {errors.productDescription && <ErrorMessage message={errors.productDescription} className="mt-1" />}
               </div>
             </div>
           </div>
@@ -108,269 +206,213 @@ export default function AddProductPage() {
           {/* Pricing */}
           <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4">Pricing</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Price *
+                  Unit Price (₦) *
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  value={product.price}
-                  onChange={(e) => setProduct(prev => ({ ...prev, price: e.target.value }))}
+                  min="0"
+                  value={form.unitPrice}
+                  onChange={(e) => updateForm('unitPrice', e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                   placeholder="0.00"
-                  required
+                  disabled={isCreating}
                 />
+                {errors.unitPrice && <ErrorMessage message={errors.unitPrice} className="mt-1" />}
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">
-                  Compare at Price
+                  Discount Type
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={product.comparePrice}
-                  onChange={(e) => setProduct(prev => ({ ...prev, comparePrice: e.target.value }))}
+                <select
+                  value={form.discountType}
+                  onChange={(e) => updateForm('discountType', e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  placeholder="0.00"
-                />
+                  disabled={isCreating}
+                >
+                  <option value="1">Percentage (%)</option>
+                  <option value="2">Fixed Amount (₦)</option>
+                </select>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Cost per Item
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={product.cost}
-                  onChange={(e) => setProduct(prev => ({ ...prev, cost: e.target.value }))}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  placeholder="0.00"
-                />
-              </div>
+            </div>
+            
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-foreground mb-1">
+                Discount Value
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={form.discountValue}
+                onChange={(e) => updateForm('discountValue', e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                placeholder="0"
+                disabled={isCreating}
+              />
+              {errors.discountValue && <ErrorMessage message={errors.discountValue} className="mt-1" />}
+              <p className="text-xs text-muted-foreground mt-1">
+                {form.discountType === '1' ? 'Enter percentage (0-100)' : 'Enter fixed discount amount'}
+              </p>
             </div>
           </div>
 
           {/* Inventory */}
           <div className="bg-card border border-border rounded-lg p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4">Inventory</h2>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    SKU
-                  </label>
-                  <input
-                    type="text"
-                    value={product.sku}
-                    onChange={(e) => setProduct(prev => ({ ...prev, sku: e.target.value }))}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Enter SKU"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Barcode
-                  </label>
-                  <input
-                    type="text"
-                    value={product.barcode}
-                    onChange={(e) => setProduct(prev => ({ ...prev, barcode: e.target.value }))}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Enter barcode"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="trackQuantity"
-                  checked={product.trackQuantity}
-                  onChange={(e) => setProduct(prev => ({ ...prev, trackQuantity: e.target.checked }))}
-                  className="h-4 w-4 text-primary focus:ring-ring border-border rounded"
-                />
-                <label htmlFor="trackQuantity" className="ml-2 block text-sm text-foreground">
-                  Track quantity
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Stock Quantity *
                 </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.stock}
+                  onChange={(e) => updateForm('stock', e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  placeholder="0"
+                  disabled={isCreating}
+                />
+                {errors.stock && <ErrorMessage message={errors.stock} className="mt-1" />}
               </div>
               
-              {product.trackQuantity && (
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    value={product.quantity}
-                    onChange={(e) => setProduct(prev => ({ ...prev, quantity: e.target.value }))}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="0"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Minimum Stock *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.minStock}
+                  onChange={(e) => updateForm('minStock', e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  placeholder="0"
+                  disabled={isCreating}
+                />
+                {errors.minStock && <ErrorMessage message={errors.minStock} className="mt-1" />}
+              </div>
             </div>
           </div>
 
-          {/* Images */}
+          {/* Product Images */}
           <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Product Images</h2>
-            <div className="space-y-4">
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label htmlFor="image-upload" className="cursor-pointer">
-                  <div className="text-4xl mb-2">📷</div>
-                  <p className="text-foreground font-medium mb-1">Add product images</p>
-                  <p className="text-sm text-muted-foreground">
-                    Drag and drop or click to upload
-                  </p>
-                </label>
-              </div>
-              
-              {images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {images.map((image, index) => (
-                    <div key={index} className="relative">
-                      <div className="aspect-square bg-secondary rounded-lg flex items-center justify-center">
-                        <span className="text-2xl">🖼️</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600"
-                      >
-                        ×
-                      </button>
-                      <p className="text-xs text-muted-foreground mt-1 truncate">
-                        {image.name}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Product Images *</h2>
+            <ImageUpload
+              images={form.images}
+              onImagesChange={(images) => updateForm('images', images)}
+              maxImages={5}
+            />
+            {errors.images && <ErrorMessage message={errors.images} className="mt-2" />}
+          </div>
+
+          {/* Product Tags */}
+          <div className="bg-card border border-border rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Product Tags *</h2>
+            <TagsInput
+              tags={form.productTags}
+              onTagsChange={(tags) => updateForm('productTags', tags)}
+              placeholder="Add product tags..."
+              maxTags={10}
+            />
+            {errors.productTags && <ErrorMessage message={errors.productTags} className="mt-2" />}
           </div>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Status */}
+          {/* Category */}
           <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Status</h2>
-            <select
-              value={product.status}
-              onChange={(e) => setProduct(prev => ({ ...prev, status: e.target.value }))}
-              className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-            >
-              <option value="draft">Draft</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </select>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Category *</h2>
+            {categoriesLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                <span className="ml-2 text-sm text-muted-foreground">Loading categories...</span>
+              </div>
+            ) : (
+              <select
+                value={form.categoryId}
+                onChange={(e) => updateForm('categoryId', e.target.value)}
+                className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                disabled={isCreating}
+              >
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category.categoryId} value={category.categoryId}>
+                    {category.categoryName}
+                  </option>
+                ))}
+              </select>
+            )}
+            {errors.categoryId && <ErrorMessage message={errors.categoryId} className="mt-1" />}
           </div>
 
-          {/* Organization */}
+          {/* Product Status */}
           <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Organization</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Category
-                </label>
-                <input
-                  type="text"
-                  value={product.category}
-                  onChange={(e) => setProduct(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  placeholder="Enter category"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Tags
-                </label>
-                <input
-                  type="text"
-                  value={product.tags}
-                  onChange={(e) => setProduct(prev => ({ ...prev, tags: e.target.value }))}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  placeholder="Enter tags separated by commas"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Shipping */}
-          <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Shipping</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Weight
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={product.weight}
-                  onChange={(e) => setProduct(prev => ({ ...prev, weight: e.target.value }))}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  placeholder="0.0 kg"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Dimensions
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={product.dimensions.length}
-                    onChange={(e) => setProduct(prev => ({ 
-                      ...prev, 
-                      dimensions: { ...prev.dimensions, length: e.target.value }
-                    }))}
-                    className="px-2 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
-                    placeholder="L"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={product.dimensions.width}
-                    onChange={(e) => setProduct(prev => ({ 
-                      ...prev, 
-                      dimensions: { ...prev.dimensions, width: e.target.value }
-                    }))}
-                    className="px-2 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
-                    placeholder="W"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={product.dimensions.height}
-                    onChange={(e) => setProduct(prev => ({ 
-                      ...prev, 
-                      dimensions: { ...prev.dimensions, height: e.target.value }
-                    }))}
-                    className="px-2 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent text-sm"
-                    placeholder="H"
-                  />
+            <h2 className="text-lg font-semibold text-foreground mb-4">Product Status</h2>
+            <div className="space-y-2">
+              <div className="flex items-center p-3 bg-green-50 border border-green-200 rounded-md">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                <div>
+                  <p className="text-sm font-medium text-green-800">Active</p>
+                  <p className="text-xs text-green-600">Product will be visible to customers</p>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Form Summary */}
+          <div className="bg-card border border-border rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Summary</h2>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Images:</span>
+                <span className="text-foreground">{form.images.length}/5</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tags:</span>
+                <span className="text-foreground">{form.productTags.length}/10</span>
+              </div>
+              {form.unitPrice && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Price:</span>
+                  <span className="text-foreground">₦{parseFloat(form.unitPrice).toLocaleString()}</span>
+                </div>
+              )}
+              {form.discountValue && parseFloat(form.discountValue) > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Discount:</span>
+                  <span className="text-foreground">
+                    {form.discountType === '1' ? `${form.discountValue}%` : `₦${parseFloat(form.discountValue).toLocaleString()}`}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        </div>
+
+        {/* Bottom Action Buttons */}
+        <div className="flex justify-end space-x-2 pt-6 border-t border-border">
+          <button
+            type="button"
+            onClick={() => navigate('/products')}
+            disabled={isCreating}
+            className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <LoadingButton
+            type="submit"
+            isLoading={isCreating}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            {isCreating ? 'Creating...' : 'Create Product'}
+          </LoadingButton>
         </div>
       </form>
     </div>

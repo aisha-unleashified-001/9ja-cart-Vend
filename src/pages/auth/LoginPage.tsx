@@ -1,22 +1,70 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { LoadingButton } from '@/components/ui/LoadingSpinner';
+import { ErrorMessage } from '@/components/ui/ErrorMessage';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [emailAddress, setEmailAddress] = useState('');
   const [password, setPassword] = useState('');
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  
+  const { login, isLoading, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, location]);
+
+  // Clear errors when component mounts or form changes
+  useEffect(() => {
+    clearError();
+  }, [clearError]);
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+
+    if (!emailAddress.trim()) {
+      errors.emailAddress = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(emailAddress)) {
+      errors.emailAddress = 'Please enter a valid email address';
+    }
+
+    if (!password.trim()) {
+      errors.password = 'Password is required';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login attempt:', { email, password });
-    // Navigate to dashboard on successful login
-    navigate('/dashboard');
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      await login({ emailAddress, password });
+      toast.success('Login successful!');
+      
+      // Navigation is handled by the useEffect above
+    } catch (error) {
+      // Error is handled by the auth context and displayed via the error state
+      console.error('Login failed:', error);
+    }
   };
 
   const handleGoogleLogin = () => {
     // Handle Google login logic here
-    console.log('Google login attempt');
+    toast('Google login coming soon!');
   };
 
   return (
@@ -24,22 +72,31 @@ export default function LoginPage() {
       <div className="text-left">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
       </div>
+
+      {error && <ErrorMessage message={error} />}
       
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-            Email or mobile phone number
+          <label htmlFor="emailAddress" className="block text-sm font-medium text-gray-700 mb-2">
+            Email address
           </label>
           <input
-            id="email"
-            name="email"
+            id="emailAddress"
+            name="emailAddress"
             type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={emailAddress}
+            onChange={(e) => {
+              setEmailAddress(e.target.value);
+              if (formErrors.emailAddress) {
+                setFormErrors(prev => ({ ...prev, emailAddress: '' }));
+              }
+            }}
             className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="johndoe123@gmail.com"
+            placeholder="john.doe@example.com"
           />
+          {formErrors.emailAddress && (
+            <p className="mt-1 text-sm text-red-600">{formErrors.emailAddress}</p>
+          )}
         </div>
         
         <div>
@@ -50,20 +107,28 @@ export default function LoginPage() {
             id="password"
             name="password"
             type="password"
-            required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (formErrors.password) {
+                setFormErrors(prev => ({ ...prev, password: '' }));
+              }
+            }}
             className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="johndoe123@gmail.com"
+            placeholder="Enter your password"
           />
+          {formErrors.password && (
+            <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
+          )}
         </div>
 
-        <button
+        <LoadingButton
           type="submit"
-          className="w-full py-3 px-4 bg-primary hover:bg-primary/90  text-white font-medium rounded-md transition-colors focus:outline-none"
+          isLoading={isLoading}
+          className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-md transition-colors focus:outline-none"
         >
-          Login
-        </button>
+          {isLoading ? 'Signing in...' : 'Login'}
+        </LoadingButton>
 
         <button
           type="button"
