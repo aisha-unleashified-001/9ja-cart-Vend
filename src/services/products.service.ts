@@ -1,5 +1,7 @@
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants';
+import { environment } from '@/config/environment';
+import { tokenStorage } from '@/lib/auth.utils';
 import { createProductPayload, createEditProductPayload, validateProductData } from '@/lib/productData.utils';
 import { createImageFormData, validateProductImages } from '@/lib/imageUpload.utils';
 import type { 
@@ -90,19 +92,13 @@ export class ProductsService {
 
   async createProduct(productData: CreateProductRequest): Promise<Product> {
     try {
-      // Validate product data
+      // Validate product data (excluding images for now)
       const validationErrors = validateProductData(productData);
       if (validationErrors.length > 0) {
         throw new Error(validationErrors.join(', '));
       }
 
-      // Validate images
-      const imageErrors = validateProductImages(productData.images);
-      if (imageErrors.length > 0) {
-        throw new Error(imageErrors.join(', '));
-      }
-
-      // Step 1: Create product (JSON)
+      // Create product (JSON only - no images)
       const productPayload = createProductPayload(productData);
       const createResponse = await apiClient.post<Product>(
         API_ENDPOINTS.PRODUCTS.CREATE,
@@ -114,17 +110,7 @@ export class ProductsService {
         throw new Error(createResponse.message || 'Failed to create product');
       }
 
-      const createdProduct = createResponse.data;
-
-      // Step 2: Upload images (FormData)
-      if (productData.images.length > 0) {
-        await this.uploadProductImages({
-          productId: createdProduct.productId,
-          images: productData.images
-        });
-      }
-
-      return createdProduct;
+      return createResponse.data;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create product';
       throw new Error(errorMessage);
@@ -142,49 +128,45 @@ export class ProductsService {
         throw new Error('No images provided for upload');
       }
 
-      // Validate each image
-      for (const image of uploadData.images) {
-        if (!image || !(image instanceof File)) {
-          throw new Error('Invalid image file provided');
-        }
-        if (image.size === 0) {
-          throw new Error(`Image ${image.name} is empty`);
-        }
+      // Validate images
+      const imageErrors = validateProductImages(uploadData.images);
+      if (imageErrors.length > 0) {
+        throw new Error(imageErrors.join(', '));
       }
 
+      // Create FormData with indexed field names like the working test
       const formData = createImageFormData(uploadData.images);
 
-      // Debug: Log what we're sending
       console.log('🔍 Uploading images for product:', uploadData.productId);
       console.log('🔍 Number of images:', uploadData.images.length);
-      console.log('🔍 FormData entries:');
-      for (const [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value instanceof File ? `File(${value.name}, ${value.size} bytes)` : value);
+
+      // Get current user token
+      const token = tokenStorage.get();
+      if (!token) {
+        throw new Error('Authentication required for image upload');
       }
 
-      const response = await apiClient.post(
-        `${API_ENDPOINTS.PRODUCTS.UPLOAD_IMAGES}/${uploadData.productId}`,
-        formData,
-        { 
-          requiresAuth: true,
-          isFormData: true
+      // Use fetch directly like the working test for reliability
+      const response = await fetch(
+        `${environment.apiBaseUrl}${API_ENDPOINTS.PRODUCTS.UPLOAD_IMAGES}/${uploadData.productId}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
         }
       );
 
-      if (response.error) {
-        console.error('❌ Image upload failed:', response);
-        throw new Error(response.message || 'Failed to upload product images');
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to upload product images');
       }
 
       console.log('✅ Images uploaded successfully');
     } catch (error) {
       console.error('❌ Image upload error:', error);
-      
-      // If it's an API error with response data, log more details
-      if (error && typeof error === 'object' && 'response' in error) {
-        console.error('❌ Full error response:', (error as any).response);
-      }
-      
       const errorMessage = error instanceof Error ? error.message : 'Failed to upload product images';
       throw new Error(errorMessage);
     }
@@ -192,9 +174,9 @@ export class ProductsService {
 
   async updateProduct(productData: UpdateProductRequest): Promise<Product> {
     try {
-      const { productId, images, ...updateData } = productData;
+      const { productId, ...updateData } = productData;
       
-      // Step 1: Update product data (JSON) using new edit endpoint
+      // Update product data (JSON only - images handled separately)
       const editPayload = createEditProductPayload(updateData);
       const response = await apiClient.put<Product>(
         `${API_ENDPOINTS.PRODUCTS.EDIT}/${productId}`,
@@ -204,14 +186,6 @@ export class ProductsService {
 
       if (response.error || !response.data) {
         throw new Error(response.message || 'Failed to update product');
-      }
-
-      // Step 2: Upload new images if provided
-      if (images && images.length > 0) {
-        await this.uploadProductImages({
-          productId,
-          images
-        });
       }
 
       return response.data;

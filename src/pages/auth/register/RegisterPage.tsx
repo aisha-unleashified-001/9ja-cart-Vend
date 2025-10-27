@@ -78,15 +78,31 @@ export default function RegisterPage() {
   const validateStep = (step: number): boolean => {
     // Basic validation for UI flow - detailed validation handled by API
     if (step === 1) {
-      return !!(formData.emailAddress && formData.password && formData.confirmPassword);
+      const isValid = !!(formData.emailAddress && formData.password && formData.confirmPassword);
+      if (!isValid) {
+        toast.error('Please fill in all required fields');
+      }
+      if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
+        toast.error('Passwords do not match');
+        return false;
+      }
+      return isValid;
     }
     
     if (step === 2) {
-      return !!(formData.fullName && formData.businessName && formData.businessCategory && formData.phoneNumber);
+      const isValid = !!(formData.fullName && formData.businessName && formData.businessCategory && formData.phoneNumber);
+      if (!isValid) {
+        toast.error('Please fill in all required fields');
+      }
+      return isValid;
     }
     
     if (step === 3) {
-      return !!(formData.storeName && formData.businessAddress && formData.idDocument && formData.businessRegCertificate);
+      const isValid = !!(formData.storeName && formData.businessAddress && formData.idDocument && formData.businessRegCertificate);
+      if (!isValid) {
+        toast.error('Please fill in all required fields and upload documents');
+      }
+      return isValid;
     }
     
     return true;
@@ -128,16 +144,21 @@ export default function RegisterPage() {
     e.preventDefault();
     
     if (!validateStep(3)) {
+      toast.error('Please complete all required fields');
+      return;
+    }
+
+    // Validate required files
+    if (!formData.idDocument || !formData.businessRegCertificate) {
+      toast.error('Please upload both required documents');
       return;
     }
 
     setIsLoading(true);
     setApiError(null);
+    setFormErrors({});
 
     try {
-      // Clear any existing errors
-      setFormErrors({});
-      
       // Prepare complete registration data
       const registrationData: CompleteRegistrationData = {
         emailAddress: formData.emailAddress,
@@ -150,25 +171,39 @@ export default function RegisterPage() {
         storeName: formData.storeName,
         businessAddress: formData.businessAddress,
         taxIdNumber: formData.taxIdNumber || '',
-        idDocument: formData.idDocument!,
-        businessRegCertificate: formData.businessRegCertificate!,
+        idDocument: formData.idDocument,
+        businessRegCertificate: formData.businessRegCertificate,
       };
 
+      console.log('🚀 Submitting registration with data:', {
+        ...registrationData,
+        idDocument: registrationData.idDocument ? `File: ${registrationData.idDocument.name}` : 'None',
+        businessRegCertificate: registrationData.businessRegCertificate ? `File: ${registrationData.businessRegCertificate.name}` : 'None',
+      });
+
       // Submit to API
-      await registrationService.submitCompleteRegistration(registrationData);
+      const result = await registrationService.submitCompleteRegistration(registrationData);
+      
+      console.log('✅ Registration successful:', result);
 
       // Success
       toast.success('Registration completed successfully!');
       navigate('/register/success');
     } catch (error) {
+      console.error('❌ Registration failed:', error);
+      
       if (error instanceof RegistrationError) {
         // Handle field-specific validation errors
         setFormErrors(error.fieldErrors);
         setApiError(error.message);
         
-        // Show field errors in toast
+        // Show specific error message
         const errorCount = Object.keys(error.fieldErrors).length;
-        toast.error(`Please fix ${errorCount} error${errorCount > 1 ? 's' : ''} in the form`);
+        if (errorCount > 0) {
+          toast.error(`Please fix ${errorCount} error${errorCount > 1 ? 's' : ''} in the form`);
+        } else {
+          toast.error(error.message);
+        }
       } else {
         // Handle general errors
         const errorMessage = error instanceof Error ? error.message : 'Registration failed';

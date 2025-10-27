@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { productsService } from "@/services/products.service";
 import type {
+  Product,
   ProductsQuery,
   ProductsState,
   CreateProductRequest,
@@ -15,7 +16,7 @@ interface ProductsStore extends ProductsState {
   fetchProducts: (query?: ProductsQuery) => Promise<void>;
   fetchProduct: (productId: string) => Promise<void>;
   fetchProductDetails: (productId: string) => Promise<void>;
-  createProduct: (productData: CreateProductRequest) => Promise<void>;
+  createProduct: (productData: CreateProductRequest) => Promise<Product>;
   updateProduct: (productData: UpdateProductRequest) => Promise<void>;
   deleteProduct: (productId: string) => Promise<void>;
   toggleProductStatus: (productId: string, isActive: boolean) => Promise<void>;
@@ -119,18 +120,13 @@ export const useProductsStore = create<ProductsStore>()(
         }
       },
 
-      createProduct: async (productData: CreateProductRequest) => {
+      createProduct: async (productData: CreateProductRequest): Promise<Product> => {
         set({ isLoading: true, error: null, loadingStep: "Creating product..." });
 
         try {
           // Step 1: Create product
           set({ loadingStep: "Creating product..." });
           const newProduct = await productsService.createProduct(productData);
-
-          // Step 2: Upload images (handled internally by service)
-          if (productData.images.length > 0) {
-            set({ loadingStep: "Uploading images..." });
-          }
 
           // Add to products list if we're on the first page
           const currentState = get();
@@ -148,6 +144,8 @@ export const useProductsStore = create<ProductsStore>()(
               error: null 
             });
           }
+
+          return newProduct;
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Failed to create product";

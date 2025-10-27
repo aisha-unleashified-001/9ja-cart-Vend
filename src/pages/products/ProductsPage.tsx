@@ -13,6 +13,7 @@ import {
   getStockStatusColor,
   truncateText,
 } from "@/lib/product.utils";
+import { ProductImage } from "@/components/products/ProductImage";
 
 export default function ProductsPage() {
   // Use direct store access to avoid hook re-render issues
@@ -131,35 +132,11 @@ export default function ProductsPage() {
                 key={product.productId}
                 className="bg-card border border-border rounded-lg overflow-hidden"
               >
-                {/* Temporarily commented out images */}
-                <div className="aspect-square bg-secondary/20 flex items-center justify-center overflow-hidden">
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">📦</div>
-                      <div className="text-sm">Product Image</div>
-                    </div>
-                  </div>
-                </div>
-                {/* 
-                {product.images && product.images.length > 0 ? (
-                  <img
-                    src={primaryImage}
-                    alt={product.productName}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "/api/placeholder/300/300";
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-400">
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">📷</div>
-                      <div className="text-sm">No Image</div>
-                    </div>
-                  </div>
-                )}
-                */}
+                <ProductImage
+                  images={product.images || []}
+                  productName={product.productName}
+                  className="aspect-square bg-secondary/20 rounded-t-lg"
+                />
                 <div className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <h3

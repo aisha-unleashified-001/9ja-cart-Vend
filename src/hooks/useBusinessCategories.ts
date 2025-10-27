@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { businessCategoriesService } from '@/services/business-categories.service';
-import type { BusinessCategory } from '@/types/business-category.types';
+import { useState, useCallback } from "react";
+import { businessCategoriesService } from "@/services/business-categories.service";
+import type { BusinessCategory } from "@/types/business-category.types";
 
 export const useBusinessCategories = () => {
   const [categories, setCategories] = useState<BusinessCategory[]>([]);
@@ -10,22 +10,30 @@ export const useBusinessCategories = () => {
   const fetchCategories = useCallback(async () => {
     if (categories.length > 0) {
       // Categories already loaded
+      console.log("🏷️ Categories already loaded:", categories);
       return;
     }
 
+    console.log("🏷️ Fetching business categories...");
     setIsLoading(true);
     setError(null);
 
     try {
-      const fetchedCategories = await businessCategoriesService.getBusinessCategories();
+      const fetchedCategories =
+        await businessCategoriesService.getBusinessCategories();
+      console.log("🏷️ Fetched categories:", fetchedCategories);
       setCategories(fetchedCategories);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load business categories';
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Failed to load business categories";
+      console.error("🏷️ Error fetching categories:", err);
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [categories.length]);
+  }, [categories]);
 
   const clearError = useCallback(() => {
     setError(null);

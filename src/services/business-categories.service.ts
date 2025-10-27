@@ -1,11 +1,11 @@
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants';
-import type { BusinessCategory, BusinessCategoriesApiResponse } from '@/types/business-category.types';
+import type { BusinessCategory } from '@/types/business-category.types';
 
 export class BusinessCategoriesService {
   async getBusinessCategories(): Promise<BusinessCategory[]> {
     try {
-      const response = await apiClient.get<BusinessCategoriesApiResponse>(
+      const response = await apiClient.get<BusinessCategory[]>(
         API_ENDPOINTS.BUSINESS.CATEGORIES,
         {
           requiresAuth: false, // Uses Basic Auth from config
@@ -20,11 +20,14 @@ export class BusinessCategoriesService {
         status: response.status,
         error: response.error,
         message: response.message,
-        dataCount: response.data?.data?.length || 0,
-        sampleCategory: response.data?.data?.[0]
+        rawResponse: response,
+        dataCount: response.data?.length || 0,
+        sampleCategory: response.data?.[0]
       });
 
-      return response.data?.data || [];
+      // The API client returns {status, error, message, data}
+      // The categories are in response.data
+      return response.data || [];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch business categories';
       throw new Error(errorMessage);

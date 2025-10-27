@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProductsStore } from "@/stores/productsStore";
 import { useCategories } from "@/hooks/useCategories";
+import { productsService } from "@/services/products.service";
 import { LoadingButton } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -165,12 +166,28 @@ export default function EditProductPage() {
         discountValue: form.discountValue === "0" ? undefined : form.discountValue,
         stock: form.stock,
         minStock: form.minStock,
-        images: form.images.length > 0 ? form.images : undefined, // Only include if new images
+        images: [], // Images handled separately
         isActive: form.isActive,
       };
 
       await updateProduct(productData);
-      toast.success("Product updated successfully!");
+      
+      // If user selected new images, upload them after product update
+      if (form.images.length > 0) {
+        try {
+          await productsService.uploadProductImages({
+            productId: id,
+            images: form.images
+          });
+          toast.success("Product and images updated successfully!");
+        } catch (imageError) {
+          console.error('Image upload failed:', imageError);
+          toast.success("Product updated successfully, but image upload failed. You can try uploading images again.");
+        }
+      } else {
+        toast.success("Product updated successfully!");
+      }
+      
       navigate(`/products/${id}`);
     } catch {
       toast.error("Failed to update product. Please try again.");

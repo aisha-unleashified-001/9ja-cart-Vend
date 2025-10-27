@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProducts } from "@/hooks/useProducts";
+import { productsService } from "@/services/products.service";
 import { useCategories } from "@/hooks/useCategories";
 import { LoadingButton } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -78,9 +79,7 @@ export default function AddProductPage() {
       newErrors.minStock = "Please enter a valid minimum stock";
     }
 
-    if (form.images.length === 0) {
-      newErrors.images = "At least one product image is required";
-    }
+    // Images are no longer required during creation - they can be added later
 
     if (form.productTags.length === 0) {
       newErrors.productTags = "At least one tag is required";
@@ -125,12 +124,28 @@ export default function AddProductPage() {
           form.discountValue === "0" ? undefined : form.discountValue,
         stock: form.stock,
         minStock: form.minStock,
-        images: form.images,
+        images: [], // No images during creation
         isActive: "1", // Active by default
       };
 
-      await createProduct(productData);
-      toast.success("Product created successfully!");
+      const createdProduct = await createProduct(productData);
+      
+      // If user selected images, upload them after product creation
+      if (form.images.length > 0) {
+        try {
+          await productsService.uploadProductImages({
+            productId: createdProduct.productId,
+            images: form.images
+          });
+          toast.success("Product created with images successfully!");
+        } catch (imageError) {
+          console.error('Image upload failed:', imageError);
+          toast.success("Product created successfully, but image upload failed. You can add images later.");
+        }
+      } else {
+        toast.success("Product created successfully! You can add images later.");
+      }
+      
       navigate("/products");
     } catch {
       toast.error("Failed to create product. Please try again.");
@@ -345,8 +360,11 @@ export default function AddProductPage() {
             {/* Product Images */}
             <div className="bg-card border border-border rounded-lg p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">
-                Product Images *
+                Product Images (Optional)
               </h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                You can add images now or upload them later after creating the product.
+              </p>
               <ImageUpload
                 images={form.images}
                 onImagesChange={(images) => updateForm("images", images)}
@@ -438,7 +456,7 @@ export default function AddProductPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Images:</span>
                   <span className="text-foreground">
-                    {form.images.length}/5
+                    {form.images.length}/5 {form.images.length === 0 ? "(optional)" : ""}
                   </span>
                 </div>
                 <div className="flex justify-between">

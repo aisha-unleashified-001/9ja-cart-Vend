@@ -1,9 +1,8 @@
-import { apiClient } from "@/lib/api/client";
+import { environment } from "@/config/environment";
 import { API_ENDPOINTS } from "@/lib/constants";
 import type {
   CompleteRegistrationData,
   RegistrationApiResponse,
-  RegistrationApiError,
   RegistrationFieldErrors,
 } from "@/types";
 
@@ -22,180 +21,90 @@ export class RegistrationError extends Error {
 export class RegistrationService {
   /**
    * Complete registration with all data in single request
-   * Maintains existing API configuration and FormData structure
+   * Simplified implementation based on working SignupTest.tsx
    */
   async submitCompleteRegistration(
     data: CompleteRegistrationData
   ): Promise<RegistrationApiResponse> {
     try {
-      // Create FormData with all registration information
+      // Create FormData - simple approach like SignupTest.tsx
       const formData = new FormData();
 
-      // Files will be uploaded with their original names
-
-      // Format phone number to match your example (without + prefix)
-      const formatPhoneForAPI = (phone: string): string => {
-        const cleaned = phone.replace(/\s/g, "");
-        // Remove +234 prefix if present and return just the number part
-        if (cleaned.startsWith("+234")) {
-          return "234" + cleaned.substring(4);
-        }
-        if (cleaned.startsWith("234")) {
-          return cleaned;
-        }
-        if (cleaned.startsWith("0")) {
-          return "234" + cleaned.substring(1);
-        }
-        return "234" + cleaned;
-      };
-
-      // Basic account info (matching your Postman order)
+      // Append all text fields directly (no complex formatting)
       formData.append("emailAddress", data.emailAddress);
       formData.append("password", data.password);
       formData.append("fullName", data.fullName);
       formData.append("businessName", data.businessName);
-      // Ensure businessCategory is a valid number and convert to string
-      const businessCategoryValue = Number.isInteger(data.businessCategory) && data.businessCategory > 0 
-        ? data.businessCategory.toString() 
-        : "1"; // Default fallback
-      
-      console.log('🏷️ Business Category Conversion:', {
-        originalValue: data.businessCategory,
-        originalType: typeof data.businessCategory,
-        isInteger: Number.isInteger(data.businessCategory),
-        isPositive: data.businessCategory > 0,
-        finalValue: businessCategoryValue
-      });
-      
-      // LOG ALL FORMDATA BEING SENT
-      console.log("📤 COMPLETE FORMDATA BEING SENT TO BACKEND:");
+      formData.append("businessCategory", data.businessCategory.toString());
+      formData.append("phoneNumber", data.phoneNumber);
+      formData.append("businessRegNumber", data.businessRegNumber || "");
+      formData.append("storeName", data.storeName);
+      formData.append("businessAddress", data.businessAddress);
+      formData.append("taxIdNumber", data.taxIdNumber || "");
+
+      // Append files
+      if (data.idDocument) {
+        formData.append("idDocument", data.idDocument);
+      }
+      if (data.businessRegCertificate) {
+        formData.append("businessRegCertificate", data.businessRegCertificate);
+      }
+
+      // Log what we're sending (simplified)
+      console.log("📤 Registration FormData:");
       for (const [key, value] of formData.entries()) {
         if (value instanceof File) {
           console.log(`  ${key}: [FILE] ${value.name} (${value.size} bytes)`);
         } else {
-          console.log(`  ${key}: "${value}" (type: ${typeof value})`);
-        }
-      }
-      
-      formData.append("businessCategory", businessCategoryValue);
-      formData.append("phoneNumber", formatPhoneForAPI(data.phoneNumber));
-      formData.append("businessRegNumber", data.businessRegNumber || "");
-      formData.append("storeName", data.storeName);
-      formData.append("businessAddress", data.businessAddress);
-      // Ensure taxIdNumber is always sent (API requires it)
-      formData.append("taxIdNumber", data.taxIdNumber || "");
-
-      // Documents without custom filenames - use original file names
-      formData.append("idDocument", data.idDocument);
-      formData.append("businessRegCertificate", data.businessRegCertificate);
-
-      // Make the API request
-
-      const response = await apiClient.post<RegistrationApiResponse>(
-        API_ENDPOINTS.REGISTRATION.SIGNUP,
-        formData,
-        {
-          requiresAuth: false,
-          isFormData: true,
-        }
-      );
-
-      if (response.error) {
-        throw new Error(response.message || "Registration failed");
-      }
-
-      return response;
-    } catch (error) {
-      // LOG RAW BACKEND ERROR RESPONSE FOR DEBUGGING
-      console.log("🚨 RAW BACKEND ERROR - Full Error Object:", error);
-      
-      // Handle API validation errors
-      if (error && typeof error === "object" && "response" in error) {
-        const axiosError = error as {
-          response?: { status?: number; data?: RegistrationApiError };
-        };
-
-        // LOG THE COMPLETE RAW RESPONSE
-        console.log("🚨 RAW BACKEND ERROR - Response Status:", axiosError.response?.status);
-        console.log("🚨 RAW BACKEND ERROR - Complete Response Data:", axiosError.response?.data);
-        console.log("🚨 RAW BACKEND ERROR - Response Headers:", (axiosError.response as { headers?: unknown })?.headers);
-      }
-
-      // ALSO CHECK IF ERROR HAS PRESERVED RESPONSE FROM API CLIENT
-      if (error && typeof error === "object" && "response" in error && (error as { response?: unknown }).response) {
-        const preservedResponse = (error as { response?: unknown }).response as { status?: number; data?: RegistrationApiError };
-        console.log("🚨 RAW BACKEND ERROR - Preserved Response from API Client:", preservedResponse);
-        console.log("🚨 RAW BACKEND ERROR - Preserved Response Data:", preservedResponse?.data);
-        
-        if (preservedResponse?.data) {
-          console.log("🚨 RAW BACKEND ERROR - Preserved JSON Response:");
-          console.log(JSON.stringify(preservedResponse.data, null, 2));
-          
-          // Handle the preserved response
-          if (preservedResponse.data?.messages) {
-            const apiError = preservedResponse.data;
-            
-            // LOG EACH INDIVIDUAL ERROR MESSAGE
-            console.log("🚨 RAW BACKEND ERROR - Individual Messages from Preserved Response:");
-            Object.entries(apiError.messages).forEach(([field, message]) => {
-              console.log(`  ${field}: "${message}"`);
-            });
-            
-            const fieldErrors: RegistrationFieldErrors = {};
-            
-            // Map API field names to our form field names
-            Object.entries(apiError.messages).forEach(([field, message]) => {
-              fieldErrors[field as keyof RegistrationFieldErrors] = message as string;
-            });
-
-            throw new RegistrationError(
-              "Please fix the following errors:",
-              fieldErrors,
-              preservedResponse.status || 400
-            );
-          }
+          console.log(`  ${key}: "${value}"`);
         }
       }
 
-      // Handle original axios errors
-      if (error && typeof error === "object" && "response" in error) {
-        const axiosError = error as {
-          response?: { status?: number; data?: RegistrationApiError };
-        };
-        
-        // LOG THE EXACT JSON STRUCTURE
-        if (axiosError.response?.data) {
-          console.log("🚨 RAW BACKEND ERROR - JSON Response:");
-          console.log(JSON.stringify(axiosError.response.data, null, 2));
-        }
+      // Use fetch directly like SignupTest.tsx for reliability
+      const response = await fetch(`${environment.apiBaseUrl}${API_ENDPOINTS.REGISTRATION.SIGNUP}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': environment.basicAuthHeader
+        },
+        body: formData
+      });
 
-        if (axiosError.response?.data?.messages) {
-          const apiError = axiosError.response.data;
-          
-          // LOG EACH INDIVIDUAL ERROR MESSAGE
-          console.log("🚨 RAW BACKEND ERROR - Individual Messages:");
-          Object.entries(apiError.messages).forEach(([field, message]) => {
-            console.log(`  ${field}: "${message}"`);
-          });
-          
+      const result = await response.json();
+
+      if (!response.ok) {
+        // Handle API errors
+        if (result.messages && typeof result.messages === 'object') {
           const fieldErrors: RegistrationFieldErrors = {};
           
-          // Map API field names to our form field names
-          Object.entries(apiError.messages).forEach(([field, message]) => {
-            fieldErrors[field as keyof RegistrationFieldErrors] = message;
+          Object.entries(result.messages).forEach(([field, message]) => {
+            fieldErrors[field as keyof RegistrationFieldErrors] = message as string;
           });
 
           throw new RegistrationError(
-            "Please fix the following errors:",
+            result.message || "Please fix the following errors:",
             fieldErrors,
-            axiosError.response.status || 400
+            response.status
           );
         }
+        
+        throw new RegistrationError(
+          result.message || "Registration failed. Please try again.",
+          {},
+          response.status
+        );
       }
 
-      // Handle other errors
+      return result;
+    } catch (error) {
+      console.error('Registration error:', error);
+      
+      // Re-throw RegistrationError as-is
+      if (error instanceof RegistrationError) {
+        throw error;
+      }
+
+      // Handle network/other errors
       const errorMessage = error instanceof Error ? error.message : "Registration failed";
-      console.log("🚨 RAW BACKEND ERROR - Non-API Error:", errorMessage);
       throw new RegistrationError(errorMessage);
     }
   }

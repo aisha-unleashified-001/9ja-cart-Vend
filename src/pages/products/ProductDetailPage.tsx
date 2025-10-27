@@ -11,6 +11,9 @@ import {
   getStockStatus,
   getStockStatusColor,
 } from "@/lib/product.utils";
+import { ProductImage } from "@/components/products/ProductImage";
+import { ProductImageUpload } from "@/components/products/ProductImageUpload";
+import { ProductDebugPanel } from "@/components/debug/ProductDebugPanel";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -179,75 +182,14 @@ export default function ProductDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Image Gallery - TEMPORARILY COMMENTED OUT */}
-        <div className="space-y-4">
-          <div className="aspect-square bg-secondary/20 rounded-lg overflow-hidden relative flex items-center justify-center">
-            <div className="text-center text-gray-400">
-              <div className="text-6xl mb-4">📦</div>
-              <div className="text-lg">Product Image</div>
-              <div className="text-sm">Temporarily disabled</div>
-            </div>
-          </div>
-          {/* 
-          <div className="aspect-square bg-secondary/20 rounded-lg overflow-hidden relative">
-            <img
-              src={product.images[currentImageIndex] || primaryImage}
-              alt={product.productName}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.src = "/api/placeholder/600/600";
-              }}
-            />
-            
-            {product.images.length > 1 && (
-              <>
-                <button
-                  onClick={prevImage}
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-                >
-                  ←
-                </button>
-                <button
-                  onClick={nextImage}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
-                >
-                  →
-                </button>
-                
-                <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
-                  {currentImageIndex + 1} / {product.images.length}
-                </div>
-              </>
-            )}
-          </div>
-
-          {product.images.length > 1 && (
-            <div className="flex space-x-2 overflow-x-auto">
-              {product.images.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-md overflow-hidden border-2 transition-colors ${
-                    index === currentImageIndex
-                      ? "border-primary"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                >
-                  <img
-                    src={image}
-                    alt={`${product.productName} ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "/api/placeholder/64/64";
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
-          )}
-          */}
+        {/* Image Gallery */}
+        <div>
+          <ProductImage
+            images={product.images || []}
+            productName={product.productName}
+            className="aspect-square bg-secondary/20 rounded-lg"
+            showGallery={true}
+          />
         </div>
 
         {/* Product Information */}
@@ -354,8 +296,20 @@ export default function ProductDetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Image Upload Section */}
+          <ProductImageUpload
+            productId={product.productId}
+            onUploadSuccess={() => {
+              // Refresh product data after successful upload
+              fetchProductDetails(product.productId);
+            }}
+          />
         </div>
       </div>
+
+      {/* Debug Panel (development only) */}
+      <ProductDebugPanel product={product} />
     </div>
   );
 }

@@ -1,13 +1,13 @@
 /**
  * Create FormData for product image upload
- * Backend expects multiple files with the same field name 'productImage'
+ * Backend expects indexed field names: productImage[0], productImage[1], etc.
  */
 export const createImageFormData = (images: File[]): FormData => {
   const formData = new FormData();
 
-  // Multiple files with same field name - this is what the backend expects
-  images.forEach((image) => {
-    formData.append('productImage', image, image.name);
+  // Use indexed field names like the working test
+  images.forEach((image, index) => {
+    formData.append(`productImage[${index}]`, image);
   });
 
   return formData;
