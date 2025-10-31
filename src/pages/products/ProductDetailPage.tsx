@@ -198,15 +198,23 @@ export default function ProductDetailPage() {
           <div className="bg-card border border-border rounded-lg p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Pricing</h3>
             <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Unit Price:</span>
-                <span className="text-lg font-semibold text-foreground">
-                  {formatPriceDisplay(product.unitPrice)}
-                </span>
-              </div>
-              
-              {product.discountType !== "0" && product.discountValue !== "0" && (
+              {product.discountType === "0" ? (
+                // No discount - show unit price as main price
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">Price:</span>
+                  <span className="text-xl font-bold text-foreground">
+                    {formatPriceDisplay(product.unitPrice)}
+                  </span>
+                </div>
+              ) : (
+                // Has discount - show original price, discount, and final price
                 <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Original Price:</span>
+                    <span className="text-lg font-semibold text-muted-foreground line-through">
+                      {formatPriceDisplay(product.unitPrice)}
+                    </span>
+                  </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Discount:</span>
                     <span className="text-sm text-orange-600">

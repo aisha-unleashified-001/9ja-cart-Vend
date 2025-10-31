@@ -50,7 +50,7 @@ export default function EditProductPage() {
     categoryId: "",
     productDescription: "",
     unitPrice: "",
-    discountType: "1",
+    discountType: "0",
     discountValue: "0",
     stock: "",
     minStock: "",
@@ -84,7 +84,7 @@ export default function EditProductPage() {
         categoryId: product.categoryId || "",
         productDescription: product.productDescription || "",
         unitPrice: product.unitPrice || "",
-        discountType: product.discountType || "1",
+        discountType: product.discountType || "0",
         discountValue: product.discountValue || "0",
         stock: product.stock || "",
         minStock: product.minStock || "",
@@ -126,17 +126,21 @@ export default function EditProductPage() {
       newErrors.productTags = "At least one tag is required";
     }
 
-    // Validate discount
-    if (form.discountValue && parseFloat(form.discountValue) > 0) {
-      if (form.discountType === "1" && parseFloat(form.discountValue) > 100) {
-        newErrors.discountValue = "Percentage discount cannot exceed 100%";
-      }
-      if (
-        form.discountType === "2" &&
-        parseFloat(form.discountValue) >= parseFloat(form.unitPrice)
-      ) {
-        newErrors.discountValue =
-          "Fixed discount cannot be greater than or equal to the price";
+    // Validate discount only when discount type is not "No Discount"
+    if (form.discountType !== "0") {
+      if (!form.discountValue || parseFloat(form.discountValue) <= 0) {
+        newErrors.discountValue = "Discount value is required when discount type is selected";
+      } else {
+        if (form.discountType === "1" && parseFloat(form.discountValue) > 100) {
+          newErrors.discountValue = "Percentage discount cannot exceed 100%";
+        }
+        if (
+          form.discountType === "2" &&
+          parseFloat(form.discountValue) >= parseFloat(form.unitPrice)
+        ) {
+          newErrors.discountValue =
+            "Fixed discount cannot be greater than or equal to the price";
+        }
       }
     }
 
@@ -162,8 +166,8 @@ export default function EditProductPage() {
         productDescription: form.productDescription,
         productTags: form.productTags,
         unitPrice: form.unitPrice,
-        discountType: form.discountValue === "0" ? undefined : form.discountType,
-        discountValue: form.discountValue === "0" ? undefined : form.discountValue,
+        discountType: form.discountType, // Always send discount type (0, 1, or 2)
+        discountValue: form.discountType === "0" ? undefined : form.discountValue,
         stock: form.stock,
         minStock: form.minStock,
         images: [], // Images handled separately
@@ -197,7 +201,14 @@ export default function EditProductPage() {
   };
 
   const updateForm = (field: keyof ProductForm, value: unknown) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const updates: Partial<ProductForm> = { [field]: value };
+    
+    // Clear discount value when switching to "No Discount"
+    if (field === "discountType" && value === "0") {
+      updates.discountValue = "0";
+    }
+    
+    setForm((prev) => ({ ...prev, ...updates }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -389,38 +400,41 @@ export default function EditProductPage() {
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     disabled={isUpdating}
                   >
+                    <option value="0">No Discount</option>
                     <option value="1">Percentage (%)</option>
                     <option value="2">Fixed Amount (₦)</option>
                   </select>
                 </div>
               </div>
 
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Discount Value
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.discountValue}
-                  onChange={(e) => updateForm("discountValue", e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  placeholder="0"
-                  disabled={isUpdating}
-                />
-                {errors.discountValue && (
-                  <ErrorMessage
-                    message={errors.discountValue}
-                    className="mt-1"
+              {form.discountType !== "0" && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Discount Value *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.discountValue}
+                    onChange={(e) => updateForm("discountValue", e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    placeholder="0"
+                    disabled={isUpdating}
                   />
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {form.discountType === "1"
-                    ? "Enter percentage (0-100)"
-                    : "Enter fixed discount amount"}
-                </p>
-              </div>
+                  {errors.discountValue && (
+                    <ErrorMessage
+                      message={errors.discountValue}
+                      className="mt-1"
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {form.discountType === "1"
+                      ? "Enter percentage (0-100)"
+                      : "Enter fixed discount amount"}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Inventory */}
@@ -614,16 +628,16 @@ export default function EditProductPage() {
                     </span>
                   </div>
                 )}
-                {form.discountValue && parseFloat(form.discountValue) > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Discount:</span>
-                    <span className="text-foreground">
-                      {form.discountType === "1"
-                        ? `${form.discountValue}%`
-                        : `₦${parseFloat(form.discountValue).toLocaleString()}`}
-                    </span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Discount:</span>
+                  <span className="text-foreground">
+                    {form.discountType === "0" 
+                      ? "No Discount"
+                      : form.discountType === "1"
+                      ? `${form.discountValue}%`
+                      : `₦${parseFloat(form.discountValue || "0").toLocaleString()}`}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

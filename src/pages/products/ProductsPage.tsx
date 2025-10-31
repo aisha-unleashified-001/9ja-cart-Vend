@@ -12,6 +12,10 @@ import {
   getStockStatus,
   getStockStatusColor,
   truncateText,
+  getMainDisplayPrice,
+  getOriginalPrice,
+  shouldShowStrikethrough,
+  formatSavingsDisplay,
 } from "@/lib/product.utils";
 import { ProductImage } from "@/components/products/ProductImage";
 
@@ -132,11 +136,21 @@ export default function ProductsPage() {
                 key={product.productId}
                 className="bg-card border border-border rounded-lg overflow-hidden"
               >
-                <ProductImage
-                  images={product.images || []}
-                  productName={product.productName}
-                  className="aspect-square bg-secondary/20 rounded-t-lg"
-                />
+                <div className="relative">
+                  <ProductImage
+                    images={product.images || []}
+                    productName={product.productName}
+                    className="aspect-square bg-secondary/20 rounded-t-lg"
+                  />
+                  {product.discountType !== "0" && (
+                    <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
+                      {product.discountType === "1" 
+                        ? `${product.discountValue}% OFF`
+                        : `₦${parseFloat(product.discountValue).toLocaleString()} OFF`
+                      }
+                    </div>
+                  )}
+                </div>
                 <div className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <h3
@@ -163,12 +177,19 @@ export default function ProductsPage() {
 
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex flex-col">
-                      <span className="text-lg font-bold text-foreground">
-                        {formatPriceDisplay(product.discountPrice)}
+                      <span className={`text-lg font-bold ${
+                        product.discountType !== "0" ? "text-green-600" : "text-foreground"
+                      }`}>
+                        {formatPriceDisplay(getMainDisplayPrice(product))}
                       </span>
-                      {product.unitPrice !== product.discountPrice && (
+                      {shouldShowStrikethrough(product) && (
                         <span className="text-sm text-muted-foreground line-through">
-                          {formatPriceDisplay(product.unitPrice)}
+                          {formatPriceDisplay(getOriginalPrice(product)!)}
+                        </span>
+                      )}
+                      {product.discountType !== "0" && (
+                        <span className="text-xs text-green-600 font-medium">
+                          {formatSavingsDisplay(product)}
                         </span>
                       )}
                     </div>

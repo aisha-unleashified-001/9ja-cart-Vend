@@ -63,7 +63,7 @@ export interface CreateProductRequest {
 // New interface for JSON-only product creation (Step 1)
 export interface CreateProductPayload {
   productName: string;
-  productCategory: number;
+  productCategory: string; // UUID string, not number
   unitPrice: number;
   discountType?: number;
   discountValue?: number;
@@ -99,7 +99,7 @@ export interface UpdateProductRequest extends Partial<CreateProductRequest> {
 // New interface for product edit (Step 3)
 export interface EditProductPayload {
   productName?: string;
-  productCategory?: number;
+  productCategory?: string; // UUID string, not number
   unitPrice?: number;
   discountType?: number;
   discountValue?: number;

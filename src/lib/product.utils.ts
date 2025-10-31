@@ -94,3 +94,53 @@ export const truncateText = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 };
+
+// Get discount type label
+export const getDiscountTypeLabel = (discountType: string): string => {
+  switch (discountType) {
+    case "0": return "No Discount";
+    case "1": return "Percentage";
+    case "2": return "Fixed Amount";
+    default: return "Unknown";
+  }
+};
+
+// Format discount display
+export const formatDiscountDisplay = (discountType: string, discountValue: string): string => {
+  if (discountType === "0") return "No Discount";
+  if (discountType === "1") return `${discountValue}%`;
+  if (discountType === "2") return `₦${parseFloat(discountValue).toLocaleString()}`;
+  return "Unknown";
+};
+
+// Check if product has discount (updated logic)
+export const hasDiscountNew = (product: Product): boolean => {
+  return product.discountType !== "0" && !!product.discountValue && parseFloat(product.discountValue) > 0;
+};
+
+// Get the main display price (unit price when no discount, discount price when there is discount)
+export const getMainDisplayPrice = (product: Product): string => {
+  return product.discountType === "0" ? product.unitPrice : product.discountPrice;
+};
+
+// Get the original price for strikethrough (only when there's a discount)
+export const getOriginalPrice = (product: Product): string | null => {
+  return product.discountType !== "0" ? product.unitPrice : null;
+};
+
+// Check if we should show strikethrough price
+export const shouldShowStrikethrough = (product: Product): boolean => {
+  return product.discountType !== "0" && product.unitPrice !== product.discountPrice;
+};
+
+// Calculate savings amount
+export const calculateSavings = (product: Product): number => {
+  if (product.discountType === "0") return 0;
+  return parseFloat(product.unitPrice) - parseFloat(product.discountPrice);
+};
+
+// Format savings display
+export const formatSavingsDisplay = (product: Product): string => {
+  const savings = calculateSavings(product);
+  return `You save ₦${savings.toLocaleString()}`;
+};

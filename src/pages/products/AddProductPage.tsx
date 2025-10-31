@@ -37,7 +37,7 @@ export default function AddProductPage() {
     categoryId: "",
     productDescription: "",
     unitPrice: "",
-    discountType: "1", // Default to percentage
+    discountType: "0", // Default to no discount
     discountValue: "0",
     stock: "",
     minStock: "",
@@ -85,17 +85,22 @@ export default function AddProductPage() {
       newErrors.productTags = "At least one tag is required";
     }
 
-    // Validate discount
-    if (form.discountValue && parseFloat(form.discountValue) > 0) {
-      if (form.discountType === "1" && parseFloat(form.discountValue) > 100) {
-        newErrors.discountValue = "Percentage discount cannot exceed 100%";
-      }
-      if (
-        form.discountType === "2" &&
-        parseFloat(form.discountValue) >= parseFloat(form.unitPrice)
-      ) {
+    // Validate discount only when discount type is not "No Discount"
+    if (form.discountType !== "0") {
+      if (!form.discountValue || parseFloat(form.discountValue) <= 0) {
         newErrors.discountValue =
-          "Fixed discount cannot be greater than or equal to the price";
+          "Discount value is required when discount type is selected";
+      } else {
+        if (form.discountType === "1" && parseFloat(form.discountValue) > 100) {
+          newErrors.discountValue = "Percentage discount cannot exceed 100%";
+        }
+        if (
+          form.discountType === "2" &&
+          parseFloat(form.discountValue) >= parseFloat(form.unitPrice)
+        ) {
+          newErrors.discountValue =
+            "Fixed discount cannot be greater than or equal to the price";
+        }
       }
     }
 
@@ -118,10 +123,9 @@ export default function AddProductPage() {
         productDescription: form.productDescription,
         productTags: form.productTags,
         unitPrice: form.unitPrice,
-        discountType:
-          form.discountValue === "0" ? undefined : form.discountType,
+        discountType: form.discountType, // Always send discount type (0, 1, or 2)
         discountValue:
-          form.discountValue === "0" ? undefined : form.discountValue,
+          form.discountType === "0" ? undefined : form.discountValue,
         stock: form.stock,
         minStock: form.minStock,
         images: [], // No images during creation
@@ -129,23 +133,27 @@ export default function AddProductPage() {
       };
 
       const createdProduct = await createProduct(productData);
-      
+
       // If user selected images, upload them after product creation
       if (form.images.length > 0) {
         try {
           await productsService.uploadProductImages({
             productId: createdProduct.productId,
-            images: form.images
+            images: form.images,
           });
           toast.success("Product created with images successfully!");
         } catch (imageError) {
-          console.error('Image upload failed:', imageError);
-          toast.success("Product created successfully, but image upload failed. You can add images later.");
+          console.error("Image upload failed:", imageError);
+          toast.success(
+            "Product created successfully, but image upload failed. You can add images later."
+          );
         }
       } else {
-        toast.success("Product created successfully! You can add images later.");
+        toast.success(
+          "Product created successfully! You can add images later."
+        );
       }
-      
+
       navigate("/products");
     } catch {
       toast.error("Failed to create product. Please try again.");
@@ -153,7 +161,14 @@ export default function AddProductPage() {
   };
 
   const updateForm = (field: keyof ProductForm, value: unknown) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    const updates: Partial<ProductForm> = { [field]: value };
+
+    // Clear discount value when switching to "No Discount"
+    if (field === "discountType" && value === "0") {
+      updates.discountValue = "0";
+    }
+
+    setForm((prev) => ({ ...prev, ...updates }));
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -164,7 +179,9 @@ export default function AddProductPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Add Product</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+            Add Product
+          </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
             Create a new product for your store
           </p>
@@ -279,38 +296,43 @@ export default function AddProductPage() {
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     disabled={isCreating}
                   >
+                    <option value="0">No Discount</option>
                     <option value="1">Percentage (%)</option>
                     <option value="2">Fixed Amount (₦)</option>
                   </select>
                 </div>
               </div>
 
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  Discount Value
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.discountValue}
-                  onChange={(e) => updateForm("discountValue", e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  placeholder="0"
-                  disabled={isCreating}
-                />
-                {errors.discountValue && (
-                  <ErrorMessage
-                    message={errors.discountValue}
-                    className="mt-1"
+              {form.discountType !== "0" && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Discount Value *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.discountValue}
+                    onChange={(e) =>
+                      updateForm("discountValue", e.target.value)
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    placeholder="0"
+                    disabled={isCreating}
                   />
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {form.discountType === "1"
-                    ? "Enter percentage (0-100)"
-                    : "Enter fixed discount amount"}
-                </p>
-              </div>
+                  {errors.discountValue && (
+                    <ErrorMessage
+                      message={errors.discountValue}
+                      className="mt-1"
+                    />
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {form.discountType === "1"
+                      ? "Enter percentage (0-100)"
+                      : "Enter fixed discount amount"}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Inventory */}
@@ -363,7 +385,8 @@ export default function AddProductPage() {
                 Product Images (Optional)
               </h2>
               <p className="text-sm text-muted-foreground mb-4">
-                You can add images now or upload them later after creating the product.
+                You can add images now or upload them later after creating the
+                product.
               </p>
               <ImageUpload
                 images={form.images}
@@ -456,7 +479,8 @@ export default function AddProductPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Images:</span>
                   <span className="text-foreground">
-                    {form.images.length}/5 {form.images.length === 0 ? "(optional)" : ""}
+                    {form.images.length}/5{" "}
+                    {form.images.length === 0 ? "(optional)" : ""}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -473,16 +497,18 @@ export default function AddProductPage() {
                     </span>
                   </div>
                 )}
-                {form.discountValue && parseFloat(form.discountValue) > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Discount:</span>
-                    <span className="text-foreground">
-                      {form.discountType === "1"
-                        ? `${form.discountValue}%`
-                        : `₦${parseFloat(form.discountValue).toLocaleString()}`}
-                    </span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Discount:</span>
+                  <span className="text-foreground">
+                    {form.discountType === "0"
+                      ? "No Discount"
+                      : form.discountType === "1"
+                      ? `${form.discountValue}%`
+                      : `₦${parseFloat(
+                          form.discountValue || "0"
+                        ).toLocaleString()}`}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
