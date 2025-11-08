@@ -215,6 +215,33 @@ export default function EditProductPage() {
     }
   };
 
+  // Calculate final price based on discount
+  const calculateFinalPrice = (): number => {
+    const unitPrice = parseFloat(form.unitPrice) || 0;
+    const discountValue = parseFloat(form.discountValue) || 0;
+    const discountType = form.discountType;
+
+    if (discountType === "0" || discountValue === 0) {
+      return unitPrice;
+    }
+
+    if (discountType === "1") {
+      // Percentage discount
+      const discountAmount = (unitPrice * discountValue) / 100;
+      return unitPrice - discountAmount;
+    }
+
+    if (discountType === "2") {
+      // Fixed amount discount
+      return Math.max(0, unitPrice - discountValue);
+    }
+
+    return unitPrice;
+  };
+
+  const finalPrice = calculateFinalPrice();
+  const hasDiscount = form.discountType !== "0" && parseFloat(form.discountValue) > 0;
+
   // Loading state
   if (isLoading && !product) {
     return (
@@ -433,6 +460,46 @@ export default function EditProductPage() {
                       ? "Enter percentage (0-100)"
                       : "Enter fixed discount amount"}
                   </p>
+                </div>
+              )}
+
+              {/* Final Price Display */}
+              {form.unitPrice && parseFloat(form.unitPrice) > 0 && (
+                <div className="mt-6 pt-4 border-t border-border">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-1">
+                        Customer Price
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        {hasDiscount ? "What customers will pay" : "No discount applied"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-2xl font-bold ${hasDiscount ? "text-blue-600" : "text-foreground"}`}>
+                        ₦{finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                      {hasDiscount && (
+                        <div className="text-sm text-muted-foreground line-through">
+                          ₦{parseFloat(form.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {hasDiscount && (
+                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-orange-800 font-medium">
+                          Discount amount:
+                        </span>
+                        <span className="text-orange-600 font-semibold">
+                          ₦{(parseFloat(form.unitPrice) - finalPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {form.discountType === "1" && ` (${form.discountValue}%)`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
