@@ -7,9 +7,9 @@ import Logo from "@/assets/logo2.png";
 
 const AuthLayout: React.FC = () => {
   return (
-    <div className="min-h-screen flex p-12 bg-white">
-      {/* Left side - Image/Branding */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-8">
+    <div className="h-screen flex overflow-hidden bg-white">
+      {/* Left side - Form Content */}
+      <div className="flex-1 flex flex-col px-6 py-12 lg:px-8 overflow-y-auto">
         <div className="sm:mx-auto sm:w-full sm:max-w-lg">
           {/* Back to home link */}
           <Link
@@ -27,8 +27,8 @@ const AuthLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Right side - Auth Form */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
+      {/* Right side - Static Image */}
+      <div className="hidden lg:flex lg:w-1/2 relative h-screen">
         {/* Background Image */}
         <Image
           src={registerImg}
