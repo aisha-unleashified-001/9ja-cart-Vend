@@ -20,6 +20,72 @@ export class RegistrationError extends Error {
 
 export class RegistrationService {
   /**
+   * Check if email is already registered by making a lightweight call
+   * to the signup endpoint with placeholder data. The API returns
+   * validation messages for duplicate emails before other fields.
+   */
+  async checkEmailAvailability(email: string): Promise<{ available: boolean; message?: string }> {
+    try {
+      const formData = new FormData();
+      formData.append("emailAddress", email);
+      formData.append("password", "TempCheck123!");
+      formData.append("fullName", "Email Check");
+      formData.append("businessName", "Email Check");
+      formData.append("businessCategory", "1");
+      formData.append("phoneNumber", "08000000000");
+      formData.append("businessRegNumber", "");
+      formData.append("storeName", "Email Check");
+      formData.append("businessAddress", "placeholder");
+      formData.append("taxIdNumber", "");
+
+      const response = await fetch(
+        `${environment.apiBaseUrl}${API_ENDPOINTS.REGISTRATION.SIGNUP}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: environment.basicAuthHeader,
+          },
+          body: formData,
+        }
+      );
+
+      let result: any = {};
+      try {
+        result = await response.json();
+      } catch (error) {
+        console.warn("Email check could not parse response:", error);
+      }
+
+      if (!response.ok) {
+        const emailError =
+          result?.messages?.emailAddress ||
+          result?.message ||
+          "";
+
+        if (
+          typeof emailError === "string" &&
+          /unique|already|exist/i.test(emailError)
+        ) {
+          return {
+            available: false,
+            message: "Email already exists",
+          };
+        }
+
+        // Any other validation error likely means email is available.
+        return { available: true };
+      }
+
+      // If the API somehow accepts the placeholder data, treat as available
+      return { available: true };
+    } catch (error) {
+      console.error("Email check error:", error);
+      // On network issues, allow flow to continue; final submission will fail if needed.
+      return { available: true };
+    }
+  }
+
+  /**
    * Complete registration with all data in single request
    * Simplified implementation based on working SignupTest.tsx
    */
@@ -77,7 +143,14 @@ export class RegistrationService {
           const fieldErrors: RegistrationFieldErrors = {};
           
           Object.entries(result.messages).forEach(([field, message]) => {
-            fieldErrors[field as keyof RegistrationFieldErrors] = message as string;
+            let errorMessage = message as string;
+            
+            // Transform generic unique value error to user-friendly message
+            if (field === 'emailAddress' && errorMessage.toLowerCase().includes('unique')) {
+              errorMessage = 'Email already exists';
+            }
+            
+            fieldErrors[field as keyof RegistrationFieldErrors] = errorMessage;
           });
 
           throw new RegistrationError(

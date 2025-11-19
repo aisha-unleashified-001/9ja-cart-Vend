@@ -24,9 +24,11 @@ export default function ProductDetailPage() {
   const product = useProductsStore((state) => state.currentProduct);
   const isLoading = useProductsStore((state) => state.isLoading);
   const error = useProductsStore((state) => state.error);
+  const archivedProductIds = useProductsStore((state) => state.archivedProductIds);
   const fetchProductDetails = useProductsStore((state) => state.fetchProductDetails);
   const toggleProductStatus = useProductsStore((state) => state.toggleProductStatus);
-  const deleteProduct = useProductsStore((state) => state.deleteProduct);
+  const archiveProduct = useProductsStore((state) => state.archiveProduct);
+  const restoreProduct = useProductsStore((state) => state.restoreProduct);
   const clearCurrentProduct = useProductsStore((state) => state.clearCurrentProduct);
   const clearError = useProductsStore((state) => state.clearError);
 
@@ -51,25 +53,56 @@ export default function ProductDetailPage() {
       const newStatus = currentStatus !== "active";
       await toggleProductStatus(product.productId, newStatus);
       toast.success("Product status updated successfully");
-    } catch {
-      toast.error("Failed to update product status");
+    } catch (error) {
+      // Show error toast but don't let it propagate
+      const errorMessage = error instanceof Error ? error.message : "Failed to update product status";
+      toast.error(errorMessage);
+      console.error("Toggle status error:", error);
     }
   };
 
-  const handleDeleteProduct = async () => {
+  // Check if product is archived by checking the archivedProductIds set
+  const isArchived = product ? archivedProductIds.has(product.productId) : false;
+
+  const handleArchiveProduct = async () => {
     if (!product) return;
 
     const confirmed = window.confirm(
-      "Are you sure you want to delete this product? This action cannot be undone."
+      "Are you sure you want to archive this product? This will hide it from your product list."
     );
 
     if (confirmed) {
       try {
-        await deleteProduct(product.productId);
-        toast.success("Product deleted successfully");
+        await archiveProduct(product.productId);
+        toast.success("Product archived successfully");
         navigate("/products");
       } catch {
-        toast.error("Failed to delete product");
+        toast.error("Failed to archive product");
+      }
+    }
+  };
+
+  const handleRestoreProduct = async () => {
+    if (!product) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to restore this product? It will be visible in your product list again."
+    );
+
+    if (confirmed) {
+      try {
+        await restoreProduct(product.productId);
+        toast.success("Product restored successfully");
+        // Refresh product details after restore to reflect the change
+        if (id) {
+          await fetchProductDetails(id);
+        }
+        // Navigate back to products list so user can see the restored product
+        navigate("/products");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to restore product";
+        toast.error(errorMessage);
+        console.error("Restore product error:", error);
       }
     }
   };
@@ -171,13 +204,23 @@ export default function ProductDetailPage() {
           >
             Edit
           </Link>
-          <button
-            onClick={handleDeleteProduct}
-            disabled={isLoading}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
-          >
-            Delete
-          </button>
+          {isArchived ? (
+            <button
+              onClick={handleRestoreProduct}
+              disabled={isLoading}
+              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:opacity-50"
+            >
+              Restore
+            </button>
+          ) : (
+            <button
+              onClick={handleArchiveProduct}
+              disabled={isLoading}
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
+            >
+              Archive
+            </button>
+          )}
         </div>
       </div>
 

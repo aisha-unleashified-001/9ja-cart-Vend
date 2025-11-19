@@ -19,7 +19,9 @@ export const API_ENDPOINTS = {
     UPLOAD_IMAGES: "/product/upload-images",
     UPDATE: "/product/vendor",
     EDIT: "/product/edit",
-    DELETE: "/product/vendor",
+    DELETE: "/product/delete",
+    RESTORE: "/product/restore",
+    STATUS: "/product/status", // Activate product endpoint
     DETAIL: "/product/vendor",
     ITEM_INFO: "/product/vendor/item-info", // New detailed product endpoint
   },
