@@ -114,20 +114,31 @@ export const useProductsStore = create<ProductsStore>()(
             return;
           }
 
-          // For active/inactive filters
-          // Note: We need to handle client-side filtering for some cases
-          // because the API only supports isActive filter, not stock level
-          let shouldFilterClientSide = false;
+          const parseStockCount = (product: Product): number => {
+            const count = parseInt(product.stock, 10);
+            return Number.isNaN(count) ? 0 : count;
+          };
+
+          // For active/deactivated/out_of_stock filters
+          // Note: We need to handle client-side filtering for stock-based cases
+          let clientFilter: ((product: Product) => boolean) | null = null;
           
           if (statusFilter === 'active') {
-            // Active = isActive='1' AND stock > 0
+            // Active = isActive='1' OR isActive=1 AND stock > 0
             currentQuery.isActive = '1';
-            shouldFilterClientSide = true;
-          } else if (statusFilter === 'inactive') {
-            // Inactive/Out of stock = isActive='0' OR (isActive='1' AND stock <= 0)
-            // We need all products to filter client-side
+            clientFilter = (product) => {
+              const isActive = product.isActive === '1' || product.isActive === 1;
+              const hasStock = parseStockCount(product) > 0;
+              return isActive && hasStock;
+            };
+          } else if (statusFilter === 'deactivated') {
+            // Deactivated = isActive='0' OR isActive=0
+            currentQuery.isActive = '0';
+            clientFilter = (product) => product.isActive === '0' || product.isActive === 0;
+          } else if (statusFilter === 'out_of_stock') {
+            // Out of stock = stock <= 0 regardless of isActive
             delete currentQuery.isActive;
-            shouldFilterClientSide = true;
+            clientFilter = (product) => parseStockCount(product) <= 0;
           } else {
             // For 'all', don't filter by isActive
             delete currentQuery.isActive;
@@ -145,23 +156,61 @@ export const useProductsStore = create<ProductsStore>()(
           );
 
           // Apply client-side filtering for status
-          if (shouldFilterClientSide) {
-            if (statusFilter === 'active') {
-              // Show only products with status 'active' (isActive='1' AND stock > 0)
-              filteredProducts = filteredProducts.filter(product => 
-                product.isActive === '1' && parseInt(product.stock) > 0
-              );
-            } else if (statusFilter === 'inactive') {
-              // Show products with status 'inactive' or 'out_of_stock'
-              filteredProducts = filteredProducts.filter(product => 
-                product.isActive === '0' || parseInt(product.stock) <= 0
-              );
-            }
+          if (clientFilter) {
+            filteredProducts = filteredProducts.filter(clientFilter);
           }
+
+          // Apply text search client-side to ensure vendors can always search
+          const normalizedSearch = currentQuery.search
+            ? currentQuery.search.trim().toLowerCase()
+            : '';
+
+          if (normalizedSearch) {
+            filteredProducts = filteredProducts.filter((product) => {
+              const searchableFields = [
+                product.productName,
+                product.productDescription,
+                product.categoryName || '',
+              ];
+
+              const tags = Array.isArray(product.productTags) ? product.productTags : [];
+
+              return (
+                searchableFields.some((field) =>
+                  field?.toLowerCase().includes(normalizedSearch)
+                ) ||
+                tags.some((tag) => tag.toLowerCase().includes(normalizedSearch))
+              );
+            });
+          }
+
+          const perPage =
+            currentQuery.perPage ||
+            response.pagination?.perPage ||
+            10;
+
+          const basePagination =
+            response.pagination || {
+              currentPage: currentQuery.page || 1,
+              perPage,
+              totalPages: 1,
+              totalItems: filteredProducts.length,
+            };
+
+          const paginationData = normalizedSearch
+            ? {
+                ...basePagination,
+                totalItems: filteredProducts.length,
+                totalPages: Math.max(
+                  1,
+                  Math.ceil(filteredProducts.length / perPage)
+                ),
+              }
+            : basePagination;
 
           set({
             products: filteredProducts,
-            pagination: response.pagination,
+            pagination: paginationData,
             query: currentQuery,
             isLoading: false,
             error: null,
@@ -340,14 +389,11 @@ export const useProductsStore = create<ProductsStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          await productsService.archiveProduct(productId);
-
-          // Add to archived list and remove from displayed products
+          // Client-side archive: persist productId so we can filter locally
           const currentState = get();
           const newArchivedIds = new Set(currentState.archivedProductIds);
           newArchivedIds.add(productId);
-          
-          // Persist to localStorage
+
           saveArchivedProductIds(newArchivedIds);
 
           const filteredProducts = currentState.products.filter(
@@ -379,22 +425,18 @@ export const useProductsStore = create<ProductsStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          await productsService.restoreProduct(productId);
-
-          // Remove from archived list
+          // Remove from archived list locally
           const currentState = get();
           const newArchivedIds = new Set(currentState.archivedProductIds);
           newArchivedIds.delete(productId);
-          
-          // Persist to localStorage
+
           saveArchivedProductIds(newArchivedIds);
 
           set({
             archivedProductIds: newArchivedIds,
           });
 
-          // After restore, refetch products to include the restored product
-          // The product will appear in the list again
+          // Refetch products so the restored product reappears
           const currentQuery = get().query;
           await get().fetchProducts(currentQuery);
 
@@ -421,6 +463,13 @@ export const useProductsStore = create<ProductsStore>()(
             isActive
           );
 
+          // Normalize isActive to string format ('1' or '0') to match Product type
+          // API might return it as number (1 or 0) or string ('1' or '0')
+          const normalizedIsActive = 
+            updatedProduct.isActive === '1' || updatedProduct.isActive === 1 || updatedProduct.isActive === true
+              ? '1'
+              : '0';
+
           // Update in products list - merge with existing data to prevent missing fields
           const currentState = get();
           const updatedProducts = currentState.products.map((product) => {
@@ -429,6 +478,8 @@ export const useProductsStore = create<ProductsStore>()(
               return {
                 ...product,
                 ...updatedProduct,
+                // Normalize isActive to ensure UI updates correctly
+                isActive: normalizedIsActive,
                 // Ensure critical fields are preserved if missing from response
                 productName: updatedProduct.productName || product.productName,
                 productDescription: updatedProduct.productDescription || product.productDescription,
@@ -442,7 +493,7 @@ export const useProductsStore = create<ProductsStore>()(
             products: updatedProducts,
             currentProduct:
               currentState.currentProduct?.productId === productId
-                ? { ...currentState.currentProduct, ...updatedProduct }
+                ? { ...currentState.currentProduct, ...updatedProduct, isActive: normalizedIsActive }
                 : currentState.currentProduct,
           });
         } catch (error) {

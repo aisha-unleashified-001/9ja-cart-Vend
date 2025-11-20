@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProductsStore } from "@/stores/productsStore";
+import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import {
@@ -18,7 +19,7 @@ import { ProductDebugPanel } from "@/components/debug/ProductDebugPanel";
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
+  const { isSuspended } = useSuspensionCheck();
 
   // Use direct store access to avoid hook re-render issues
   const product = useProductsStore((state) => state.currentProduct);
@@ -48,6 +49,11 @@ export default function ProductDetailPage() {
   const handleToggleStatus = async () => {
     if (!product) return;
 
+    if (isSuspended) {
+      toast.error("Your account is suspended. You cannot modify products.");
+      return;
+    }
+
     try {
       const currentStatus = getProductStatus(product);
       const newStatus = currentStatus !== "active";
@@ -67,6 +73,11 @@ export default function ProductDetailPage() {
   const handleArchiveProduct = async () => {
     if (!product) return;
 
+    if (isSuspended) {
+      toast.error("Your account is suspended. You cannot archive products.");
+      return;
+    }
+
     const confirmed = window.confirm(
       "Are you sure you want to archive this product? This will hide it from your product list."
     );
@@ -84,6 +95,11 @@ export default function ProductDetailPage() {
 
   const handleRestoreProduct = async () => {
     if (!product) return;
+
+    if (isSuspended) {
+      toast.error("Your account is suspended. You cannot restore products.");
+      return;
+    }
 
     const confirmed = window.confirm(
       "Are you sure you want to restore this product? It will be visible in your product list again."
@@ -193,30 +209,56 @@ export default function ProductDetailPage() {
         <div className="flex space-x-2">
           <button
             onClick={handleToggleStatus}
-            disabled={isLoading}
-            className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+            disabled={isLoading || isSuspended}
+            className={`px-4 py-2 border border-border rounded-md transition-colors disabled:opacity-50 ${
+              isSuspended
+                ? "cursor-not-allowed bg-gray-100 text-gray-500"
+                : "text-foreground hover:bg-secondary"
+            }`}
+            title={isSuspended ? "Account suspended" : status === "active" ? "Deactivate" : "Activate"}
           >
             {status === "active" ? "Deactivate" : "Activate"}
           </button>
           <Link
-            to={`/products/${product.productId}/edit`}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            to={isSuspended ? "#" : `/products/${product.productId}/edit`}
+            onClick={(e) => {
+              if (isSuspended) {
+                e.preventDefault();
+                toast.error("Your account is suspended. You cannot edit products.");
+              }
+            }}
+            className={`px-4 py-2 rounded-md transition-colors ${
+              isSuspended
+                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}
+            title={isSuspended ? "Account suspended - Cannot edit products" : "Edit"}
           >
             Edit
           </Link>
           {isArchived ? (
             <button
               onClick={handleRestoreProduct}
-              disabled={isLoading}
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors disabled:opacity-50"
+              disabled={isLoading || isSuspended}
+              className={`px-4 py-2 rounded-md transition-colors disabled:opacity-50 ${
+                isSuspended
+                  ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                  : "bg-green-500 text-white hover:bg-green-600"
+              }`}
+              title={isSuspended ? "Account suspended" : "Restore"}
             >
               Restore
             </button>
           ) : (
             <button
               onClick={handleArchiveProduct}
-              disabled={isLoading}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
+              disabled={isLoading || isSuspended}
+              className={`px-4 py-2 rounded-md transition-colors disabled:opacity-50 ${
+                isSuspended
+                  ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                  : "bg-red-500 text-white hover:bg-red-600"
+              }`}
+              title={isSuspended ? "Account suspended" : "Archive"}
             >
               Archive
             </button>

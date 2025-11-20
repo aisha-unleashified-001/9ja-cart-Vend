@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
     UPDATE: "/product/vendor",
     EDIT: "/product/edit",
     DELETE: "/product/delete",
+    ARCHIVE: "/product/archive",
     RESTORE: "/product/restore",
     STATUS: "/product/status", // Activate product endpoint
     DETAIL: "/product/vendor",

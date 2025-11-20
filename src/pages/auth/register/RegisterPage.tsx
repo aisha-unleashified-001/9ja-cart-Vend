@@ -48,6 +48,29 @@ const initialFormData: FormData = {
   businessRegCertificate: null,
 };
 
+const businessRegPattern = /^RC-?\d{8}$/i;
+
+const FIELD_STEP_MAP: Record<keyof RegistrationFieldErrors, number> = {
+  emailAddress: 1,
+  password: 1,
+  confirmPassword: 1,
+  fullName: 2,
+  businessName: 2,
+  businessCategory: 2,
+  phoneNumber: 2,
+  storeName: 3,
+  businessAddress: 3,
+  businessRegNumber: 3,
+  taxIdNumber: 3,
+  idDocument: 3,
+  businessRegCertificate: 3,
+};
+
+const getFirstErrorStep = (errors: RegistrationFieldErrors): number | null => {
+  const steps = Object.keys(errors).map((field) => FIELD_STEP_MAP[field as keyof RegistrationFieldErrors] ?? 3);
+  return steps.length ? Math.min(...steps) : null;
+};
+
 export default function RegisterPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -89,6 +112,31 @@ export default function RegisterPage() {
     }
 
     setFormData(prev => ({ ...prev, ...updates }));
+  };
+
+  const validateAdvancedStep3Fields = (): RegistrationFieldErrors => {
+    const errors: RegistrationFieldErrors = {};
+
+    if (formData.businessRegNumber?.trim()) {
+      const formattedValue = formData.businessRegNumber.trim().toUpperCase();
+      if (!businessRegPattern.test(formattedValue)) {
+        errors.businessRegNumber = 'Use RC12345678 or RC-12345678 (8 digits after RC).';
+      }
+    }
+
+    if (formData.taxIdNumber?.trim()) {
+      const rawValue = formData.taxIdNumber.trim();
+      const digitsOnly = rawValue.replace(/-/g, '');
+      const hasValidCharacters = /^[0-9-]+$/.test(rawValue);
+
+      if (!hasValidCharacters || !/^\d+$/.test(digitsOnly)) {
+        errors.taxIdNumber = 'Tax ID can only include digits and hyphens.';
+      } else if (digitsOnly.length !== 10 && digitsOnly.length !== 12) {
+        errors.taxIdNumber = 'Tax ID must contain exactly 10 or 12 digits.';
+      }
+    }
+
+    return errors;
   };
 
   const validateStep = (step: number): boolean => {
@@ -192,6 +240,14 @@ export default function RegisterPage() {
       return;
     }
 
+    const advancedErrors = validateAdvancedStep3Fields();
+    if (Object.keys(advancedErrors).length > 0) {
+      setFormErrors(prev => ({ ...prev, ...advancedErrors }));
+      setCurrentStep(getFirstErrorStep(advancedErrors) ?? 3);
+      toast.error('Please fix the highlighted fields before submitting.');
+      return;
+    }
+
     setIsLoading(true);
     setApiError(null);
     setFormErrors({});
@@ -234,9 +290,9 @@ export default function RegisterPage() {
         // Handle field-specific validation errors
         setFormErrors(error.fieldErrors);
         setApiError(error.message);
-
-        if (error.fieldErrors.emailAddress || error.message?.toLowerCase().includes('email')) {
-          setCurrentStep(1);
+        const errorStep = getFirstErrorStep(error.fieldErrors);
+        if (errorStep) {
+          setCurrentStep(errorStep);
         }
         
         // Show specific error message

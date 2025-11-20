@@ -213,9 +213,10 @@ export class ProductsService {
 
   async archiveProduct(productId: string): Promise<void> {
     try {
-      // DELETE /product/delete/:id is used for archiving products
-      const response = await apiClient.delete(
-        `${API_ENDPOINTS.PRODUCTS.DELETE}/${productId}`,
+      // PUT /product/archive/:id is used for archiving products
+      const response = await apiClient.put(
+        `${API_ENDPOINTS.PRODUCTS.ARCHIVE}/${productId}`,
+        {},
         { requiresAuth: true }
       );
 
