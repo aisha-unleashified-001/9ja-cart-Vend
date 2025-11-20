@@ -12,7 +12,7 @@ export interface Product {
   stock: string;
   minStock: string;
   images: string[];
-  isActive: string;
+  isActive: string | number | boolean;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,4 +1,17 @@
-const ProductCard = ({ item }) => {
+import type { FC } from "react";
+
+interface StorefrontProduct {
+  id?: string | number;
+  name: string;
+  price: number;
+  image: string;
+}
+
+interface ProductCardProps {
+  item: StorefrontProduct;
+}
+
+const ProductCard: FC<ProductCardProps> = ({ item }) => {
   return (
     <div className="bg-white rounded-lg shadow hover:shadow-md transition p-3">
       <img

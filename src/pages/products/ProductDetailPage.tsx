@@ -20,6 +20,7 @@ export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isSuspended } = useSuspensionCheck();
+  const [images, setImages] = useState<string[]>([]);
 
   // Use direct store access to avoid hook re-render issues
   const product = useProductsStore((state) => state.currentProduct);
@@ -49,6 +50,8 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (product?.images) {
       setImages(product.images);
+    } else {
+      setImages([]);
     }
   }, [product]);
 

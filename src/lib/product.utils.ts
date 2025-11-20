@@ -1,5 +1,35 @@
 import type { Product } from "@/types";
 
+const normalizeIsActiveValue = (value: Product["isActive"]): string => {
+  if (typeof value === "boolean") {
+    return value ? "1" : "0";
+  }
+
+  if (typeof value === "number") {
+    return value === 1 ? "1" : "0";
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "1" || normalized === "true") {
+      return "1";
+    }
+    if (normalized === "0" || normalized === "false") {
+      return "0";
+    }
+  }
+
+  return "0";
+};
+
+export const isProductActive = (value: Product["isActive"]): boolean => {
+  return normalizeIsActiveValue(value) === "1";
+};
+
+export const isProductInactive = (value: Product["isActive"]): boolean => {
+  return normalizeIsActiveValue(value) === "0";
+};
+
 // Format price from string to number
 export const formatPrice = (price: string): number => {
   return parseFloat(price) || 0;
@@ -38,7 +68,7 @@ export const hasDiscount = (product: Product): boolean => {
 // Get product status
 export const getProductStatus = (product: Product): 'active' | 'deactivated' | 'out_of_stock' => {
   // Check isActive first to ensure active products show correct status
-  if (product.isActive === '0' || product.isActive === 0) {
+  if (isProductInactive(product.isActive)) {
     return 'deactivated';
   }
 
@@ -49,7 +79,7 @@ export const getProductStatus = (product: Product): 'active' | 'deactivated' | '
   }
 
   // If isActive is '1' or 1 and stock > 0, it's active
-  if (product.isActive === '1' || product.isActive === 1) {
+  if (isProductActive(product.isActive)) {
     return 'active';
   }
 
