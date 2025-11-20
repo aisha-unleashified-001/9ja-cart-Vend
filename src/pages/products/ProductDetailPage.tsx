@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProductsStore } from "@/stores/productsStore";
@@ -18,16 +18,22 @@ import { ProductDebugPanel } from "@/components/debug/ProductDebugPanel";
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-
+  const [images, setImages] = useState<string[]>([]);
 
   // Use direct store access to avoid hook re-render issues
   const product = useProductsStore((state) => state.currentProduct);
   const isLoading = useProductsStore((state) => state.isLoading);
   const error = useProductsStore((state) => state.error);
-  const fetchProductDetails = useProductsStore((state) => state.fetchProductDetails);
-  const toggleProductStatus = useProductsStore((state) => state.toggleProductStatus);
+  const fetchProductDetails = useProductsStore(
+    (state) => state.fetchProductDetails
+  );
+  const toggleProductStatus = useProductsStore(
+    (state) => state.toggleProductStatus
+  );
   const deleteProduct = useProductsStore((state) => state.deleteProduct);
-  const clearCurrentProduct = useProductsStore((state) => state.clearCurrentProduct);
+  const clearCurrentProduct = useProductsStore(
+    (state) => state.clearCurrentProduct
+  );
   const clearError = useProductsStore((state) => state.clearError);
 
   // Load product details on component mount
@@ -42,6 +48,12 @@ export default function ProductDetailPage() {
       clearError();
     };
   }, [id]); // Remove function dependencies to prevent infinite loops
+
+  useEffect(() => {
+    if (product?.images) {
+      setImages(product.images);
+    }
+  }, [product]);
 
   const handleToggleStatus = async () => {
     if (!product) return;
@@ -73,8 +85,6 @@ export default function ProductDetailPage() {
       }
     }
   };
-
-
 
   if (isLoading) {
     return (
@@ -133,7 +143,10 @@ export default function ProductDetailPage() {
     <div className="space-y-6">
       {/* Breadcrumbs */}
       <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
-        <Link to="/products" className="hover:text-foreground transition-colors">
+        <Link
+          to="/products"
+          className="hover:text-foreground transition-colors"
+        >
           Products
         </Link>
         <span>/</span>
@@ -148,7 +161,9 @@ export default function ProductDetailPage() {
           </h1>
           <div className="flex items-center space-x-4">
             <span
-              className={`text-sm px-3 py-1 rounded-full ${getStatusColor(status)}`}
+              className={`text-sm px-3 py-1 rounded-full ${getStatusColor(
+                status
+              )}`}
             >
               {status.replace("_", " ")}
             </span>
@@ -185,23 +200,40 @@ export default function ProductDetailPage() {
         {/* Image Gallery */}
         <div>
           <ProductImage
+            images={images}
+            productName={product.productName}
+            className="aspect-square bg-secondary/20 rounded-lg"
+            showGallery={true}
+            onRemoveImage={(index) => {
+              setImages((prev) => prev.filter((_, i) => i !== index));
+            }}
+          />
+
+          {/* <ProductImage
             images={product.images || []}
             productName={product.productName}
             className="aspect-square bg-secondary/20 rounded-lg"
             showGallery={true}
-          />
+            onRemoveImage={(index) => {
+              setImages((prev) => prev.filter((_, i) => i !== index));
+            }}
+          /> */}
         </div>
 
         {/* Product Information */}
         <div className="space-y-6">
           {/* Pricing */}
           <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Pricing</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              Pricing
+            </h3>
             <div className="space-y-2">
               {product.discountType === "0" ? (
                 // No discount - show unit price as main price
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-medium">Price:</span>
+                  <span className="text-muted-foreground font-medium">
+                    Price:
+                  </span>
                   <span className="text-xl font-bold text-foreground">
                     {formatPriceDisplay(product.unitPrice)}
                   </span>
@@ -210,7 +242,9 @@ export default function ProductDetailPage() {
                 // Has discount - show original price, discount, and final price
                 <>
                   <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Original Price:</span>
+                    <span className="text-muted-foreground">
+                      Original Price:
+                    </span>
                     <span className="text-lg font-semibold text-muted-foreground line-through">
                       {formatPriceDisplay(product.unitPrice)}
                     </span>
@@ -218,11 +252,14 @@ export default function ProductDetailPage() {
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Discount:</span>
                     <span className="text-sm text-orange-600">
-                      {product.discountType === "1" ? "%" : "₦"} {product.discountValue}
+                      {product.discountType === "1" ? "%" : "₦"}{" "}
+                      {product.discountValue}
                     </span>
                   </div>
                   <div className="flex justify-between items-center border-t pt-2">
-                    <span className="text-muted-foreground font-medium">Final Price:</span>
+                    <span className="text-muted-foreground font-medium">
+                      Final Price:
+                    </span>
                     <span className="text-xl font-bold text-green-600">
                       {formatPriceDisplay(product.discountPrice)}
                     </span>
@@ -234,17 +271,25 @@ export default function ProductDetailPage() {
 
           {/* Stock Information */}
           <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Stock Information</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              Stock Information
+            </h3>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Current Stock:</span>
-                <span className={`font-semibold ${getStockStatusColor(stockStatus)}`}>
+                <span
+                  className={`font-semibold ${getStockStatusColor(
+                    stockStatus
+                  )}`}
+                >
                   {product.stock} units
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Minimum Stock:</span>
-                <span className="text-foreground">{product.minStock} units</span>
+                <span className="text-foreground">
+                  {product.minStock} units
+                </span>
               </div>
               {stockStatus === "low_stock" && (
                 <div className="bg-orange-50 border border-orange-200 rounded-md p-3 mt-3">
@@ -265,16 +310,24 @@ export default function ProductDetailPage() {
 
           {/* Product Details */}
           <div className="bg-card border border-border rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-foreground mb-4">Product Details</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-4">
+              Product Details
+            </h3>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Description</label>
-                <p className="text-foreground mt-1">{product.productDescription}</p>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Description
+                </label>
+                <p className="text-foreground mt-1">
+                  {product.productDescription}
+                </p>
               </div>
-              
+
               {product.productTags && product.productTags.length > 0 && (
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Tags</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Tags
+                  </label>
                   <div className="flex flex-wrap gap-2 mt-1">
                     {product.productTags.map((tag, index) => (
                       <span
@@ -287,16 +340,20 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
               )}
-              
+
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Created</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Created
+                  </label>
                   <p className="text-foreground text-sm">
                     {new Date(product.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Last Updated</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Last Updated
+                  </label>
                   <p className="text-foreground text-sm">
                     {new Date(product.updatedAt).toLocaleDateString()}
                   </p>
@@ -308,6 +365,7 @@ export default function ProductDetailPage() {
           {/* Image Upload Section */}
           <ProductImageUpload
             productId={product.productId}
+            existingImages={images}
             onUploadSuccess={() => {
               // Refresh product data after successful upload
               fetchProductDetails(product.productId);
