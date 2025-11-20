@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Eye, EyeOff } from 'lucide-react';
 import { useBusinessCategories } from '@/hooks/useBusinessCategories';
 import { registrationService, RegistrationError } from '@/services/registration.service';
 import { LoadingButton } from '@/components/ui/LoadingSpinner';
@@ -53,6 +54,8 @@ export default function RegisterPage() {
   const [formErrors, setFormErrors] = useState<RegistrationFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const navigate = useNavigate();
   const { categories, isLoading: categoriesLoading, fetchCategories } = useBusinessCategories();
@@ -273,15 +276,30 @@ export default function RegisterPage() {
         <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
           Password
         </label>
-        <input
-          id="password"
-          type="password"
-          value={formData.password}
-          onChange={(e) => updateFormData({ password: e.target.value })}
-          disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
-          placeholder="Create a password"
-        />
+        <div className="relative">
+          <input
+            id="password"
+            type={showPassword ? 'text' : 'password'}
+            value={formData.password}
+            onChange={(e) => updateFormData({ password: e.target.value })}
+            disabled={isLoading}
+            className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+            placeholder="Create a password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            disabled={isLoading}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none disabled:opacity-50"
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? (
+              <EyeOff className="w-5 h-5" />
+            ) : (
+              <Eye className="w-5 h-5" />
+            )}
+          </button>
+        </div>
         {formErrors.password && (
           <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
         )}
@@ -291,15 +309,30 @@ export default function RegisterPage() {
         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
           Confirm Password
         </label>
-        <input
-          id="confirmPassword"
-          type="password"
-          value={formData.confirmPassword}
-          onChange={(e) => updateFormData({ confirmPassword: e.target.value })}
-          disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
-          placeholder="Confirm your password"
-        />
+        <div className="relative">
+          <input
+            id="confirmPassword"
+            type={showConfirmPassword ? 'text' : 'password'}
+            value={formData.confirmPassword}
+            onChange={(e) => updateFormData({ confirmPassword: e.target.value })}
+            disabled={isLoading}
+            className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+            placeholder="Confirm your password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            disabled={isLoading}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none disabled:opacity-50"
+            aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+          >
+            {showConfirmPassword ? (
+              <EyeOff className="w-5 h-5" />
+            ) : (
+              <Eye className="w-5 h-5" />
+            )}
+          </button>
+        </div>
         {formErrors.confirmPassword && (
           <p className="mt-1 text-sm text-red-600">{formErrors.confirmPassword}</p>
         )}
