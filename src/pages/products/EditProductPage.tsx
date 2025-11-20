@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProductsStore } from "@/stores/productsStore";
 import { useCategories } from "@/hooks/useCategories";
+import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
 import { productsService } from "@/services/products.service";
 import { LoadingButton } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
@@ -28,6 +29,7 @@ interface ProductForm {
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isSuspended } = useSuspensionCheck();
   
   // Use direct store access
   const product = useProductsStore((state) => state.currentProduct);
@@ -150,6 +152,11 @@ export default function EditProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSuspended) {
+      toast.error("Your account is suspended. You cannot edit products.");
+      return;
+    }
 
     if (!validateForm() || !id) {
       toast.error("Please fix the errors in the form");
@@ -274,6 +281,44 @@ export default function EditProductPage() {
     );
   }
 
+  // Block access if suspended
+  if (isSuspended && product) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-600 text-white rounded-lg px-6 py-6 border border-red-700">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-6 h-6 flex-shrink-0 mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold mb-2">
+                Account Suspended
+              </h2>
+              <p className="mb-4">
+                Your account has been suspended. You cannot edit products at this time.
+              </p>
+              <Link
+                to={`/products/${id}`}
+                className="inline-block px-4 py-2 bg-white text-red-600 rounded-md hover:bg-red-50 font-medium transition-colors"
+              >
+                Back to Product Details
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Product not found
   if (!product && !isLoading) {
     return (
@@ -333,7 +378,12 @@ export default function EditProductPage() {
           <LoadingButton
             type="submit"
             isLoading={isUpdating}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            disabled={isSuspended}
+            className={`px-4 py-2 rounded-md transition-colors ${
+              isSuspended
+                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}
           >
             {isUpdating ? loadingStep || "Updating..." : "Update Product"}
           </LoadingButton>
@@ -358,7 +408,7 @@ export default function EditProductPage() {
                     onChange={(e) => updateForm("productName", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="Enter product name"
-                    disabled={isUpdating}
+                    disabled={isUpdating || isSuspended}
                   />
                   {errors.productName && (
                     <ErrorMessage
@@ -380,7 +430,7 @@ export default function EditProductPage() {
                     }
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="Describe your product"
-                    disabled={isUpdating}
+                    disabled={isUpdating || isSuspended}
                   />
                   {errors.productDescription && (
                     <ErrorMessage
@@ -410,7 +460,7 @@ export default function EditProductPage() {
                     onChange={(e) => updateForm("unitPrice", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="0.00"
-                    disabled={isUpdating}
+                    disabled={isUpdating || isSuspended}
                   />
                   {errors.unitPrice && (
                     <ErrorMessage message={errors.unitPrice} className="mt-1" />
@@ -425,7 +475,7 @@ export default function EditProductPage() {
                     value={form.discountType}
                     onChange={(e) => updateForm("discountType", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    disabled={isUpdating}
+                    disabled={isUpdating || isSuspended}
                   >
                     <option value="0">No Discount</option>
                     <option value="1">Percentage (%)</option>
@@ -447,7 +497,7 @@ export default function EditProductPage() {
                     onChange={(e) => updateForm("discountValue", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="0"
-                    disabled={isUpdating}
+                    disabled={isUpdating || isSuspended}
                   />
                   {errors.discountValue && (
                     <ErrorMessage
@@ -521,7 +571,7 @@ export default function EditProductPage() {
                     onChange={(e) => updateForm("stock", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="0"
-                    disabled={isUpdating}
+                    disabled={isUpdating || isSuspended}
                   />
                   {errors.stock && (
                     <ErrorMessage message={errors.stock} className="mt-1" />
@@ -539,7 +589,7 @@ export default function EditProductPage() {
                     onChange={(e) => updateForm("minStock", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="0"
-                    disabled={isUpdating}
+                    disabled={isUpdating || isSuspended}
                   />
                   {errors.minStock && (
                     <ErrorMessage message={errors.minStock} className="mt-1" />
@@ -723,7 +773,12 @@ export default function EditProductPage() {
           <LoadingButton
             type="submit"
             isLoading={isUpdating}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            disabled={isSuspended}
+            className={`px-4 py-2 rounded-md transition-colors ${
+              isSuspended
+                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}
           >
             {isUpdating ? loadingStep || "Updating..." : "Update Product"}
           </LoadingButton>

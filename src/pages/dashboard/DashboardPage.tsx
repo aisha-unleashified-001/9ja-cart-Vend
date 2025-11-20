@@ -1,18 +1,29 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useSuspensionCheck } from '@/hooks/useSuspensionCheck';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import type { AccountStatus } from '@/types';
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const { dashboardData, isLoading, error, fetchDashboardSummary } = useDashboard();
+  const { isSuspended } = useSuspensionCheck();
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
 
   // Fetch dashboard data on component mount
   useEffect(() => {
     fetchDashboardSummary();
   }, [fetchDashboardSummary]);
+
+  const accountStatus = dashboardData?.accountStatus as AccountStatus | undefined;
+  const isAccountSuspended =
+    accountStatus && ['suspended', 'deactivated'].includes(accountStatus.toLowerCase());
+  
+  // Use isSuspended from user data (from login) as primary check
+  const isSuspendedAccount = isSuspended || isAccountSuspended;
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -91,14 +102,62 @@ export default function DashboardPage() {
             {isLoading ? '🔄' : '↻'} <span className="hidden sm:inline">Refresh</span>
           </button>
           <Link
-            to="/products/new"
-            className="px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm"
+            to={isSuspendedAccount ? "#" : "/products/new"}
+            onClick={(e) => {
+              if (isSuspendedAccount) {
+                e.preventDefault();
+              }
+            }}
+            className={`px-3 sm:px-4 py-2 rounded-md transition-colors text-sm ${
+              isSuspendedAccount
+                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}
+            title={isSuspendedAccount ? "Account suspended - Cannot add products" : "Add Product"}
           >
             <span className="sm:hidden">+ Product</span>
             <span className="hidden sm:inline">Add Product</span>
           </Link>
         </div>
       </div>
+
+      {/* Suspension Banner */}
+      {isSuspendedAccount && !isBannerDismissed && (
+        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2 relative">
+          <div className="flex items-start justify-between gap-2">
+            <p className="flex-1">
+              Your account has been suspended, to get more information{' '}
+              <Link
+                to="/notifications"
+                className="underline font-semibold hover:text-red-700 transition-colors"
+              >
+                click here
+              </Link>
+              .
+            </p>
+            <button
+              onClick={() => setIsBannerDismissed(true)}
+              className="flex-shrink-0 text-red-600 hover:text-red-700 transition-colors ml-2"
+              aria-label="Close banner"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

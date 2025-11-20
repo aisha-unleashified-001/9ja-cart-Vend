@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProductsStore } from "@/stores/productsStore";
+import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Pagination } from "@/components/ui/Pagination";
@@ -19,6 +20,30 @@ import {
 } from "@/lib/product.utils";
 import { ProductImage } from "@/components/products/ProductImage";
 
+type StatusFilter = 'all' | 'active' | 'deactivated' | 'out_of_stock' | 'archived';
+
+const FILTER_OPTIONS: Array<{ value: StatusFilter; label: string; indicatorColor: string }> = [
+  { value: 'all', label: 'All Products', indicatorColor: 'bg-blue-500' },
+  { value: 'active', label: 'Active', indicatorColor: 'bg-green-500' },
+  { value: 'deactivated', label: 'Deactivated', indicatorColor: 'bg-gray-500' },
+  { value: 'out_of_stock', label: 'Out of Stock', indicatorColor: 'bg-red-500' },
+  { value: 'archived', label: 'Archived', indicatorColor: 'bg-purple-500' },
+];
+
+const FILTER_BADGE_LABELS: Record<Exclude<StatusFilter, 'all'>, string> = {
+  active: 'Active',
+  deactivated: 'Deactivated',
+  out_of_stock: 'Out of Stock',
+  archived: 'Archived',
+};
+
+const FILTER_BADGE_CLASSES: Record<Exclude<StatusFilter, 'all'>, string> = {
+  active: 'bg-green-100 text-green-800',
+  deactivated: 'bg-gray-100 text-gray-800',
+  out_of_stock: 'bg-red-100 text-red-800',
+  archived: 'bg-purple-100 text-purple-800',
+};
+
 export default function ProductsPage() {
   // Use direct store access to avoid hook re-render issues
   const products = useProductsStore((state) => state.products || []);
@@ -31,55 +56,103 @@ export default function ProductsPage() {
     (state) => state.toggleProductStatus
   );
   const setQuery = useProductsStore((state) => state.setQuery);
+  const { isSuspended } = useSuspensionCheck();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   // Load products on component mount - ONLY ONCE
   useEffect(() => {
     if (!hasInitialized) {
-      console.log("🔍 ProductsPage useEffect - fetching products (first time)");
-      fetchProducts();
+      console.log('🔍 ProductsPage useEffect - fetching products (first time)');
+      fetchProducts({ statusFilter });
       setHasInitialized(true);
     } else {
       console.log("🔍 ProductsPage useEffect - skipping (already initialized)");
     }
   }, [hasInitialized, fetchProducts]); // Include fetchProducts to satisfy hook dependencies
 
+  // Sync statusFilter and searchTerm with query when it changes externally
+  useEffect(() => {
+    if (query.statusFilter && query.statusFilter !== statusFilter) {
+      setStatusFilter(query.statusFilter);
+    }
+    if (query.search !== undefined && query.search !== searchTerm) {
+      setSearchTerm(query.search || "");
+    }
+  }, [query.statusFilter, query.search]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.filter-dropdown-container')) {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    if (showFilterDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showFilterDropdown]);
+
   // Manual search handler
   const handleSearch = () => {
-    if (searchTerm !== "") {
-      setQuery({ search: searchTerm, page: 1 });
-      fetchProducts({ search: searchTerm, page: 1 });
-    } else {
-      setQuery({ search: undefined, page: 1 });
-      fetchProducts({ search: undefined, page: 1 });
-    }
+    const normalizedSearch = searchTerm.trim();
+    const searchQuery = normalizedSearch !== "" ? normalizedSearch : undefined;
+    setSearchTerm(normalizedSearch);
+    setQuery({ search: searchQuery, page: 1, statusFilter });
+    fetchProducts({ search: searchQuery, page: 1, statusFilter });
+  };
+
+  // Filter handler
+  const handleFilterChange = (filter: StatusFilter) => {
+    setStatusFilter(filter);
+    const searchQuery = searchTerm !== "" ? searchTerm : undefined;
+    setQuery({ statusFilter: filter, page: 1, search: searchQuery });
+    fetchProducts({ statusFilter: filter, page: 1, search: searchQuery });
   };
 
   // Pagination handlers
   const goToPage = (page: number) => {
-    setQuery({ page });
-    fetchProducts({ page });
+    setQuery({ page, statusFilter });
+    fetchProducts({ page, statusFilter, search: query.search });
   };
 
   const changePerPage = (perPage: number) => {
-    setQuery({ page: 1, perPage });
-    fetchProducts({ page: 1, perPage });
+    setQuery({ page: 1, perPage, statusFilter });
+    fetchProducts({ page: 1, perPage, statusFilter, search: query.search });
   };
 
   const handleToggleStatus = async (
     productId: string,
     currentStatus: string
   ) => {
+    if (isSuspended) {
+      toast.error("Your account is suspended. You cannot modify products.");
+      return;
+    }
+
     try {
       const newStatus = currentStatus === "active";
       await toggleProductStatus(productId, !newStatus);
       toast.success("Product status updated successfully");
-    } catch {
-      toast.error("Failed to update product status");
+    } catch (error) {
+      // Show error toast but don't let it propagate
+      const errorMessage = error instanceof Error ? error.message : "Failed to update product status";
+      toast.error(errorMessage);
+      console.error("Toggle status error:", error);
     }
   };
+
+  const activeFilter: Exclude<StatusFilter, 'all'> | null =
+    statusFilter === 'all' ? null : statusFilter;
 
   return (
     <div className="space-y-6">
@@ -90,8 +163,19 @@ export default function ProductsPage() {
           <p className="text-muted-foreground">Manage your product inventory</p>
         </div>
         <Link
-          to="/products/new"
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          to={isSuspended ? "#" : "/products/new"}
+          onClick={(e) => {
+            if (isSuspended) {
+              e.preventDefault();
+              toast.error("Your account is suspended. You cannot add products.");
+            }
+          }}
+          className={`px-4 py-2 rounded-md transition-colors ${
+            isSuspended
+              ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+              : "bg-primary text-primary-foreground hover:bg-primary/90"
+          }`}
+          title={isSuspended ? "Account suspended - Cannot add products" : "Add Product"}
         >
           Add Product
         </Link>
@@ -99,7 +183,7 @@ export default function ProductsPage() {
 
       {error && <ErrorMessage message={error} />}
 
-      {/* Search */}
+      {/* Search Bar with Filter */}
       <div className="flex gap-2">
         <input
           type="text"
@@ -110,6 +194,58 @@ export default function ProductsPage() {
           disabled={isLoading}
           className="flex-1 px-3 py-2 border border-border rounded-md bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50"
         />
+        
+        {/* Filter Dropdown */}
+        <div className="relative filter-dropdown-container">
+          <button
+            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+            disabled={isLoading}
+            className="px-3 py-2 border border-border rounded-md bg-input text-foreground hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-2"
+            title="Filter products"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-5 w-5" 
+              viewBox="0 0 20 20" 
+              fill="currentColor"
+            >
+              <path 
+                fillRule="evenodd" 
+                d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" 
+                clipRule="evenodd" 
+              />
+            </svg>
+            {statusFilter !== 'all' && (
+              <span className="absolute -top-1 -right-1 h-3 w-3 bg-primary rounded-full"></span>
+            )}
+          </button>
+          
+          {showFilterDropdown && (
+            <div className="absolute right-0 mt-2 w-56 bg-card border border-border rounded-md shadow-lg z-10">
+              <div className="py-1">
+                {FILTER_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      handleFilterChange(option.value);
+                      setShowFilterDropdown(false);
+                    }}
+                    disabled={isLoading}
+                    className={`w-full text-left px-4 py-2 hover:bg-secondary transition-colors disabled:opacity-50 ${
+                      statusFilter === option.value ? 'bg-secondary font-semibold' : ''
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${option.indicatorColor}`}></span>
+                      {option.label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         <button
           onClick={handleSearch}
           disabled={isLoading}
@@ -118,6 +254,35 @@ export default function ProductsPage() {
           Search
         </button>
       </div>
+
+      {/* Active Filter Badge */}
+      {activeFilter && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Filtered by:</span>
+          <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+            FILTER_BADGE_CLASSES[activeFilter]
+          }`}>
+            {FILTER_BADGE_LABELS[activeFilter]}
+            <button
+              onClick={() => handleFilterChange('all')}
+              className="hover:opacity-70"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-4 w-4" 
+                viewBox="0 0 20 20" 
+                fill="currentColor"
+              >
+                <path 
+                  fillRule="evenodd" 
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" 
+                  clipRule="evenodd" 
+                />
+              </svg>
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* Loading State */}
       {isLoading && (
@@ -225,8 +390,13 @@ export default function ProductsPage() {
                       onClick={() =>
                         handleToggleStatus(product.productId, status)
                       }
-                      disabled={isLoading}
-                      className="flex-1 px-3 py-2 text-center border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+                      disabled={isLoading || isSuspended}
+                      className={`flex-1 px-3 py-2 text-center border border-border rounded-md transition-colors disabled:opacity-50 ${
+                        isSuspended
+                          ? "cursor-not-allowed bg-gray-100 text-gray-500"
+                          : "text-foreground hover:bg-secondary"
+                      }`}
+                      title={isSuspended ? "Account suspended" : status === "active" ? "Deactivate" : "Activate"}
                     >
                       {status === "active" ? "Deactivate" : "Activate"}
                     </button>
@@ -266,15 +436,25 @@ export default function ProductsPage() {
           </h3>
           <p className="text-muted-foreground mb-4">
             {searchTerm
-              ? "Try adjusting your search"
+              ? "Try adjusting your search or filter"
+              : statusFilter === 'archived'
+              ? "You don't have any archived products"
+              : statusFilter === 'active'
+              ? "You don't have any active products"
+              : statusFilter === 'deactivated'
+              ? "You don't have any deactivated products"
+              : statusFilter === 'out_of_stock'
+              ? "You don't have any out of stock products"
               : "Get started by adding your first product"}
           </p>
-          <Link
-            to="/products/new"
-            className="inline-flex px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Add Product
-          </Link>
+          {statusFilter !== 'archived' && !isSuspended && (
+            <Link
+              to="/products/new"
+              className="inline-flex px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Add Product
+            </Link>
+          )}
         </div>
       )}
     </div>

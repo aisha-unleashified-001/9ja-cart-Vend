@@ -1,3 +1,5 @@
+export type AccountStatus = "active" | "pending" | "suspended" | "deactivated";
+
 export interface DashboardSummary {
   totalProducts: number;
   totalOrders: number;
@@ -5,6 +7,7 @@ export interface DashboardSummary {
   totalRevenue: number;
   recentOrders: RecentOrder[];
   topProducts: TopProduct[];
+  accountStatus?: AccountStatus;
 }
 
 export interface RecentOrder {

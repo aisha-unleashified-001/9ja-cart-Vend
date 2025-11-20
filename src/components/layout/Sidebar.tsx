@@ -8,6 +8,7 @@ const navigation = [
   { name: "Orders", href: "/orders", icon: "🛒" },
   { name: "Storefront", href: "/storefront", icon: "🏪" },
   { name: "Analytics", href: "/analytics", icon: "📈" },
+  { name: "Notifications", href: "/notifications", icon: "🔔" },
   { name: "Settings", href: "/settings", icon: "⚙️" },
 ];
 

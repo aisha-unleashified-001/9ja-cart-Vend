@@ -8,6 +8,7 @@ interface DocumentUploadProps {
   accept?: string;
   required?: boolean;
   className?: string;
+  formError?: string;
 }
 
 export function DocumentUpload({ 
@@ -16,7 +17,8 @@ export function DocumentUpload({
   onFileChange, 
   accept = "image/*,.pdf",
   required = false,
-  className = '' 
+  className = '',
+  formError
 }: DocumentUploadProps) {
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -90,7 +92,11 @@ export function DocumentUpload({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="w-full px-4 py-6 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-primary hover:text-primary transition-colors"
+            className={`w-full px-4 py-6 border-2 border-dashed rounded-lg text-gray-600 transition-colors ${
+              error || formError
+                ? 'border-red-500 hover:border-red-600 text-red-600'
+                : 'border-gray-300 hover:border-primary hover:text-primary'
+            }`}
           >
             <div className="text-center">
               <div className="text-4xl mb-2">📎</div>
@@ -102,7 +108,9 @@ export function DocumentUpload({
           </button>
         </div>
       ) : (
-        <div className="border border-border rounded-lg p-4">
+        <div className={`border rounded-lg p-4 ${
+          error || formError ? 'border-red-500' : 'border-border'
+        }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <span className="text-2xl">{getFileIcon(file.type)}</span>
@@ -140,8 +148,8 @@ export function DocumentUpload({
       )}
 
       {/* Error Message */}
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+      {(error || formError) && (
+        <p className="mt-1 text-sm text-red-600">{error || formError}</p>
       )}
 
       {/* Helper Text */}

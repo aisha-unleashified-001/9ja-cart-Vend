@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProducts } from "@/hooks/useProducts";
 import { productsService } from "@/services/products.service";
 import { useCategories } from "@/hooks/useCategories";
+import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
 import { LoadingButton } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { ImageUpload } from "@/components/ui/ImageUpload";
@@ -26,6 +27,7 @@ interface ProductForm {
 export default function AddProductPage() {
   const navigate = useNavigate();
   const { createProduct, isLoading: isCreating, loadingStep } = useProducts();
+  const { isSuspended } = useSuspensionCheck();
   const {
     categories,
     isLoading: categoriesLoading,
@@ -51,6 +53,44 @@ export default function AddProductPage() {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  // Block access if suspended
+  if (isSuspended) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-600 text-white rounded-lg px-6 py-6 border border-red-700">
+          <div className="flex items-start gap-3">
+            <svg
+              className="w-6 h-6 flex-shrink-0 mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold mb-2">
+                Account Suspended
+              </h2>
+              <p className="mb-4">
+                Your account has been suspended. You cannot add new products at this time.
+              </p>
+              <Link
+                to="/products"
+                className="inline-block px-4 py-2 bg-white text-red-600 rounded-md hover:bg-red-50 font-medium transition-colors"
+              >
+                Back to Products
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -110,6 +150,11 @@ export default function AddProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSuspended) {
+      toast.error("Your account is suspended. You cannot add products.");
+      return;
+    }
 
     if (!validateForm()) {
       toast.error("Please fix the errors in the form");

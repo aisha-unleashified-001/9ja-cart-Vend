@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProductsStore } from "@/stores/productsStore";
+import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import {
@@ -18,22 +19,18 @@ import { ProductDebugPanel } from "@/components/debug/ProductDebugPanel";
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [images, setImages] = useState<string[]>([]);
+  const { isSuspended } = useSuspensionCheck();
 
   // Use direct store access to avoid hook re-render issues
   const product = useProductsStore((state) => state.currentProduct);
   const isLoading = useProductsStore((state) => state.isLoading);
   const error = useProductsStore((state) => state.error);
-  const fetchProductDetails = useProductsStore(
-    (state) => state.fetchProductDetails
-  );
-  const toggleProductStatus = useProductsStore(
-    (state) => state.toggleProductStatus
-  );
-  const deleteProduct = useProductsStore((state) => state.deleteProduct);
-  const clearCurrentProduct = useProductsStore(
-    (state) => state.clearCurrentProduct
-  );
+  const archivedProductIds = useProductsStore((state) => state.archivedProductIds);
+  const fetchProductDetails = useProductsStore((state) => state.fetchProductDetails);
+  const toggleProductStatus = useProductsStore((state) => state.toggleProductStatus);
+  const archiveProduct = useProductsStore((state) => state.archiveProduct);
+  const restoreProduct = useProductsStore((state) => state.restoreProduct);
+  const clearCurrentProduct = useProductsStore((state) => state.clearCurrentProduct);
   const clearError = useProductsStore((state) => state.clearError);
 
   // Load product details on component mount
@@ -58,30 +55,76 @@ export default function ProductDetailPage() {
   const handleToggleStatus = async () => {
     if (!product) return;
 
+    if (isSuspended) {
+      toast.error("Your account is suspended. You cannot modify products.");
+      return;
+    }
+
     try {
       const currentStatus = getProductStatus(product);
       const newStatus = currentStatus !== "active";
       await toggleProductStatus(product.productId, newStatus);
       toast.success("Product status updated successfully");
-    } catch {
-      toast.error("Failed to update product status");
+    } catch (error) {
+      // Show error toast but don't let it propagate
+      const errorMessage = error instanceof Error ? error.message : "Failed to update product status";
+      toast.error(errorMessage);
+      console.error("Toggle status error:", error);
     }
   };
 
-  const handleDeleteProduct = async () => {
+  // Check if product is archived by checking the archivedProductIds set
+  const isArchived = product ? archivedProductIds.has(product.productId) : false;
+
+  const handleArchiveProduct = async () => {
     if (!product) return;
 
+    if (isSuspended) {
+      toast.error("Your account is suspended. You cannot archive products.");
+      return;
+    }
+
     const confirmed = window.confirm(
-      "Are you sure you want to delete this product? This action cannot be undone."
+      "Are you sure you want to archive this product? This will hide it from your product list."
     );
 
     if (confirmed) {
       try {
-        await deleteProduct(product.productId);
-        toast.success("Product deleted successfully");
+        await archiveProduct(product.productId);
+        toast.success("Product archived successfully");
         navigate("/products");
       } catch {
-        toast.error("Failed to delete product");
+        toast.error("Failed to archive product");
+      }
+    }
+  };
+
+  const handleRestoreProduct = async () => {
+    if (!product) return;
+
+    if (isSuspended) {
+      toast.error("Your account is suspended. You cannot restore products.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to restore this product? It will be visible in your product list again."
+    );
+
+    if (confirmed) {
+      try {
+        await restoreProduct(product.productId);
+        toast.success("Product restored successfully");
+        // Refresh product details after restore to reflect the change
+        if (id) {
+          await fetchProductDetails(id);
+        }
+        // Navigate back to products list so user can see the restored product
+        navigate("/products");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to restore product";
+        toast.error(errorMessage);
+        console.error("Restore product error:", error);
       }
     }
   };
@@ -175,24 +218,60 @@ export default function ProductDetailPage() {
         <div className="flex space-x-2">
           <button
             onClick={handleToggleStatus}
-            disabled={isLoading}
-            className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
+            disabled={isLoading || isSuspended}
+            className={`px-4 py-2 border border-border rounded-md transition-colors disabled:opacity-50 ${
+              isSuspended
+                ? "cursor-not-allowed bg-gray-100 text-gray-500"
+                : "text-foreground hover:bg-secondary"
+            }`}
+            title={isSuspended ? "Account suspended" : status === "active" ? "Deactivate" : "Activate"}
           >
             {status === "active" ? "Deactivate" : "Activate"}
           </button>
           <Link
-            to={`/products/${product.productId}/edit`}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            to={isSuspended ? "#" : `/products/${product.productId}/edit`}
+            onClick={(e) => {
+              if (isSuspended) {
+                e.preventDefault();
+                toast.error("Your account is suspended. You cannot edit products.");
+              }
+            }}
+            className={`px-4 py-2 rounded-md transition-colors ${
+              isSuspended
+                ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}
+            title={isSuspended ? "Account suspended - Cannot edit products" : "Edit"}
           >
             Edit
           </Link>
-          <button
-            onClick={handleDeleteProduct}
-            disabled={isLoading}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50"
-          >
-            Delete
-          </button>
+          {isArchived ? (
+            <button
+              onClick={handleRestoreProduct}
+              disabled={isLoading || isSuspended}
+              className={`px-4 py-2 rounded-md transition-colors disabled:opacity-50 ${
+                isSuspended
+                  ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                  : "bg-green-500 text-white hover:bg-green-600"
+              }`}
+              title={isSuspended ? "Account suspended" : "Restore"}
+            >
+              Restore
+            </button>
+          ) : (
+            <button
+              onClick={handleArchiveProduct}
+              disabled={isLoading || isSuspended}
+              className={`px-4 py-2 rounded-md transition-colors disabled:opacity-50 ${
+                isSuspended
+                  ? "bg-gray-400 text-gray-600 cursor-not-allowed"
+                  : "bg-red-500 text-white hover:bg-red-600"
+              }`}
+              title={isSuspended ? "Account suspended" : "Archive"}
+            >
+              Archive
+            </button>
+          )}
         </div>
       </div>
 
