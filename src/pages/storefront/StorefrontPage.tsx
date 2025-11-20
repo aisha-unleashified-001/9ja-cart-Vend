@@ -1,3 +1,21 @@
+// import CategoryCarousel from "./CategoryCarousel";
+// import FilterBar from "./FilterBar";
+// import ProductList from "./ProductList";
+// import StoreHeader from "./StoreHeader";
+
+// const StorefrontPage = () => {
+//   return (
+//     <div className="min-h-screen bg-gray-100 pb-10">
+//       <StoreHeader />
+//       <CategoryCarousel />
+//       <FilterBar />
+//       <ProductList /> 
+//     </div>
+//   );
+// };
+
+// export default StorefrontPage;
+
 export default function StorefrontPage() {
   return (
     <div className="space-y-6">

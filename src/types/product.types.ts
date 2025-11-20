@@ -77,6 +77,7 @@ export interface CreateProductPayload {
 // Interface for image upload (Step 2)
 export interface UploadProductImagesRequest {
   productId: string;
+  // existingImages: string[];
   images: File[];
 }
 

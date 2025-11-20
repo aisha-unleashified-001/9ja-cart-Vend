@@ -52,7 +52,9 @@ export default function ProductsPage() {
   const pagination = useProductsStore((state) => state.pagination);
   const query = useProductsStore((state) => state.query);
   const fetchProducts = useProductsStore((state) => state.fetchProducts);
-  const toggleProductStatus = useProductsStore((state) => state.toggleProductStatus);
+  const toggleProductStatus = useProductsStore(
+    (state) => state.toggleProductStatus
+  );
   const setQuery = useProductsStore((state) => state.setQuery);
   const { isSuspended } = useSuspensionCheck();
 
@@ -68,9 +70,9 @@ export default function ProductsPage() {
       fetchProducts({ statusFilter });
       setHasInitialized(true);
     } else {
-      console.log('🔍 ProductsPage useEffect - skipping (already initialized)');
+      console.log("🔍 ProductsPage useEffect - skipping (already initialized)");
     }
-  }, [hasInitialized]); // Only depend on hasInitialized flag
+  }, [hasInitialized, fetchProducts]); // Include fetchProducts to satisfy hook dependencies
 
   // Sync statusFilter and searchTerm with query when it changes externally
   useEffect(() => {
@@ -188,7 +190,7 @@ export default function ProductsPage() {
           placeholder="Search products..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          onKeyPress={(e) => e.key === "Enter" && handleSearch()}
           disabled={isLoading}
           className="flex-1 px-3 py-2 border border-border rounded-md bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50"
         />
@@ -290,9 +292,9 @@ export default function ProductsPage() {
       )}
 
       {/* Products Grid */}
-      {!isLoading && products && products.length > 0 && (
+      {!isLoading && products && products?.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => {
+          {products?.map((product) => {
             const status = getProductStatus(product);
             const stockStatus = getStockStatus(product);
 
@@ -309,10 +311,11 @@ export default function ProductsPage() {
                   />
                   {product.discountType !== "0" && (
                     <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-semibold">
-                      {product.discountType === "1" 
+                      {product.discountType === "1"
                         ? `${product.discountValue}% OFF`
-                        : `₦${parseFloat(product.discountValue).toLocaleString()} OFF`
-                      }
+                        : `₦${parseFloat(
+                            product.discountValue
+                          ).toLocaleString()} OFF`}
                     </div>
                   )}
                 </div>
@@ -322,7 +325,7 @@ export default function ProductsPage() {
                       className="font-semibold text-foreground"
                       title={product.productName}
                     >
-                      {truncateText(product.productName, 25)}
+                      {truncateText(product?.productName ?? "", 25)}
                     </h3>
                     <span
                       className={`text-xs px-2 py-1 rounded-full ${getStatusColor(
@@ -337,14 +340,18 @@ export default function ProductsPage() {
                     className="text-sm text-muted-foreground mb-2"
                     title={product.productDescription}
                   >
-                    {truncateText(product.productDescription, 50)}
+                    {truncateText(product?.productDescription ?? "", 50)}
                   </p>
 
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex flex-col">
-                      <span className={`text-lg font-bold ${
-                        product.discountType !== "0" ? "text-green-600" : "text-foreground"
-                      }`}>
+                      <span
+                        className={`text-lg font-bold ${
+                          product.discountType !== "0"
+                            ? "text-green-600"
+                            : "text-foreground"
+                        }`}
+                      >
                         {formatPriceDisplay(getMainDisplayPrice(product))}
                       </span>
                       {shouldShowStrikethrough(product) && (
