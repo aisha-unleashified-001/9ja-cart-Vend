@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProducts } from "@/hooks/useProducts";
 import { productsService } from "@/services/products.service";
 import { useCategories } from "@/hooks/useCategories";
-import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
 import { LoadingButton } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { ImageUpload } from "@/components/ui/ImageUpload";
@@ -27,7 +26,6 @@ interface ProductForm {
 export default function AddProductPage() {
   const navigate = useNavigate();
   const { createProduct, isLoading: isCreating, loadingStep } = useProducts();
-  const { isSuspended } = useSuspensionCheck();
   const {
     categories,
     isLoading: categoriesLoading,
@@ -54,44 +52,6 @@ export default function AddProductPage() {
     fetchCategories();
   }, [fetchCategories]);
 
-  // Block access if suspended
-  if (isSuspended) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-red-600 text-white rounded-lg px-6 py-6 border border-red-700">
-          <div className="flex items-start gap-3">
-            <svg
-              className="w-6 h-6 flex-shrink-0 mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold mb-2">
-                Account Suspended
-              </h2>
-              <p className="mb-4">
-                Your account has been suspended. You cannot add new products at this time.
-              </p>
-              <Link
-                to="/products"
-                className="inline-block px-4 py-2 bg-white text-red-600 rounded-md hover:bg-red-50 font-medium transition-colors"
-              >
-                Back to Products
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -101,6 +61,10 @@ export default function AddProductPage() {
 
     if (!form.categoryId) {
       newErrors.categoryId = "Please select a category";
+    }
+
+    if (form.images.length === 0) {
+      newErrors.images = "Please upload at least one product image";
     }
 
     if (!form.productDescription.trim()) {
@@ -245,7 +209,8 @@ export default function AddProductPage() {
   };
 
   const finalPrice = calculateFinalPrice();
-  const hasDiscount = form.discountType !== "0" && parseFloat(form.discountValue) > 0;
+  const hasDiscount =
+    form.discountType !== "0" && parseFloat(form.discountValue) > 0;
 
   return (
     <div className="space-y-6">
@@ -415,21 +380,38 @@ export default function AddProductPage() {
                         Customer Price
                       </label>
                       <p className="text-xs text-muted-foreground">
-                        {hasDiscount ? "What customers will pay" : "No discount applied"}
+                        {hasDiscount
+                          ? "What customers will pay"
+                          : "No discount applied"}
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className={`text-2xl font-bold ${hasDiscount ? "text-blue-600" : "text-foreground"}`}>
-                        ₦{finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <div
+                        className={`text-2xl font-bold ${
+                          hasDiscount ? "text-blue-600" : "text-foreground"
+                        }`}
+                      >
+                        ₦
+                        {finalPrice.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </div>
                       {hasDiscount && (
                         <div className="text-sm text-muted-foreground line-through">
-                          ₦{parseFloat(form.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ₦
+                          {parseFloat(form.unitPrice).toLocaleString(
+                            undefined,
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
-                  
+
                   {hasDiscount && (
                     <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
                       <div className="flex items-center justify-between text-sm">
@@ -437,8 +419,15 @@ export default function AddProductPage() {
                           Discount amount:
                         </span>
                         <span className="text-orange-600 font-semibold">
-                          ₦{(parseFloat(form.unitPrice) - finalPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          {form.discountType === "1" && ` (${form.discountValue}%)`}
+                          ₦
+                          {(
+                            parseFloat(form.unitPrice) - finalPrice
+                          ).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                          {form.discountType === "1" &&
+                            ` (${form.discountValue}%)`}
                         </span>
                       </div>
                     </div>
@@ -494,7 +483,7 @@ export default function AddProductPage() {
             {/* Product Images */}
             <div className="bg-card border border-border rounded-lg p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">
-                Product Images (Optional)
+                Product Images
               </h2>
               <p className="text-sm text-muted-foreground mb-4">
                 You can add images now or upload them later after creating the
