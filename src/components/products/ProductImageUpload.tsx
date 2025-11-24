@@ -3,7 +3,6 @@ import toast from "react-hot-toast";
 import { productsService } from "@/services/products.service";
 import { LoadingButton } from "@/components/ui/LoadingSpinner";
 import { ImageUpload } from "@/components/ui/ImageUpload";
-import { useProductsStore } from "@/stores/productsStore";
 import type { UploadProductImagesRequest } from "@/types";
 
 interface ProductImageUploadProps {

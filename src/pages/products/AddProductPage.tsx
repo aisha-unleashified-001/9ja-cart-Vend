@@ -63,6 +63,10 @@ export default function AddProductPage() {
       newErrors.categoryId = "Please select a category";
     }
 
+    if (form.images.length === 0) {
+      newErrors.images = "Please upload at least one product image";
+    }
+
     if (!form.productDescription.trim()) {
       newErrors.productDescription = "Product description is required";
     }
@@ -111,8 +115,12 @@ export default function AddProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      toast.error("Please fix the errors in the form");
+    const isValid = validateForm();
+
+    if (!isValid) {
+      const firstError = Object.values(errors)[0];
+      toast.error(firstError);
+      //  || "Please fix the errors in the form"
       return;
     }
 
@@ -200,7 +208,8 @@ export default function AddProductPage() {
   };
 
   const finalPrice = calculateFinalPrice();
-  const hasDiscount = form.discountType !== "0" && parseFloat(form.discountValue) > 0;
+  const hasDiscount =
+    form.discountType !== "0" && parseFloat(form.discountValue) > 0;
 
   return (
     <div className="space-y-6">
@@ -370,21 +379,38 @@ export default function AddProductPage() {
                         Customer Price
                       </label>
                       <p className="text-xs text-muted-foreground">
-                        {hasDiscount ? "What customers will pay" : "No discount applied"}
+                        {hasDiscount
+                          ? "What customers will pay"
+                          : "No discount applied"}
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className={`text-2xl font-bold ${hasDiscount ? "text-blue-600" : "text-foreground"}`}>
-                        ₦{finalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <div
+                        className={`text-2xl font-bold ${
+                          hasDiscount ? "text-blue-600" : "text-foreground"
+                        }`}
+                      >
+                        ₦
+                        {finalPrice.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </div>
                       {hasDiscount && (
                         <div className="text-sm text-muted-foreground line-through">
-                          ₦{parseFloat(form.unitPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ₦
+                          {parseFloat(form.unitPrice).toLocaleString(
+                            undefined,
+                            {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            }
+                          )}
                         </div>
                       )}
                     </div>
                   </div>
-                  
+
                   {hasDiscount && (
                     <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
                       <div className="flex items-center justify-between text-sm">
@@ -392,8 +418,15 @@ export default function AddProductPage() {
                           Discount amount:
                         </span>
                         <span className="text-orange-600 font-semibold">
-                          ₦{(parseFloat(form.unitPrice) - finalPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          {form.discountType === "1" && ` (${form.discountValue}%)`}
+                          ₦
+                          {(
+                            parseFloat(form.unitPrice) - finalPrice
+                          ).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                          {form.discountType === "1" &&
+                            ` (${form.discountValue}%)`}
                         </span>
                       </div>
                     </div>
@@ -449,7 +482,7 @@ export default function AddProductPage() {
             {/* Product Images */}
             <div className="bg-card border border-border rounded-lg p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">
-                Product Images (Optional)
+                Product Images
               </h2>
               <p className="text-sm text-muted-foreground mb-4">
                 You can add images now or upload them later after creating the
