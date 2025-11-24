@@ -38,6 +38,11 @@ export const useAuthStore = create<AuthStore>()(
         
         try {
           const { user, token } = await authService.login(credentials);
+          
+          // Debug: Log the user object being set in the store
+          console.log('🔍 AuthStore - Setting user in store:', user);
+          console.log('🔍 AuthStore - isSuspended in user:', user?.isSuspended);
+          
           set({
             user,
             token,
@@ -45,6 +50,11 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           });
+          
+          // Debug: Verify what was actually set
+          const currentState = useAuthStore.getState();
+          console.log('🔍 AuthStore - User after set:', currentState.user);
+          console.log('🔍 AuthStore - isSuspended after set:', currentState.user?.isSuspended);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Login failed';
           set({

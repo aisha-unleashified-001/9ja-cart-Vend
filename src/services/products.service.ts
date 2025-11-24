@@ -211,11 +211,49 @@ export class ProductsService {
     }
   }
 
+  async archiveProduct(productId: string): Promise<void> {
+    try {
+      // PUT /product/archive/:id is used for archiving products
+      const response = await apiClient.put(
+        `${API_ENDPOINTS.PRODUCTS.ARCHIVE}/${productId}`,
+        {},
+        { requiresAuth: true }
+      );
+
+      if (response.error) {
+        throw new Error(response.message || 'Failed to archive product');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to archive product';
+      throw new Error(errorMessage);
+    }
+  }
+
+  async restoreProduct(productId: string): Promise<void> {
+    try {
+      // PUT /product/restore/:id is used for restoring archived products
+      const response = await apiClient.put(
+        `${API_ENDPOINTS.PRODUCTS.RESTORE}/${productId}`,
+        {},
+        { requiresAuth: true }
+      );
+
+      if (response.error) {
+        throw new Error(response.message || 'Failed to restore product');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to restore product';
+      throw new Error(errorMessage);
+    }
+  }
+
   async toggleProductStatus(productId: string, isActive: boolean): Promise<Product> {
     try {
-      const response = await apiClient.patch<Product>(
-        `${API_ENDPOINTS.PRODUCTS.UPDATE}/${productId}`,
-        { isActive: isActive ? '1' : '0' },
+      // Use POST to /product/status/:productId for both activate and deactivate
+      // isActive: 1 for activate, 0 for deactivate
+      const response = await apiClient.post<Product>(
+        `${API_ENDPOINTS.PRODUCTS.STATUS}/${productId}`,
+        { isActive: isActive ? 1 : 0 },
         { requiresAuth: true }
       );
 

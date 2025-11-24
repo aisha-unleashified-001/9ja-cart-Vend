@@ -36,23 +36,36 @@ export const hasDiscount = (product: Product): boolean => {
 };
 
 // Get product status
-export const getProductStatus = (
-  product: Product
-): "active" | "inactive" | "out_of_stock" => {
-  if (product.isActive === "0") return "inactive";
-  if (parseInt(product.stock) <= 0) return "out_of_stock";
-  return "active";
+export const getProductStatus = (product: Product): 'active' | 'deactivated' | 'out_of_stock' => {
+  // Check isActive first to ensure active products show correct status
+  if (product.isActive === '0' || product.isActive === 0) {
+    return 'deactivated';
+  }
+
+  const stockCount = Number.parseInt(product.stock, 10);
+
+  if (!Number.isNaN(stockCount) && stockCount <= 0) {
+    return 'out_of_stock';
+  }
+
+  // If isActive is '1' or 1 and stock > 0, it's active
+  if (product.isActive === '1' || product.isActive === 1) {
+    return 'active';
+  }
+
+  // Default to active if isActive is not explicitly '0'
+  return 'active';
 };
 
 // Get status color class
 export const getStatusColor = (status: string): string => {
   switch (status) {
-    case "active":
-      return "bg-green-100 text-green-800";
-    case "inactive":
-      return "bg-gray-100 text-gray-800";
-    case "out_of_stock":
-      return "bg-red-100 text-red-800";
+    case 'active':
+      return 'bg-green-100 text-green-800';
+    case 'deactivated':
+      return 'bg-gray-100 text-gray-800';
+    case 'out_of_stock':
+      return 'bg-red-100 text-red-800';
     default:
       return "bg-gray-100 text-gray-800";
   }
@@ -97,11 +110,8 @@ export const formatTags = (tags: string[]): string => {
 };
 
 // Truncate text
-export const truncateText = (
-  text: string | undefined | null,
-  maxLength: number
-) => {
-  if (!text) return ""; // Handles undefined, null, empty
+export const truncateText = (text: string | undefined | null, maxLength: number): string => {
+  if (!text) return '';
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + "...";
 };

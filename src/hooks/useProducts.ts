@@ -20,6 +20,8 @@ export const useProducts = () => {
     createProduct: store.createProduct,
     updateProduct: store.updateProduct,
     deleteProduct: store.deleteProduct,
+    archiveProduct: store.archiveProduct,
+    restoreProduct: store.restoreProduct,
     toggleProductStatus: store.toggleProductStatus,
     setQuery: store.setQuery,
     clearError: store.clearError,
@@ -56,6 +58,8 @@ export const useProductsActions = () => {
   const createProduct = useProductsStore((state) => state.createProduct);
   const updateProduct = useProductsStore((state) => state.updateProduct);
   const deleteProduct = useProductsStore((state) => state.deleteProduct);
+  const archiveProduct = useProductsStore((state) => state.archiveProduct);
+  const restoreProduct = useProductsStore((state) => state.restoreProduct);
   const toggleProductStatus = useProductsStore((state) => state.toggleProductStatus);
   const setQuery = useProductsStore((state) => state.setQuery);
   const clearError = useProductsStore((state) => state.clearError);
@@ -68,6 +72,8 @@ export const useProductsActions = () => {
     createProduct,
     updateProduct,
     deleteProduct,
+    archiveProduct,
+    restoreProduct,
     toggleProductStatus,
     setQuery,
     clearError,

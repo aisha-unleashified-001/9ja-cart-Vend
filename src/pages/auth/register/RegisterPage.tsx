@@ -48,6 +48,29 @@ const initialFormData: FormData = {
   businessRegCertificate: null,
 };
 
+const businessRegPattern = /^RC-?\d{8}$/i;
+
+const FIELD_STEP_MAP: Record<keyof RegistrationFieldErrors, number> = {
+  emailAddress: 1,
+  password: 1,
+  confirmPassword: 1,
+  fullName: 2,
+  businessName: 2,
+  businessCategory: 2,
+  phoneNumber: 2,
+  storeName: 3,
+  businessAddress: 3,
+  businessRegNumber: 3,
+  taxIdNumber: 3,
+  idDocument: 3,
+  businessRegCertificate: 3,
+};
+
+const getFirstErrorStep = (errors: RegistrationFieldErrors): number | null => {
+  const steps = Object.keys(errors).map((field) => FIELD_STEP_MAP[field as keyof RegistrationFieldErrors] ?? 3);
+  return steps.length ? Math.min(...steps) : null;
+};
+
 export default function RegisterPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -65,17 +88,55 @@ export default function RegisterPage() {
     fetchCategories();
   }, [fetchCategories]);
 
-  // Clear API errors and field errors when user starts typing
-  useEffect(() => {
+  const updateFormData = (updates: Partial<FormData>) => {
     if (apiError) {
       setApiError(null);
     }
-    // Clear field errors when user starts typing
-    setFormErrors({});
-  }, [formData, apiError]);
 
-  const updateFormData = (updates: Partial<FormData>) => {
+    const fieldsToClear = Object.keys(updates) as (keyof RegistrationFieldErrors)[];
+    
+    if (fieldsToClear.length) {
+      setFormErrors(prev => {
+        let hasChanges = false;
+        const nextErrors = { ...prev };
+
+        fieldsToClear.forEach((field) => {
+          if (nextErrors[field]) {
+            delete nextErrors[field];
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? nextErrors : prev;
+      });
+    }
+
     setFormData(prev => ({ ...prev, ...updates }));
+  };
+
+  const validateAdvancedStep3Fields = (): RegistrationFieldErrors => {
+    const errors: RegistrationFieldErrors = {};
+
+    if (formData.businessRegNumber?.trim()) {
+      const formattedValue = formData.businessRegNumber.trim().toUpperCase();
+      if (!businessRegPattern.test(formattedValue)) {
+        errors.businessRegNumber = 'Use RC12345678 or RC-12345678 (8 digits after RC).';
+      }
+    }
+
+    if (formData.taxIdNumber?.trim()) {
+      const rawValue = formData.taxIdNumber.trim();
+      const digitsOnly = rawValue.replace(/-/g, '');
+      const hasValidCharacters = /^[0-9-]+$/.test(rawValue);
+
+      if (!hasValidCharacters || !/^\d+$/.test(digitsOnly)) {
+        errors.taxIdNumber = 'Tax ID can only include digits and hyphens.';
+      } else if (digitsOnly.length !== 10 && digitsOnly.length !== 12) {
+        errors.taxIdNumber = 'Tax ID must contain exactly 10 or 12 digits.';
+      }
+    }
+
+    return errors;
   };
 
   const validateStep = (step: number): boolean => {
@@ -111,12 +172,34 @@ export default function RegisterPage() {
     return true;
   };
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep < 3) {
-        setCurrentStep(prev => prev + 1);
-        toast.success(`Step ${currentStep} completed!`);
+  const handleNext = async () => {
+    if (!validateStep(currentStep)) {
+      return;
+    }
+
+    // Check email availability on step 1 before proceeding
+    if (currentStep === 1) {
+      setIsLoading(true);
+      try {
+        const { available, message } = await registrationService.checkEmailAvailability(formData.emailAddress);
+        
+        if (!available) {
+          setFormErrors({ emailAddress: message || 'Email already exists' });
+          toast.error(message || 'Email already exists');
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Email check failed:', error);
+        // Continue anyway - the final submission will catch it
+      } finally {
+        setIsLoading(false);
       }
+    }
+
+    if (currentStep < 3) {
+      setCurrentStep(prev => prev + 1);
+      toast.success(`Step ${currentStep} completed!`);
     }
   };
 
@@ -154,6 +237,14 @@ export default function RegisterPage() {
     // Validate required files
     if (!formData.idDocument || !formData.businessRegCertificate) {
       toast.error('Please upload both required documents');
+      return;
+    }
+
+    const advancedErrors = validateAdvancedStep3Fields();
+    if (Object.keys(advancedErrors).length > 0) {
+      setFormErrors(prev => ({ ...prev, ...advancedErrors }));
+      setCurrentStep(getFirstErrorStep(advancedErrors) ?? 3);
+      toast.error('Please fix the highlighted fields before submitting.');
       return;
     }
 
@@ -199,6 +290,10 @@ export default function RegisterPage() {
         // Handle field-specific validation errors
         setFormErrors(error.fieldErrors);
         setApiError(error.message);
+        const errorStep = getFirstErrorStep(error.fieldErrors);
+        if (errorStep) {
+          setCurrentStep(errorStep);
+        }
         
         // Show specific error message
         const errorCount = Object.keys(error.fieldErrors).length;
@@ -264,7 +359,11 @@ export default function RegisterPage() {
           value={formData.emailAddress}
           onChange={(e) => updateFormData({ emailAddress: e.target.value })}
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.emailAddress
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
           placeholder="Enter your email"
         />
         {formErrors.emailAddress && (
@@ -283,7 +382,11 @@ export default function RegisterPage() {
             value={formData.password}
             onChange={(e) => updateFormData({ password: e.target.value })}
             disabled={isLoading}
-            className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+            className={`w-full px-4 py-3 pr-10 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+              formErrors.password
+                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                : 'border-gray-300 focus:ring-primary focus:border-transparent'
+            }`}
             placeholder="Create a password"
           />
           <button
@@ -316,7 +419,11 @@ export default function RegisterPage() {
             value={formData.confirmPassword}
             onChange={(e) => updateFormData({ confirmPassword: e.target.value })}
             disabled={isLoading}
-            className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+            className={`w-full px-4 py-3 pr-10 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+              formErrors.confirmPassword
+                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                : 'border-gray-300 focus:ring-primary focus:border-transparent'
+            }`}
             placeholder="Confirm your password"
           />
           <button
@@ -357,7 +464,11 @@ export default function RegisterPage() {
           value={formData.fullName}
           onChange={(e) => updateFormData({ fullName: e.target.value })}
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.fullName
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
           placeholder="Enter your full name"
         />
         {formErrors.fullName && (
@@ -375,7 +486,11 @@ export default function RegisterPage() {
           value={formData.phoneNumber}
           onChange={(e) => updateFormData({ phoneNumber: e.target.value })}
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.phoneNumber
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
           placeholder="e.g. 08012345678"
         />
         {formErrors.phoneNumber && (
@@ -396,7 +511,11 @@ export default function RegisterPage() {
           value={formData.businessName}
           onChange={(e) => updateFormData({ businessName: e.target.value })}
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.businessName
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
           placeholder="Enter your business name"
         />
         {formErrors.businessName && (
@@ -419,7 +538,11 @@ export default function RegisterPage() {
             value={formData.businessCategory}
             onChange={(e) => handleCategoryChange(e.target.value)}
             disabled={isLoading}
-            className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+            className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+              formErrors.businessCategory
+                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                : 'border-gray-300 focus:ring-primary focus:border-transparent'
+            }`}
           >
             <option value="">Select a category</option>
             {categories.map((category) => (
@@ -453,7 +576,11 @@ export default function RegisterPage() {
           value={formData.storeName}
           onChange={(e) => updateFormData({ storeName: e.target.value })}
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.storeName
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
           placeholder="Your Store Name"
         />
         {formErrors.storeName && (
@@ -471,7 +598,11 @@ export default function RegisterPage() {
           value={formData.businessAddress}
           onChange={(e) => updateFormData({ businessAddress: e.target.value })}
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.businessAddress
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
           placeholder="Enter your complete business address"
         />
         {formErrors.businessAddress && (
@@ -490,7 +621,11 @@ export default function RegisterPage() {
           value={formData.businessRegNumber}
           onChange={(e) => updateFormData({ businessRegNumber: e.target.value })}
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.businessRegNumber
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
           placeholder="RC-12345"
         />
         {formErrors.businessRegNumber && (
@@ -509,7 +644,11 @@ export default function RegisterPage() {
           value={formData.taxIdNumber}
           onChange={(e) => updateFormData({ taxIdNumber: e.target.value })}
           disabled={isLoading}
-          className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.taxIdNumber
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
           placeholder="Enter your TIN if available"
         />
         {formErrors.taxIdNumber && (
@@ -523,10 +662,8 @@ export default function RegisterPage() {
         onFileChange={(file) => updateFormData({ idDocument: file })}
         accept="image/*,.pdf"
         required
+        formError={formErrors.idDocument}
       />
-      {formErrors.idDocument && (
-        <p className="mt-1 text-sm text-red-600">{formErrors.idDocument}</p>
-      )}
 
       <DocumentUpload
         label="Business Registration Certificate"
@@ -534,10 +671,8 @@ export default function RegisterPage() {
         onFileChange={(file) => updateFormData({ businessRegCertificate: file })}
         accept="image/*,.pdf"
         required
+        formError={formErrors.businessRegCertificate}
       />
-      {formErrors.businessRegCertificate && (
-        <p className="mt-1 text-sm text-red-600">{formErrors.businessRegCertificate}</p>
-      )}
     </div>
   );
 
