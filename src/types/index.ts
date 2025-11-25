@@ -5,3 +5,4 @@ export * from './category.types';
 export * from './business-category.types';
 export * from './registration.types';
 export * from './dashboard.types';
+export * from './notification.types';
