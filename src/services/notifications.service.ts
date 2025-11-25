@@ -250,7 +250,7 @@ class NotificationsService {
       throw new Error(response.message || "Failed to fetch notifications");
     }
 
-    const payload = response as Record<string, unknown>;
+    const payload = response as unknown as Record<string, unknown>;
     let notificationsRaw = extractArrayFromUnknown(payload);
     if (!notificationsRaw.length) {
       notificationsRaw = extractArrayFromUnknown(payload.data);
