@@ -3,6 +3,7 @@ import { useOrderItems } from "@/hooks/useOrders";
 import { X, Check } from "lucide-react";
 
 interface OrderDetailsModalProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   order: any;
   onClose: () => void;
 }
@@ -67,6 +68,7 @@ export default function OrderDetailsModal({
               ) : items.length === 0 ? (
                 <p className="text-sm text-gray-400">No items found.</p>
               ) : (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 items.map((item: any, idx: number) => (
                   <div key={idx} className="flex gap-4 items-start">
                     <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center">
