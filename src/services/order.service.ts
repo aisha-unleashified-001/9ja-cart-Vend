@@ -10,7 +10,7 @@ export const ordersService = {
       { params: query } as any
     );
 
-    console.log("API /vendor/orders response:", response.data);
+    // console.log("API /vendor/orders response:", response.data);
     if (!response.data) {
       throw new Error("No data returned from /vendor/orders");
     }
@@ -19,6 +19,6 @@ export const ordersService = {
 
   async getOrderItems(orderId: string) {
     const response = await apiClient.get(`/vendor/orders/items/${orderId}`);
-    return response.data;
+    return response;
   },
 };
