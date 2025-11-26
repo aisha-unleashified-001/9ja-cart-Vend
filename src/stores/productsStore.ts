@@ -12,6 +12,7 @@ import type {
 
 // Helper functions for localStorage persistence
 const ARCHIVED_PRODUCTS_KEY = 'archived_products';
+const ARCHIVE_MIGRATION_KEY = 'archived_products_synced_v2';
 
 const loadArchivedProductIds = (): Set<string> => {
   try {
@@ -32,6 +33,24 @@ const saveArchivedProductIds = (ids: Set<string>): void => {
   } catch (error) {
     console.error('Failed to save archived products to localStorage:', error);
   }
+};
+
+const initializeArchivedProductIds = (): Set<string> => {
+  const archivedIds = loadArchivedProductIds();
+  const hasMigrated = localStorage.getItem(ARCHIVE_MIGRATION_KEY);
+
+  if (!hasMigrated && archivedIds.size > 0) {
+    // Clear legacy client-only archives so products become visible again
+    saveArchivedProductIds(new Set());
+    localStorage.setItem(ARCHIVE_MIGRATION_KEY, 'true');
+    return new Set();
+  }
+
+  if (!hasMigrated) {
+    localStorage.setItem(ARCHIVE_MIGRATION_KEY, 'true');
+  }
+
+  return archivedIds;
 };
 
 interface ProductsStore extends ProductsState {
@@ -75,7 +94,7 @@ export const useProductsStore = create<ProductsStore>()(
     (set, get) => ({
       ...initialState,
       loadingStep: null,
-      archivedProductIds: loadArchivedProductIds(), // Load from localStorage on init
+      archivedProductIds: initializeArchivedProductIds(), // Load from localStorage on init (with migration)
 
       fetchProducts: async (query?: ProductsQuery) => {
         console.log('🚨 fetchProducts called with query:', query);
@@ -389,6 +408,8 @@ export const useProductsStore = create<ProductsStore>()(
         set({ isLoading: true, error: null });
 
         try {
+          await productsService.archiveProduct(productId);
+
           // Client-side archive: persist productId so we can filter locally
           const currentState = get();
           const newArchivedIds = new Set(currentState.archivedProductIds);
@@ -425,6 +446,8 @@ export const useProductsStore = create<ProductsStore>()(
         set({ isLoading: true, error: null });
 
         try {
+          await productsService.restoreProduct(productId);
+
           // Remove from archived list locally
           const currentState = get();
           const newArchivedIds = new Set(currentState.archivedProductIds);
