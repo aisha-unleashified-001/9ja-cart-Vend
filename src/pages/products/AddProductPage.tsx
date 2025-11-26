@@ -117,13 +117,12 @@ export default function AddProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (isSuspended) {
-      toast.error("Your account is suspended. You cannot add products.");
-      return;
-    }
+    const isValid = validateForm();
 
-    if (!validateForm()) {
-      toast.error("Please fix the errors in the form");
+    if (!isValid) {
+      const firstError = Object.values(errors)[0];
+      toast.error(firstError);
+      //  || "Please fix the errors in the form"
       return;
     }
 

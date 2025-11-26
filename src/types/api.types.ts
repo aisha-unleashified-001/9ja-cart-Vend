@@ -3,6 +3,12 @@ export interface ApiResponse<T = any> {
   error: boolean;
   message: string;
   data?: T;
+  pagination: {
+    currentPage: number;
+    perPage: number;
+    totalPages: number;
+    totalItems: number;
+  };
 }
 
 export interface ProductsApiResponseWrapper {
@@ -33,4 +39,32 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
     total: number;
     totalPages: number;
   };
+}
+
+export interface OrdersQuery {
+  page?: number;
+  perPage?: number;
+  status?: string;
+  search?: string;
+}
+
+export interface Order {
+  orderNo: string;
+  totalAmount: number;
+  status: string;
+  paymentMethod: string;
+  customerName: string;
+  createdAt: string;
+  totalItemsCount: number;
+}
+
+export interface Pagination {
+  currentPage: number;
+  perPage: number;
+  totalPages: number;
+  totalItems: number;
+}
+
+export interface OrdersResponse extends ApiResponse<Order[]> {
+  pagination: Pagination;
 }
