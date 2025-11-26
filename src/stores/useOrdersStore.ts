@@ -5,7 +5,8 @@ import type { Order, OrderItem, OrdersQuery, OrdersResponse } from "@/types";
 
 interface OrdersState {
   orders: Order[];
-  orderItems: OrderItem[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  orderItems: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pagination: any;
   isLoading: boolean;

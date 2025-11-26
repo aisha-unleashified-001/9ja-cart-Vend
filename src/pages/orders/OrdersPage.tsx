@@ -4,6 +4,8 @@ import deliveredIcon from "@/assets/package.png";
 import returnsIcon from "@/assets/truck.png";
 import canceledIcon from "@/assets/x.png";
 import { useOrders } from "@/hooks/useOrders";
+import OrderDetailsModal from "./OrderDetailsModal";
+import { Ellipsis } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   awaiting_pickup: "bg-yellow-100 text-yellow-700",
@@ -16,6 +18,8 @@ const statusColors: Record<string, string> = {
 export default function OrdersPage() {
   const { orders, pagination, query, isLoading, fetchOrders, setQuery } =
     useOrders();
+
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   const limit = query.perPage ?? 10;
   const totalCount = pagination?.count ?? 0;
@@ -49,6 +53,12 @@ export default function OrdersPage() {
 
   return (
     <div className="p-6 text-white">
+      {selectedOrder && (
+        <OrderDetailsModal
+          order={selectedOrder}
+          onClose={() => setSelectedOrder(null)}
+        />
+      )}
       <h1 className="text-2xl font-bold mb-2 text-[#182F38]">Orders</h1>
       <p className="text-sm mb-6 text-[#182F38]">
         Organize all ordered products
@@ -179,7 +189,12 @@ export default function OrdersPage() {
                 </td>
 
                 <td>{order.totalItemsCount} items</td>
-                <td className="cursor-pointer">...</td>
+                <td
+                  className="cursor-pointer font-bold text-xl hover:text-[#1E4700] px-4"
+                  onClick={() => setSelectedOrder(order)}
+                >
+                  <Ellipsis />
+                </td>
               </tr>
             ))
           )}

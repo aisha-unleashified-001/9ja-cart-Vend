@@ -19,6 +19,6 @@ export const ordersService = {
 
   async getOrderItems(orderId: string) {
     const response = await apiClient.get(`/vendor/orders/items/${orderId}`);
-    return response.data;
+    return response;
   },
 };
