@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { useOrdersStore } from "@/stores/useOrdersStore";
 
-
-
-export function useOrders(autoFetch: boolean = true) {
+export function useOrders(_autoFetch: boolean = true) {
   const {
     orders,
     pagination,
@@ -15,11 +13,19 @@ export function useOrders(autoFetch: boolean = true) {
     clearError,
   } = useOrdersStore();
 
-  // Automatically refetch whenever query changes
-//   useEffect(() => {
-//     if (!autoFetch) return;
-//     fetchOrders(query);
-//   }, [query.page, query.perPage, query.status, query.search]);
+  // Automatically refetch whenever the query changes (unless disabled)
+  useEffect(() => {
+    if (!_autoFetch) return;
+    fetchOrders(query);
+  }, [
+    _autoFetch,
+    fetchOrders,
+    query.page,
+    query.perPage,
+    query.status,
+    query.search,
+    query.sortBy,
+  ]);
 
   return {
     orders,

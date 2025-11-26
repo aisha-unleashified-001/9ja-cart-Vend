@@ -23,20 +23,14 @@ const TABS = [
 ];
 
 export default function OrdersPage() {
-  const { orders, pagination, query, isLoading, fetchOrders, setQuery } =
-    useOrders();
+  const { orders, pagination, query, isLoading, setQuery } = useOrders();
 
   const limit = query.perPage ?? 10;
   const totalCount = pagination?.count ?? 0;
 
   const [search, setSearch] = useState(query.search ?? "");
   const [status, setStatus] = useState(query.status ?? "all");
-  const [sortBy, setSortBy] = useState("recent");
-
-  // Fetch on query change
-  useEffect(() => {
-    fetchOrders(query);
-  }, [query.page, query.perPage, query.status, query.search, query.sortBy]);
+  const [sortBy, setSortBy] = useState(query.sortBy ?? "recent");
 
   // Sync UI → Query
   useEffect(() => {

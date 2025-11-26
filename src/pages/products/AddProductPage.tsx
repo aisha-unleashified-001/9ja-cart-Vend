@@ -9,7 +9,6 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { TagsInput } from "@/components/ui/TagsInput";
 import type { CreateProductRequest } from "@/types";
-import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
 
 interface ProductForm {
   productName: string;
@@ -32,7 +31,6 @@ export default function AddProductPage() {
     isLoading: categoriesLoading,
     fetchCategories,
   } = useCategories();
-  const { isSuspended } = useSuspensionCheck();
 
   const [form, setForm] = useState<ProductForm>({
     productName: "",

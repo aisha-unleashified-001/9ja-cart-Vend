@@ -1,11 +1,11 @@
+export type OrderSort = "recent" | "oldest";
+
 export interface OrdersQuery {
-  limit?: number;
-  offset?: number;
+  page: number;
+  perPage?: number;
   status?: string;
   search?: string;
-  perPage?: string;
-  page: number;
-
+  sortBy?: OrderSort;
 }
 
 export interface Order {
@@ -18,11 +18,20 @@ export interface Order {
   totalItemsCount: number;
 }
 
+export interface OrdersMetrics {
+  totalOrders?: number;
+  delivered?: number;
+  returns?: number;
+  cancelled?: number;
+}
+
 export interface Pagination {
   currentPage: number;
   perPage: number;
   totalPages: number;
   totalItems: number;
+  count?: number;
+  metrics?: OrdersMetrics;
 }
 
 export interface OrdersResponse {
