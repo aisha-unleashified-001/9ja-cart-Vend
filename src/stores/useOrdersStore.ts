@@ -1,7 +1,12 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { ordersService } from "@/services/order.service";
-import type { Order, OrderItem, OrdersQuery, OrdersResponse } from "@/types";
+import type {
+  Order,
+  OrderItem,
+  OrdersQuery,
+  Pagination,
+} from "@/types";
 
 interface OrdersState {
   orders: Order[];
@@ -33,6 +38,7 @@ const initialState: OrdersState = {
     perPage: 10,
     status: "all", // optional
     search: "",
+    sortBy: "recent",
   },
 };
 
@@ -49,18 +55,14 @@ export const useOrdersStore = create<OrdersStore>()(
         const response = await ordersService.getOrders(currentQuery);
 
         let ordersData: Order[] = [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let paginationData: any = null;
+        let paginationData: Pagination | null = null;
 
-        if (Array.isArray(response)) {
-          // service returned an array of orders directly
-          ordersData = response as Order[];
-          paginationData = null;
-        } else if (response && typeof response === "object" && "data" in response) {
-          // service returned an OrdersResponse
-          const resp = response as OrdersResponse;
-          ordersData = resp.data ?? [];
-          paginationData = resp.pagination ?? null;
+        // response is ApiResponse<OrdersResponse>
+        // response.data is OrdersResponse | undefined
+        if (response?.data) {
+          const ordersResponse = response.data;
+          ordersData = ordersResponse.data ?? [];
+          paginationData = ordersResponse.pagination ?? null;
         }
 
         set({
@@ -118,7 +120,8 @@ export const useOrdersStore = create<OrdersStore>()(
           state.query.page === newQuery.page &&
           state.query.perPage === newQuery.perPage &&
           state.query.status === newQuery.status &&
-          state.query.search === newQuery.search;
+          state.query.search === newQuery.search &&
+          state.query.sortBy === newQuery.sortBy;
 
         if (same) return state; // prevent infinite loop
 

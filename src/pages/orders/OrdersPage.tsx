@@ -16,9 +16,9 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OrdersPage() {
-  const { orders, pagination, query, isLoading, fetchOrders, setQuery } =
-    useOrders();
+  const { orders, pagination, query, isLoading, setQuery } = useOrders();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   const limit = query.perPage ?? 10;
@@ -27,10 +27,6 @@ export default function OrdersPage() {
   // Local UI state only
   const [search, setSearch] = useState(query.search ?? "");
   const [status, setStatus] = useState(query.status ?? "all");
-
-  useEffect(() => {
-    fetchOrders(query);
-  }, [query.page, query.perPage, query.status, query.search]);
 
   // Update query when search or status changes
   useEffect(() => {
