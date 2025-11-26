@@ -22,14 +22,6 @@ export default function OrdersPage() {
   // Local UI state only
   const [search, setSearch] = useState(query.search ?? "");
   const [status, setStatus] = useState(query.status ?? "all");
-<<<<<<< HEAD
-  const [sortBy, setSortBy] = useState(query.sortBy ?? "recent");
-=======
-
-  useEffect(() => {
-    fetchOrders(query);
-  }, [query.page, query.perPage, query.status, query.search]);
->>>>>>> c4d2fb3a2dfb99b594dcb3aa9e4cb7c479f1c3dc
 
   // Update query when search or status changes
   useEffect(() => {
