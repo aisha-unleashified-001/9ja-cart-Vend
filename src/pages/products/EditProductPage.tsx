@@ -10,7 +10,10 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { TagsInput } from "@/components/ui/TagsInput";
-import type { UpdateProductRequest } from "@/types";
+import type { Product, UpdateProductRequest } from "@/types";
+
+const normalizeIsActiveValue = (value: Product["isActive"]): string =>
+  value === "1" || value === 1 || value === true ? "1" : "0";
 
 interface ProductForm {
   productName: string;
@@ -92,7 +95,7 @@ export default function EditProductPage() {
         minStock: product.minStock || "",
         productTags: product.productTags || [],
         images: [], // Start with empty images for new uploads
-        isActive: product.isActive || "1",
+        isActive: normalizeIsActiveValue(product.isActive),
       });
     }
   }, [product]);

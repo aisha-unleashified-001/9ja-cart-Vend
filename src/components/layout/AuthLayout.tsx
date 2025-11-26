@@ -9,7 +9,7 @@ const AuthLayout: React.FC = () => {
   return (
     <div className="h-screen flex overflow-hidden bg-white">
       {/* Left side - Form Content */}
-      <div className="flex-1 flex flex-col px-6 py-12 lg:px-8 overflow-y-auto">
+      <div className="flex-1 flex flex-col px-6 py-12 lg:px-8 overflow-y-auto justify-center">
         <div className="sm:mx-auto sm:w-full sm:max-w-lg">
           {/* Back to home link */}
           <Link

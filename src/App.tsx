@@ -18,6 +18,7 @@ import OrdersPage from './pages/orders/OrdersPage';
 import StorefrontPage from './pages/storefront/StorefrontPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import NotificationsPage from './pages/notifications/NotificationsPage';
+import NotificationDetailPage from './pages/notifications/NotificationDetailPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import AuthLayout from './components/layout/AuthLayout';
 
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/storefront" element={<StorefrontPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/notifications/:id" element={<NotificationDetailPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

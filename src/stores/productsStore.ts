@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { productsService } from "@/services/products.service";
+import { isProductActive } from "@/lib/product.utils";
 import type {
   Product,
   ProductsQuery,
@@ -127,14 +128,13 @@ export const useProductsStore = create<ProductsStore>()(
             // Active = isActive='1' OR isActive=1 AND stock > 0
             currentQuery.isActive = '1';
             clientFilter = (product) => {
-              const isActive = product.isActive === '1' || product.isActive === 1;
               const hasStock = parseStockCount(product) > 0;
-              return isActive && hasStock;
+              return isProductActive(product.isActive) && hasStock;
             };
           } else if (statusFilter === 'deactivated') {
             // Deactivated = isActive='0' OR isActive=0
             currentQuery.isActive = '0';
-            clientFilter = (product) => product.isActive === '0' || product.isActive === 0;
+            clientFilter = (product) => !isProductActive(product.isActive);
           } else if (statusFilter === 'out_of_stock') {
             // Out of stock = stock <= 0 regardless of isActive
             delete currentQuery.isActive;
@@ -465,10 +465,7 @@ export const useProductsStore = create<ProductsStore>()(
 
           // Normalize isActive to string format ('1' or '0') to match Product type
           // API might return it as number (1 or 0) or string ('1' or '0')
-          const normalizedIsActive = 
-            updatedProduct.isActive === '1' || updatedProduct.isActive === 1 || updatedProduct.isActive === true
-              ? '1'
-              : '0';
+          const normalizedIsActive = isProductActive(updatedProduct.isActive) ? '1' : '0';
 
           // Update in products list - merge with existing data to prevent missing fields
           const currentState = get();

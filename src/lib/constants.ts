@@ -36,6 +36,10 @@ export const API_ENDPOINTS = {
     LIST: "/vendor/orders",
     UPDATE: "/vendor/orders",
   },
+  NOTIFICATIONS: {
+    LIST: "/notification",
+    MARK_READ: "/notification/:id/read",
+  },
 } as const;
 
 export const STORAGE_KEYS = {

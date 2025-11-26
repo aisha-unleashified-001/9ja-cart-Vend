@@ -143,11 +143,24 @@ export class RegistrationService {
           const fieldErrors: RegistrationFieldErrors = {};
           
           Object.entries(result.messages).forEach(([field, message]) => {
-            let errorMessage = message as string;
+            let errorMessage = Array.isArray(message)
+              ? message.join(" ")
+              : String(message);
             
             // Transform generic unique value error to user-friendly message
             if (field === 'emailAddress' && errorMessage.toLowerCase().includes('unique')) {
               errorMessage = 'Email already exists';
+            }
+
+            if (field === "password") {
+              const normalized = errorMessage.toLowerCase();
+              if (
+                normalized.includes("not in the correct format") ||
+                normalized.includes("format") ||
+                normalized.includes("complexity")
+              ) {
+                errorMessage = this.buildPasswordRequirementMessage(data.password);
+              }
             }
             
             fieldErrors[field as keyof RegistrationFieldErrors] = errorMessage;
@@ -202,6 +215,15 @@ export class RegistrationService {
       errors.password = "Password is required";
     } else if (data.password.length < 8) {
       errors.password = "Password must be at least 8 characters";
+    } else {
+      const missingRequirements = this.getMissingPasswordRequirements(
+        data.password
+      );
+      if (missingRequirements.length > 0) {
+        errors.password = this.formatPasswordRequirementMessage(
+          missingRequirements
+        );
+      }
     }
 
     // Personal info validation
@@ -247,6 +269,42 @@ export class RegistrationService {
     }
 
     return errors;
+  }
+  private getMissingPasswordRequirements(password: string): string[] {
+    const requirements = [
+      { regex: /[A-Z]/, label: "an uppercase letter" },
+      { regex: /[a-z]/, label: "a lowercase letter" },
+      { regex: /\d/, label: "a number" },
+      { regex: /[^A-Za-z0-9]/, label: "a special character" },
+    ];
+
+    return requirements
+      .filter((requirement) => !requirement.regex.test(password))
+      .map((requirement) => requirement.label);
+  }
+
+  private buildPasswordRequirementMessage(password: string): string {
+    const missingRequirements = this.getMissingPasswordRequirements(password);
+    return this.formatPasswordRequirementMessage(missingRequirements);
+  }
+
+  private formatPasswordRequirementMessage(missingRequirements: string[]): string {
+    if (missingRequirements.length === 0) {
+      return "Password must include upper & lowercase letters, a number, and a special character.";
+    }
+
+    if (missingRequirements.length === 1) {
+      return `Password must include ${missingRequirements[0]}.`;
+    }
+
+    if (missingRequirements.length === 2) {
+      return `Password must include ${missingRequirements[0]} and ${missingRequirements[1]}.`;
+    }
+
+    const lastRequirement = missingRequirements.pop()!;
+    return `Password must include ${missingRequirements.join(
+      ", "
+    )}, and ${lastRequirement}.`;
   }
 }
 
