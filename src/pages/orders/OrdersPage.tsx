@@ -59,7 +59,7 @@ export default function OrdersPage() {
         <MetricCard
           icon={OrdersIcon}
           title="Total orders"
-          value={pagination?.metrics?.totalOrders ?? 0}
+          value={pagination?.totalItems ?? 0}
         />
         <MetricCard
           icon={deliveredIcon}
