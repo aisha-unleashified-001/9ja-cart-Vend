@@ -4,6 +4,7 @@ import deliveredIcon from "@/assets/package.png";
 import returnsIcon from "@/assets/truck.png";
 import canceledIcon from "@/assets/x.png";
 import { useOrders } from "@/hooks/useOrders";
+import { ArrowUpDown, FileOutput, Filter, MoreHorizontal } from "lucide-react";
 
 const statusColors: Record<string, string> = {
   awaiting_pickup: "bg-yellow-100 text-yellow-700",
@@ -13,6 +14,14 @@ const statusColors: Record<string, string> = {
   order_confirmed: "bg-purple-100 text-purple-700",
 };
 
+const TABS = [
+  { label: "All", value: "all" },
+  { label: "Completed", value: "order_delivered" },
+  { label: "Processed", value: "order_processed" },
+  { label: "Returned", value: "returned" },
+  { label: "Canceled", value: "order_cancelled" },
+];
+
 export default function OrdersPage() {
   const { orders, pagination, query, isLoading, fetchOrders, setQuery } =
     useOrders();
@@ -20,33 +29,25 @@ export default function OrdersPage() {
   const limit = query.perPage ?? 10;
   const totalCount = pagination?.count ?? 0;
 
-  // Local UI state only
   const [search, setSearch] = useState(query.search ?? "");
   const [status, setStatus] = useState(query.status ?? "all");
+  const [sortBy, setSortBy] = useState("recent");
 
+  // Fetch on query change
   useEffect(() => {
     fetchOrders(query);
-    console.log("order")
-  }, [query.page, query.perPage, query.status, query.search]);
+  }, [query.page, query.perPage, query.status, query.search, query.sortBy]);
 
-  // Update query when search or status changes
+  // Sync UI → Query
   useEffect(() => {
     const mappedStatus = status === "all" ? "" : status;
-
-    if (
-      query.search === search &&
-      query.status === mappedStatus &&
-      query.page === 1
-    ) {
-      return; // prevent loop
-    }
-
     setQuery({
       search,
       status: mappedStatus,
       page: 1,
+      sortBy,
     });
-  }, [search, status]);
+  }, [search, status, sortBy]);
 
   return (
     <div className="p-6 text-white">
@@ -81,13 +82,7 @@ export default function OrdersPage() {
 
       {/* Tabs */}
       <div className="flex gap-6 mb-6 text-sm text-black">
-        {[
-          { label: "All", value: "all" },
-          { label: "Completed", value: "order_delivered" },
-          { label: "Processed", value: "order_processed" },
-          { label: "Returned", value: "returned" },
-          { label: "Canceled", value: "order_cancelled" },
-        ].map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.value}
             className={
@@ -102,7 +97,7 @@ export default function OrdersPage() {
         ))}
       </div>
 
-      {/* Search + Actions */}
+      {/* Search + Sort + Filter */}
       <div className="flex justify-between mb-4">
         <input
           type="text"
@@ -113,13 +108,21 @@ export default function OrdersPage() {
         />
 
         <div className="flex gap-3">
-          <button className="border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm">
-            Sort By
+          <button
+            onClick={() => setSortBy(sortBy === "recent" ? "oldest" : "recent")}
+            className="border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm flex items-center gap-2"
+          >
+            <ArrowUpDown className="w-4 h-4" />
+            Sort
           </button>
-          <button className="border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm">
+
+          <button className="border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm flex items-center gap-2">
+            <Filter className="w-4 h-4" />
             Filter
           </button>
-          <button className="border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm">
+
+          <button className="border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm flex items-center gap-2">
+            <FileOutput className="w-4 h-4" />
             Export
           </button>
         </div>
@@ -141,6 +144,7 @@ export default function OrdersPage() {
             <th></th>
           </tr>
         </thead>
+
         <tbody>
           {isLoading ? (
             <tr>
@@ -180,7 +184,10 @@ export default function OrdersPage() {
                 </td>
 
                 <td>{order.totalItemsCount} items</td>
-                <td className="cursor-pointer">...</td>
+
+                <td className="cursor-pointer">
+                  <MoreHorizontal className="w-6 h-6 text-[#1E4700]" />
+                </td>
               </tr>
             ))
           )}
@@ -209,21 +216,19 @@ export default function OrdersPage() {
 }
 
 function MetricCard({
-  icon,
+  icon: Icon,
   title,
   value,
 }: {
-  icon: string;
+  icon: any;
   title: string;
   value: number;
 }) {
   return (
     <div className="border border-[#1E4700] p-4 rounded-2xl bg-[#F9FFF5] flex items-center gap-3">
-      <img
-        src={icon}
-        alt={title}
-        className="w-12 h-12 bg-[#1E4700] p-2 rounded-full"
-      />
+      <div className="w-12 h-12 bg-[#1E4700] p-2 rounded-full flex items-center justify-center">
+        <Icon className="w-6 h-6 text-white" />
+      </div>
       <div>
         <p className="text-sm text-[#182F38]">{title}</p>
         <p className="text-2xl font-bold text-[#1E4700]">{value}</p>

@@ -1,11 +1,12 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { ordersService } from "@/services/order.service";
-import type { Order, OrderItem, OrdersQuery } from "@/types";
+import type { Order, OrderItem, OrdersQuery, OrdersResponse } from "@/types";
 
 interface OrdersState {
   orders: Order[];
   orderItems: OrderItem[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pagination: any;
   isLoading: boolean;
   error: string | null;
@@ -46,9 +47,24 @@ export const useOrdersStore = create<OrdersStore>()(
 
         const response = await ordersService.getOrders(currentQuery);
 
+        let ordersData: Order[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let paginationData: any = null;
+
+        if (Array.isArray(response)) {
+          // service returned an array of orders directly
+          ordersData = response as Order[];
+          paginationData = null;
+        } else if (response && typeof response === "object" && "data" in response) {
+          // service returned an OrdersResponse
+          const resp = response as OrdersResponse;
+          ordersData = resp.data ?? [];
+          paginationData = resp.pagination ?? null;
+        }
+
         set({
-          orders: response.data ?? [], // <-- use the data array
-          pagination: response.pagination ?? null,
+          orders: ordersData,
+          pagination: paginationData,
           query: currentQuery,
           isLoading: false,
           error: null,

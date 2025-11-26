@@ -5,6 +5,7 @@ export interface OrdersQuery {
   search?: string;
   perPage?: string;
   page: number;
+
 }
 
 export interface Order {
