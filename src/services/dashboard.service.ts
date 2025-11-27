@@ -1,11 +1,24 @@
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/constants";
-import type { DashboardSummary, VendorProfile } from "@/types";
+import { parseBooleanish } from "@/lib/boolean.utils";
+import type {
+  DashboardSummary,
+  DashboardSummaryResponse,
+  VendorProfile,
+} from "@/types";
+
+const normalizeDashboardSummary = (
+  data: DashboardSummaryResponse
+): DashboardSummary => ({
+  ...data,
+  isActive: parseBooleanish(data.isActive),
+  isSuspended: parseBooleanish(data.isSuspended),
+});
 
 export class DashboardService {
   async getDashboardSummary(): Promise<DashboardSummary> {
     try {
-      const response = await apiClient.get<DashboardSummary>(
+      const response = await apiClient.get<DashboardSummaryResponse>(
         API_ENDPOINTS.VENDOR.DASHBOARD_SUMMARY,
         { requiresAuth: true }
       );
@@ -16,7 +29,7 @@ export class DashboardService {
         );
       }
 
-      return response.data;
+      return normalizeDashboardSummary(response.data);
     } catch (error) {
       const errorMessage =
         error instanceof Error

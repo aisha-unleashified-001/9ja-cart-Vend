@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProductsStore } from "@/stores/productsStore";
 import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
@@ -18,7 +18,6 @@ import { ProductDebugPanel } from "@/components/debug/ProductDebugPanel";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { isSuspended } = useSuspensionCheck();
   const [images, setImages] = useState<string[]>([]);
 
@@ -95,7 +94,6 @@ export default function ProductDetailPage() {
       try {
         await archiveProduct(product.productId);
         toast.success("Product archived successfully");
-        navigate("/products");
       } catch {
         toast.error("Failed to archive product");
       }
@@ -122,8 +120,6 @@ export default function ProductDetailPage() {
         if (id) {
           await fetchProductDetails(id);
         }
-        // Navigate back to products list so user can see the restored product
-        navigate("/products");
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to restore product";
         toast.error(errorMessage);
@@ -452,6 +448,8 @@ export default function ProductDetailPage() {
               // Refresh product data after successful upload
               fetchProductDetails(product.productId);
             }}
+            isDisabled={isSuspended}
+            disabledReason="Your account has been suspended. Image uploads are disabled."
           />
         </div>
       </div>

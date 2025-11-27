@@ -6,6 +6,8 @@ interface ImageUploadProps {
   onImagesChange: (images: File[]) => void;
   maxImages?: number;
   className?: string;
+  disabled?: boolean;
+  disabledMessage?: string;
 }
 
 interface ImagePreview {
@@ -13,17 +15,23 @@ interface ImagePreview {
   url: string;
 }
 
-export function ImageUpload({ 
-  images, 
-  onImagesChange, 
-  maxImages = 5, 
-  className = '' 
+export function ImageUpload({
+  images,
+  onImagesChange,
+  maxImages = 5,
+  className = '',
+  disabled = false,
+  disabledMessage,
 }: ImageUploadProps) {
   const [previews, setPreviews] = useState<ImagePreview[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) {
+      return;
+    }
+
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
@@ -69,7 +77,8 @@ export function ImageUpload({
     setErrors([]);
   };
 
-  const canAddMore = images.length < maxImages;
+  const hasRemainingSlots = images.length < maxImages;
+  const canAddMore = !disabled && hasRemainingSlots;
 
   return (
     <div className={className}>
@@ -83,7 +92,7 @@ export function ImageUpload({
             multiple
             onChange={handleFileSelect}
             className="hidden"
-            disabled={!canAddMore}
+            disabled={!hasRemainingSlots || disabled}
           />
           <button
             type="button"
@@ -91,7 +100,14 @@ export function ImageUpload({
             disabled={!canAddMore}
             className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-primary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {images.length === 0 ? (
+            {disabled ? (
+              <div className="text-center">
+                <p className="text-sm font-semibold">Uploads unavailable</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {disabledMessage ?? "Image uploads are currently disabled."}
+                </p>
+              </div>
+            ) : images.length === 0 ? (
               <div className="text-center">
                 <div className="text-4xl mb-2">📷</div>
                 <p className="text-sm">Click to upload product images</p>

@@ -1,10 +1,33 @@
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const syncSuspensionStatus = useAuthStore((state) => state.syncSuspensionStatus);
+
+  const handleSync = useCallback(() => {
+    // Fire and forget; store logs its own errors
+    syncSuspensionStatus();
+  }, [syncSuspensionStatus]);
+
+  useEffect(() => {
+    handleSync();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        handleSync();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [handleSync]);
 
   return (
     <div className="flex h-screen bg-background">

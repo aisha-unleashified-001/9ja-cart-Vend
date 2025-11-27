@@ -424,10 +424,8 @@ export const useProductsStore = create<ProductsStore>()(
           set({
             products: filteredProducts,
             archivedProductIds: newArchivedIds,
-            currentProduct:
-              currentState.currentProduct?.productId === productId
-                ? null
-                : currentState.currentProduct,
+            // Keep viewing context intact so detail pages remain visible after archiving
+            currentProduct: currentState.currentProduct,
             isLoading: false,
             error: null,
           });

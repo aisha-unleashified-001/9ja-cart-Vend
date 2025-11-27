@@ -9,15 +9,21 @@ interface ProductImageUploadProps {
   productId: string;
   existingImages?: string[];
   onUploadSuccess?: () => void;
+  isDisabled?: boolean;
+  disabledReason?: string;
 }
 
 export function ProductImageUpload({
   productId,
   existingImages,
   onUploadSuccess,
+  isDisabled = false,
+  disabledReason,
 }: ProductImageUploadProps) {
   const [images, setImages] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const suspensionMessage =
+    disabledReason ?? "Your account is suspended. You cannot upload images.";
 
   async function urlToFile(url: string, filename: string) {
     const response = await fetch(url);
@@ -26,6 +32,11 @@ export function ProductImageUpload({
   }
 
   const handleUpload = async () => {
+    if (isDisabled) {
+      toast.error(suspensionMessage);
+      return;
+    }
+
     if (images.length === 0) {
       toast.error("Please select at least one image");
       return;
@@ -81,7 +92,19 @@ export function ProductImageUpload({
       </p>
 
       <div className="space-y-4">
-        <ImageUpload images={images} onImagesChange={setImages} maxImages={5} />
+        <ImageUpload
+          images={images}
+          onImagesChange={setImages}
+          maxImages={5}
+          disabled={isDisabled}
+          disabledMessage={suspensionMessage}
+        />
+
+        {isDisabled && (
+          <p className="text-sm text-orange-600">
+            {suspensionMessage}
+          </p>
+        )}
 
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">
@@ -93,7 +116,7 @@ export function ProductImageUpload({
               <button
                 type="button"
                 onClick={() => setImages([])}
-                disabled={isUploading}
+                disabled={isUploading || isDisabled}
                 className="px-3 py-2 text-sm border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
               >
                 Clear
@@ -103,7 +126,7 @@ export function ProductImageUpload({
             <LoadingButton
               onClick={handleUpload}
               isLoading={isUploading}
-              disabled={images.length === 0}
+              disabled={images.length === 0 || isDisabled}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:bg-gray-300"
             >
               {isUploading

@@ -9,6 +9,7 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { TagsInput } from "@/components/ui/TagsInput";
 import type { CreateProductRequest } from "@/types";
+import { Info } from "lucide-react";
 
 interface ProductForm {
   productName: string;
@@ -460,9 +461,22 @@ export default function AddProductPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Minimum Stock *
-                  </label>
+                  <div className="flex items-center gap-1 text-sm font-medium text-foreground mb-1">
+                    <span>Minimum Stock *</span>
+                    <div className="relative inline-flex group ml-1">
+                      <button
+                        type="button"
+                        className="p-1 rounded-full text-blue-600 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
+                        aria-label="Minimum stock information"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                      <div className="absolute left-1/2 top-full mt-2 w-56 -translate-x-1/2 rounded-md bg-blue-50 p-2 text-xs text-blue-800 shadow-lg border border-blue-200 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                        This value sets the threshold that alerts you when stock is
+                        running low so you can restock before products sell out.
+                      </div>
+                    </div>
+                  </div>
                   <input
                     type="number"
                     min="0"

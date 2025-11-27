@@ -1,3 +1,5 @@
+import type { Booleanish } from '@/lib/boolean.utils';
+
 export type AccountStatus = "active" | "pending" | "suspended" | "deactivated";
 
 export interface DashboardSummary {
@@ -8,6 +10,14 @@ export interface DashboardSummary {
   recentOrders: RecentOrder[];
   topProducts: TopProduct[];
   accountStatus?: AccountStatus;
+  isActive?: boolean;
+  isSuspended?: boolean;
+}
+
+export interface DashboardSummaryResponse
+  extends Omit<DashboardSummary, 'isActive' | 'isSuspended'> {
+  isActive?: Booleanish;
+  isSuspended?: Booleanish;
 }
 
 export interface RecentOrder {

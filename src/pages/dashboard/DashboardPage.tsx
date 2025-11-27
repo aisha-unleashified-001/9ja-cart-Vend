@@ -1,29 +1,76 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useSuspensionCheck } from '@/hooks/useSuspensionCheck';
+import { useNotificationsStore } from '@/stores/notificationsStore';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import type { AccountStatus } from '@/types';
+
+const SUSPENSION_KEYWORDS = ["suspend"];
+
+const isSuspensionNotification = (notification: { title?: string; type?: string; message?: string }) => {
+  if (!notification) return false;
+  const haystacks = [
+    notification.title,
+    notification.type,
+    notification.message,
+  ]
+    .filter(Boolean)
+    .map((value) => value?.toLowerCase() ?? "");
+
+  return haystacks.some((value) =>
+    SUSPENSION_KEYWORDS.some((keyword) => value.includes(keyword))
+  );
+};
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const { dashboardData, isLoading, error, fetchDashboardSummary } = useDashboard();
   const { isSuspended } = useSuspensionCheck();
-  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
+  const notifications = useNotificationsStore((state) => state.notifications);
+  const fetchNotifications = useNotificationsStore((state) => state.fetchNotifications);
+  const hasFetched = useNotificationsStore((state) => state.hasFetched);
 
   // Fetch dashboard data on component mount
   useEffect(() => {
     fetchDashboardSummary();
   }, [fetchDashboardSummary]);
 
+  // Fetch notifications if not already fetched
+  useEffect(() => {
+    if (!hasFetched) {
+      fetchNotifications().catch((err) =>
+        console.error("Failed to load notifications", err)
+      );
+    }
+  }, [hasFetched, fetchNotifications]);
+
+  // Find the latest suspension notification
+  const latestSuspensionNotification = useMemo(() => {
+    const suspensionNotifications = notifications.filter(isSuspensionNotification);
+    if (suspensionNotifications.length === 0) return null;
+    
+    // Sort by createdAt descending to get the latest
+    return suspensionNotifications.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return dateB - dateA;
+    })[0];
+  }, [notifications]);
+
   const accountStatus = dashboardData?.accountStatus as AccountStatus | undefined;
   const isAccountSuspended =
     accountStatus && ['suspended', 'deactivated'].includes(accountStatus.toLowerCase());
+
+  const dashboardSuspension =
+    typeof dashboardData?.isSuspended === 'boolean' ? dashboardData.isSuspended : undefined;
   
-  // Use isSuspended from user data (from login) as primary check
-  const isSuspendedAccount = isSuspended || isAccountSuspended;
+  // Prefer dashboard suspension status when it's present, otherwise fall back to user/auth data
+  const isSuspendedAccount = typeof dashboardSuspension === 'boolean'
+    ? dashboardSuspension
+    : Boolean(isSuspended || isAccountSuspended);
 
   // Format currency
   const formatCurrency = (amount: number) => {
@@ -122,40 +169,22 @@ export default function DashboardPage() {
       </div>
 
       {/* Suspension Banner */}
-      {isSuspendedAccount && !isBannerDismissed && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2 relative">
-          <div className="flex items-start justify-between gap-2">
-            <p className="flex-1">
-              Your account has been suspended, to get more information{' '}
+      {isSuspendedAccount && (
+        <div className="text-base sm:text-lg text-red-600 bg-red-50 border-2 border-red-300 rounded-lg px-6 py-4 sm:px-8 sm:py-6 relative">
+          <p>
+            Your account has been suspended, to get more information{' '}
+            {latestSuspensionNotification ? (
               <Link
-                to="/notifications"
+                to={`/notifications/${latestSuspensionNotification.id}`}
                 className="underline font-semibold hover:text-red-700 transition-colors"
               >
                 click here
               </Link>
-              .
-            </p>
-            <button
-              onClick={() => setIsBannerDismissed(true)}
-              className="flex-shrink-0 text-red-600 hover:text-red-700 transition-colors ml-2"
-              aria-label="Close banner"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
+            ) : (
+              <span className="underline font-semibold">click here</span>
+            )}
+            .
+          </p>
         </div>
       )}
 

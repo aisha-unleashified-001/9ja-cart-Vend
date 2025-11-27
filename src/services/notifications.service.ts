@@ -250,18 +250,42 @@ class NotificationsService {
       throw new Error(response.message || "Failed to fetch notifications");
     }
 
-    const payload = response as unknown as Record<string, unknown>;
-    let notificationsRaw = extractArrayFromUnknown(payload);
+    // The API response structure is: { status, error, message, data: Notification[], pagination }
+    // apiClient.get() returns the full ApiResponse, so we access response.data for the array
+    const responseData = response as unknown as Record<string, unknown>;
+    
+    // Debug logging to help diagnose response structure issues
+    if (import.meta.env.DEV) {
+      console.log('[NotificationsService] API Response:', {
+        url,
+        hasData: !!responseData.data,
+        dataType: typeof responseData.data,
+        isDataArray: Array.isArray(responseData.data),
+        hasPagination: !!responseData.pagination,
+        responseKeys: Object.keys(responseData),
+      });
+    }
+    
+    // First try to get notifications from response.data (standard API structure)
+    let notificationsRaw = extractArrayFromUnknown(responseData.data);
+    
+    // If not found, try extracting from the whole response (fallback for different API structures)
     if (!notificationsRaw.length) {
-      notificationsRaw = extractArrayFromUnknown(payload.data);
+      notificationsRaw = extractArrayFromUnknown(responseData);
+    }
+    
+    // Log if no notifications were found
+    if (!notificationsRaw.length && import.meta.env.DEV) {
+      console.warn('[NotificationsService] No notifications found in response:', responseData);
     }
 
     const notifications = notificationsRaw.map(normalizeNotification);
 
+    // Extract pagination - check response.pagination first, then fallback to nested locations
     const paginationSource =
-      payload.pagination ||
-      (payload.data as Record<string, unknown>)?.pagination ||
-      (payload.meta as Record<string, unknown>);
+      responseData.pagination ||
+      (responseData.data as Record<string, unknown>)?.pagination ||
+      (responseData.meta as Record<string, unknown>);
 
     const pagination =
       extractPagination(paginationSource) ||

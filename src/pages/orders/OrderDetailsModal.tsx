@@ -18,14 +18,25 @@ export default function OrderDetailsModal({
   );
 
   const { items, enrichedOrder } = useMemo(() => {
-    const apiData = fetchedData?.data || fetchedData || {};
+    // Handle case where fetchedData is an array (from store) or an object with data/items
+    let apiData: any = {};
+    let itemsList: any[] = [];
 
-    // Check if we found a valid object containing 'items'
-    const hasItems = apiData && "items" in apiData;
-
-    // Extract the items array safely
-    const itemsList =
-      hasItems && Array.isArray(apiData.items) ? apiData.items : [];
+    if (Array.isArray(fetchedData)) {
+      // If fetchedData is already an array, use it directly as items
+      itemsList = fetchedData;
+      apiData = {};
+    } else if (fetchedData && typeof fetchedData === "object") {
+      // If fetchedData is an object, check for .data or use it directly
+      apiData = (fetchedData as any)?.data || fetchedData || {};
+      
+      // Check if we found a valid object containing 'items'
+      const hasItems = apiData && "items" in apiData;
+      
+      // Extract the items array safely
+      itemsList =
+        hasItems && Array.isArray(apiData.items) ? apiData.items : [];
+    }
 
     // Merge initial data (table) with detailed data (API)
     const mergedOrder = {
