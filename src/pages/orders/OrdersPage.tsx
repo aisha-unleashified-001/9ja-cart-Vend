@@ -1,11 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import OrdersIcon from "@/assets/Orders.png";
 import deliveredIcon from "@/assets/package.png";
 import returnsIcon from "@/assets/truck.png";
 import canceledIcon from "@/assets/x.png";
 import { useOrders } from "@/hooks/useOrders";
 import OrderDetailsModal from "./OrderDetailsModal";
-import { Ellipsis, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Ellipsis,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Filter,
+} from "lucide-react";
 
 const statusColors: Record<string, string> = {
   awaiting_pickup: "bg-yellow-100 text-yellow-700",
@@ -20,64 +26,165 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OrdersPage() {
-  const { orders, pagination, query, isLoading, fetchOrders, setQuery } =
-    useOrders();
+  // Destructure metrics and fetchMetrics from the hook
+  const {
+    orders,
+    metrics,
+    pagination,
+    query,
+    isLoading,
+    fetchOrders,
+    fetchMetrics,
+    setQuery,
+  } = useOrders();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
 
-  // Local UI state
-  const [search, setSearch] = useState(query.search ?? "");
+  // -- UI State for Dropdowns --
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // -- Local Filter State (for the Filter Menu inputs) --
+  const [filterValues, setFilterValues] = useState({
+    startDate: query.startDate || "",
+    endDate: query.endDate || "",
+    paymentMethod: query.paymentMethod || "",
+  });
+
+  // Local UI state for Search
+  const [search, setSearch] = useState(
+    query.customerName || query.orderNo || ""
+  );
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
   const [status, setStatus] = useState(query.status ?? "all");
 
   const currentPage = query.page || 1;
   const totalPages = pagination?.totalPages || 1;
 
-  useEffect(() => {
-    if (query.search !== undefined) setSearch(query.search);
-    if (query.status !== undefined) setStatus(query.status || "all");
-  }, [query.search, query.status]);
+  // Refs for click-outside detection
+  const sortRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
 
-  // Update query ONLY when status changes (Server side filter)
+  // Close dropdowns when clicking outside
   useEffect(() => {
-    const mappedStatus = status === "all" ? "" : status;
+    function handleClickOutside(event: MouseEvent) {
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setIsSortOpen(false);
+      }
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(event.target as Node)
+      ) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
-    if (query.status === mappedStatus && query.page === 1) {
-      return;
+  // Sync local filter state when query changes (e.g. clear filters)
+  useEffect(() => {
+    setFilterValues({
+      startDate: query.startDate || "",
+      endDate: query.endDate || "",
+      paymentMethod: query.paymentMethod || "",
+    });
+  }, [query.startDate, query.endDate, query.paymentMethod]);
+
+  // Debounce search input
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Sync local state if query changes externally
+  useEffect(() => {
+    const storeSearch = query.orderNo || query.customerName || "";
+    if (storeSearch !== debouncedSearch) {
+      setSearch(storeSearch);
+      setDebouncedSearch(storeSearch);
     }
 
-    setQuery({
-      status: mappedStatus,
-      page: 1,
-      // Search 
-    });
-  }, [status]);
+    const currentStatus = query.status || "all";
+    if (currentStatus !== status) setStatus(currentStatus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query.orderNo, query.customerName, query.status]);
 
   useEffect(() => {
-    fetchOrders(query);
-  }, [query.page, query.perPage, query.status, query.search]);
+    const mappedStatus = status === "all" ? "" : status.toUpperCase();
+    const cleanSearch = debouncedSearch.trim();
+    const isOrderNo = cleanSearch.toUpperCase().startsWith("ORD");
 
-  // Client-side filtering to ensure tab consistency AND Search
-  const filteredOrders =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    orders?.filter((order: any) => {
-      const matchesStatus =
-        status === "all" ||
-        order.status?.toLowerCase() === status.toLowerCase();
+    setQuery({
+      page: 1,
+      status: mappedStatus,
+      orderNo: isOrderNo ? cleanSearch : "",
+      customerName: !isOrderNo ? cleanSearch : "",
+    });
+  }, [debouncedSearch, status, setQuery]);
 
-      // 2. Search Filter (Frontend only)
-      const searchLower = search.toLowerCase();
-      const matchesSearch =
-        !search ||
-        order.orderNo?.toLowerCase().includes(searchLower) ||
-        order.customerName?.toLowerCase().includes(searchLower) ||
-        order.totalAmount?.toString().includes(searchLower);
+  useEffect(() => {
+    const payload = {
+      page: query.page,
+      perPage: query.perPage,
+      status: query.status,
+      customerName: query.customerName,
+      orderNo: query.orderNo,
+      startDate: query.startDate,
+      endDate: query.endDate,
+      paymentMethod: query.paymentMethod,
+      sortBy: query.sortBy,
+    };
+    fetchOrders(payload);
+  }, [
+    query.page,
+    query.perPage,
+    query.status,
+    query.customerName,
+    query.orderNo,
+    query.startDate,
+    query.endDate,
+    query.paymentMethod,
+    query.sortBy,
+    fetchOrders,
+  ]);
 
-      return matchesStatus && matchesSearch;
-    }) ?? [];
+  useEffect(() => {
+    if (fetchMetrics) {
+      fetchMetrics();
+    }
+  }, [fetchMetrics]);
 
-  // Pagination Handlers
+
+  const handleApplyFilter = () => {
+    setQuery({
+      page: 1,
+      startDate: filterValues.startDate,
+      endDate: filterValues.endDate,
+      paymentMethod: filterValues.paymentMethod,
+    });
+    setIsFilterOpen(false);
+  };
+
+  const handleResetFilter = () => {
+    setQuery({
+      startDate: "",
+      endDate: "",
+      paymentMethod: "",
+    });
+    setFilterValues({ startDate: "", endDate: "", paymentMethod: "" });
+    setIsFilterOpen(false);
+  };
+
+  const handleSort = (sortBy: string) => {
+    setQuery({ sortBy });
+    setIsSortOpen(false);
+  };
+
   const handleNextPage = () => {
     if (currentPage < totalPages) setQuery({ page: currentPage + 1 });
   };
@@ -104,27 +211,26 @@ export default function OrdersPage() {
         Organize all ordered products
       </p>
 
-      {/* Metrics */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         <MetricCard
           icon={OrdersIcon}
           title="Total orders"
-          value={pagination?.totalItems ?? 0}
+          value={metrics?.totalOrders ?? 0}
         />
         <MetricCard
           icon={deliveredIcon}
           title="Delivered over time"
-          value={pagination?.metrics?.delivered ?? 0}
+          value={metrics?.deliveredOrders ?? 0}
         />
         <MetricCard
           icon={returnsIcon}
           title="Returns"
-          value={pagination?.metrics?.returns ?? 0}
+          value={metrics?.returnedOrders ?? 0}
         />
         <MetricCard
           icon={canceledIcon}
           title="Canceled orders"
-          value={pagination?.metrics?.cancelled ?? 0}
+          value={metrics?.cancelledOrders ?? 0}
         />
       </div>
 
@@ -155,19 +261,137 @@ export default function OrdersPage() {
       <div className="flex justify-between mb-4">
         <input
           type="text"
-          placeholder="Find Order..."
+          placeholder="Find Order (Name or ORD-xxx)..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="border border-[#1E4700] text-[#1E4700] rounded px-3 py-2 text-sm w-60 focus:outline-none focus:ring-1 focus:ring-[#1E4700]"
         />
 
         <div className="flex gap-3">
-          <button className="border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm hover:bg-[#F9FFF5]">
-            Sort By
-          </button>
-          <button className="border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm hover:bg-[#F9FFF5]">
-            Filter
-          </button>
+          {/* SORT BUTTON */}
+          <div className="relative" ref={sortRef}>
+            <button
+              onClick={() => setIsSortOpen(!isSortOpen)}
+              className="flex items-center gap-2 border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm hover:bg-[#F9FFF5]"
+            >
+              Sort By
+              <ArrowUpDown className="w-3 h-3" />
+            </button>
+            {isSortOpen && (
+              <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-100 rounded-lg shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  onClick={() => handleSort("recent")}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                    query.sortBy === "recent"
+                      ? "text-[#1E4700] font-semibold"
+                      : "text-gray-600"
+                  }`}
+                >
+                  Newest First
+                </button>
+                <button
+                  onClick={() => handleSort("oldest")}
+                  className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
+                    query.sortBy === "oldest"
+                      ? "text-[#1E4700] font-semibold"
+                      : "text-gray-600"
+                  }`}
+                >
+                  Oldest First
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* FILTER BUTTON */}
+          <div className="relative" ref={filterRef}>
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="flex items-center gap-2 border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm hover:bg-[#F9FFF5]"
+            >
+              Filter
+              <Filter className="w-3 h-3" />
+            </button>
+            {isFilterOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-100 rounded-lg shadow-xl z-20 p-4 animate-in fade-in zoom-in-95 duration-100 text-[#182F38]">
+                <div className="space-y-4">
+                  {/* Date Range */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">
+                      Date Range
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="date"
+                          value={filterValues.startDate}
+                          onChange={(e) =>
+                            setFilterValues((prev) => ({
+                              ...prev,
+                              startDate: e.target.value,
+                            }))
+                          }
+                          className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:border-[#1E4700] outline-none"
+                        />
+                      </div>
+                      <div className="relative flex-1">
+                        <input
+                          type="date"
+                          value={filterValues.endDate}
+                          onChange={(e) =>
+                            setFilterValues((prev) => ({
+                              ...prev,
+                              endDate: e.target.value,
+                            }))
+                          }
+                          className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:border-[#1E4700] outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 mb-1">
+                      Payment Method
+                    </label>
+                    <select
+                      value={filterValues.paymentMethod}
+                      onChange={(e) =>
+                        setFilterValues((prev) => ({
+                          ...prev,
+                          paymentMethod: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:border-[#1E4700] outline-none"
+                    >
+                      <option value="">All Methods</option>
+                      <option value="card">Card</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="cash">Cash</option>
+                    </select>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={handleResetFilter}
+                      className="flex-1 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-50 rounded border border-gray-200"
+                    >
+                      Reset
+                    </button>
+                    <button
+                      onClick={handleApplyFilter}
+                      className="flex-1 py-1.5 text-xs font-medium text-white bg-[#1E4700] hover:bg-[#163600] rounded"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button className="border border-[#1E4700] text-[#1E4700] px-3 py-2 rounded text-sm hover:bg-[#F9FFF5]">
             Export
           </button>
@@ -198,7 +422,7 @@ export default function OrdersPage() {
                   Loading orders...
                 </td>
               </tr>
-            ) : filteredOrders.length === 0 ? (
+            ) : orders?.length === 0 ? (
               <tr>
                 <td colSpan={8} className="text-center py-10 text-[#182F38]">
                   No orders found.
@@ -206,7 +430,7 @@ export default function OrdersPage() {
               </tr>
             ) : (
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              filteredOrders.map((order: any) => (
+              orders.map((order: any) => (
                 <tr
                   key={order.orderNo}
                   className="border-b border-neutral-800 text-[#333333] hover:bg-gray-50/50"

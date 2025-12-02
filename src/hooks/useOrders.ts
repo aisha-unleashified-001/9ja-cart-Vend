@@ -4,35 +4,27 @@ import { useOrdersStore } from "@/stores/useOrdersStore";
 export function useOrders() {
   const {
     orders,
+    metrics,
     pagination,
     query,
     isLoading,
     error,
     fetchOrders,
+    fetchMetrics,
     setQuery,
     clearError,
   } = useOrdersStore();
 
-  // Automatically refetch whenever the query changes (unless disabled)
-  // useEffect(() => {
-  //   if (!_autoFetch) return;
-  //   fetchOrders(query);
-  // }, [
-  //   query.page,
-  //   query.perPage,
-  //   query.status,
-  //   query.search,
-  //   query.sortBy,
-  // ]);
-
   return {
     orders,
+    metrics,
     pagination,
     query,
     isLoading,
     error,
     setQuery,
     fetchOrders,
+    fetchMetrics,
     clearError,
   };
 }

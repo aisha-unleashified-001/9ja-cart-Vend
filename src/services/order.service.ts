@@ -21,4 +21,9 @@ export const ordersService = {
     const response = await apiClient.get(`/vendor/orders/items/${orderId}`);
     return response;
   },
+
+  async getOrdersSummary() {
+    const response = await apiClient.get(`/vendor/orders/summary`);
+    return response;
+  },
 };

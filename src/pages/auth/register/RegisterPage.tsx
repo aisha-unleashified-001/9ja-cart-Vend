@@ -48,7 +48,7 @@ const initialFormData: FormData = {
   businessRegCertificate: null,
 };
 
-const businessRegPattern = /^RC-?\d{8}$/i;
+const businessRegPattern = /^RC-?\d{7}$/i;
 
 const FIELD_STEP_MAP: Record<keyof RegistrationFieldErrors, number> = {
   emailAddress: 1,
@@ -120,7 +120,7 @@ export default function RegisterPage() {
     if (formData.businessRegNumber?.trim()) {
       const formattedValue = formData.businessRegNumber.trim().toUpperCase();
       if (!businessRegPattern.test(formattedValue)) {
-        errors.businessRegNumber = 'Use RC12345678 or RC-12345678 (8 digits after RC).';
+        errors.businessRegNumber = 'Use RC1234567 or RC-1234567 (7 digits after RC).';
       }
     }
 

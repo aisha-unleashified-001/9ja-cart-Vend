@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo } from "react";
 import { useOrderItems } from "@/hooks/useOrders";
 import { X, Check } from "lucide-react";
 
 interface OrderDetailsModalProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   order: any;
   onClose: () => void;
 }
@@ -29,13 +29,12 @@ export default function OrderDetailsModal({
     } else if (fetchedData && typeof fetchedData === "object") {
       // If fetchedData is an object, check for .data or use it directly
       apiData = (fetchedData as any)?.data || fetchedData || {};
-      
+
       // Check if we found a valid object containing 'items'
       const hasItems = apiData && "items" in apiData;
-      
+
       // Extract the items array safely
-      itemsList =
-        hasItems && Array.isArray(apiData.items) ? apiData.items : [];
+      itemsList = hasItems && Array.isArray(apiData.items) ? apiData.items : [];
     }
 
     // Merge initial data (table) with detailed data (API)
@@ -79,12 +78,11 @@ export default function OrderDetailsModal({
               ) : items.length === 0 ? (
                 <p className="text-sm text-gray-400">No items found.</p>
               ) : (
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 items.map((item: any, idx: number) => (
                   <div key={idx} className="flex gap-4 items-start">
                     <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden flex items-center justify-center">
                       <img
-                        src={item.image || "/placeholder.png"}
+                        src={item.productImages[0] || "/placeholder.png"}
                         alt={item.productName}
                         className="w-full h-full object-cover opacity-80"
                         onError={(e) =>

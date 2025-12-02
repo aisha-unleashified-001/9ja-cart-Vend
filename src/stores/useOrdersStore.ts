@@ -1,27 +1,23 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { ordersService } from "@/services/order.service";
-import type {
-  Order,
-  OrderItem,
-  OrdersQuery,
-  Pagination,
-} from "@/types";
+import type { Order, OrderItem, OrdersMetrics, OrdersQuery, Pagination } from "@/types";
 
 interface OrdersState {
   orders: Order[];
+  metrics: OrdersMetrics | null; 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   orderItems: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  pagination: any;
+  pagination: Pagination | null;
   isLoading: boolean;
   error: string | null;
   query: OrdersQuery;
 }
 
 interface OrdersStore extends OrdersState {
-  fetchOrders: (query?: OrdersQuery) => Promise<void>;
+  fetchOrders: (query?: Partial<OrdersQuery>) => Promise<void>;
   fetchOrderItems: (orderId: string) => Promise<void>;
+  fetchMetrics: () => Promise<void>; // New action
   setQuery: (query: Partial<OrdersQuery>) => void;
   clearError: () => void;
   reset: () => void;
@@ -29,6 +25,7 @@ interface OrdersStore extends OrdersState {
 
 const initialState: OrdersState = {
   orders: [],
+  metrics: null,
   orderItems: [],
   pagination: null,
   isLoading: false,
@@ -36,8 +33,8 @@ const initialState: OrdersState = {
   query: {
     page: 1,
     perPage: 10,
-    status: "all", // optional
-    search: "",
+    status: "all",
+    // search: "",
     sortBy: "recent",
   },
 };
@@ -46,28 +43,39 @@ export const useOrdersStore = create<OrdersStore>()(
   devtools((set, get) => ({
     ...initialState,
 
-    fetchOrders: async (query?: OrdersQuery) => {
+    fetchOrders: async (queryPayload?: Partial<OrdersQuery>) => {
       set({ isLoading: true, error: null });
 
       try {
-        const currentQuery = { ...get().query, ...query };
+        // Merge current query with new payload
+        const currentQuery = { ...get().query, ...queryPayload };
 
-        const response = await ordersService.getOrders(currentQuery);
+        const cleanQuery = Object.fromEntries(
+          Object.entries(currentQuery).filter(
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            ([_, v]) => v !== undefined && v !== ""
+          )
+        );
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let ordersData: any = [];
+        const response = await ordersService.getOrders(cleanQuery as any);
+
+        let ordersData: Order[] = [];
         let paginationData: Pagination | null = null;
 
         if (response?.data) {
-          const ordersResponse = response;
-          ordersData = ordersResponse?.data ?? [];
-          paginationData = ordersResponse.pagination ?? null;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const responseData = response as any;
+          ordersData = Array.isArray(responseData.data)
+            ? responseData.data
+            : [];
+          paginationData = responseData.pagination ?? null;
         }
 
         set({
           orders: ordersData,
           pagination: paginationData,
-          query: currentQuery,
+          query: currentQuery, // Keep the full query state in store
           isLoading: false,
           error: null,
         });
@@ -80,6 +88,17 @@ export const useOrdersStore = create<OrdersStore>()(
           isLoading: false,
           error: message,
         });
+      }
+    },
+
+    fetchMetrics: async () => {
+      try {
+        const response = (await ordersService.getOrdersSummary()) as
+          | { data: OrdersMetrics }
+          | null;
+        set({ metrics: response?.data ?? null });
+      } catch (error) {
+        console.error("Failed to fetch metrics:", error);
       }
     },
 
@@ -113,17 +132,6 @@ export const useOrdersStore = create<OrdersStore>()(
     setQuery: (payload) =>
       set((state) => {
         const newQuery = { ...state.query, ...payload };
-
-        // Shallow compare to prevent unnecessary re-renders
-        const same =
-          state.query.page === newQuery.page &&
-          state.query.perPage === newQuery.perPage &&
-          state.query.status === newQuery.status &&
-          state.query.search === newQuery.search &&
-          state.query.sortBy === newQuery.sortBy;
-
-        if (same) return state; // prevent infinite loop
-
         return { query: newQuery };
       }),
 
