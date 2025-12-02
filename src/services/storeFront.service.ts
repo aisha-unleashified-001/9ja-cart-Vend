@@ -7,16 +7,28 @@ import type {
 
 export const storefrontService = {
   getVendorBestSellers: async (query: BestSellerQuery) => {
-    const response = await apiClient.get(`/vendor/${query.vendorId}/best-sellers`, {
-      params: query,
-    });
+    const params = new URLSearchParams();
+    if (query.limit) params.append("limit", query.limit.toString());
+    if (query.period) params.append("period", query.period);
+    if (query.category) params.append("category", query.category);
+    
+    const url = `/vendor/${query.vendorId}/best-sellers${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await apiClient.get(url);
     return response;
   },
 
   getVendorProducts: async (query: StorefrontQuery) => {
-    const response = await apiClient.get(`/vendor/${query.vendorId}/products`, {
-      params: query,
-    });
+    const params = new URLSearchParams();
+    if (query.page) params.append("page", query.page.toString());
+    if (query.perPage) params.append("perPage", query.perPage.toString());
+    if (query.search) params.append("search", query.search);
+    if (query.category) params.append("category", query.category);
+    if (query.minPrice) params.append("minPrice", query.minPrice.toString());
+    if (query.maxPrice) params.append("maxPrice", query.maxPrice.toString());
+    if (query.sortBy) params.append("sortBy", query.sortBy);
+    
+    const url = `/vendor/${query.vendorId}/products${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await apiClient.get(url);
     return response;
   },
 

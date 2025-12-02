@@ -553,8 +553,8 @@ export default function AddProductPage() {
                   <option value="">Select a category</option>
                   {categories.map((category) => (
                     <option
-                      key={category.categoryId}
-                      value={category.categoryId}
+                      key={category.id}
+                      value={category.id}
                     >
                       {category.categoryName}
                     </option>

@@ -60,8 +60,8 @@ export const useStorefrontStore = create<StorefrontState & StorefrontActions>(
       set({ isLoading: true, error: null });
       try {
         const user = useAuthStore.getState().user;
-        // Ensure we check the correct property for vendor ID (user.id or user.vendorId)
-        const vendorId = user?.vendorId || user?.id;
+        // Ensure we check the correct property for vendor ID (user.userId or user.vendorId)
+        const vendorId = user?.vendorId || user?.userId;
 
         if (!vendorId) {
           // Only throw if we strictly need it, otherwise just return
@@ -91,11 +91,11 @@ export const useStorefrontStore = create<StorefrontState & StorefrontActions>(
           cleanQuery as any
         );
 
-        const data = response?.data || [];
+        const data = (response?.data as any) || {};
         
 
-        console.log(response?.data?.products);
-        const pagination = response?.data?.pagination || null;
+        console.log(data?.products);
+        const pagination = data?.pagination || null;
 
         set({
           products: Array.isArray(data.products) ? data.products : [],
@@ -148,7 +148,7 @@ export const useStorefrontStore = create<StorefrontState & StorefrontActions>(
       set({ isContactSending: true, error: null });
       try {
         const user = useAuthStore.getState().user;
-        const vendorId = user?.vendorId || user?.id;
+        const vendorId = user?.vendorId || user?.userId;
 
         if (!vendorId) throw new Error("Vendor ID unavailable");
 
