@@ -50,6 +50,11 @@ export interface VendorProfile {
     fullName: string;
     phoneNumber: string;
   };
+  accountInfo?: {
+    accountName?: string;
+    accountNumber?: string;
+    bank?: string;
+  };
   business: {
     businessName: string;
     businessCategory: string;

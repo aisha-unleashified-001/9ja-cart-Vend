@@ -83,6 +83,44 @@ export class DashboardService {
       throw new Error(errorMessage);
     }
   }
+
+  /**
+   * Update account information (account name, account number, bank)
+   * TODO: Backend endpoint to be implemented - endpoint: /vendor/account-info
+   * Expected request body: { accountName?: string; accountNumber?: string; bank?: string; }
+   * Expected response: Updated VendorProfile or accountInfo object
+   */
+  async updateAccountInfo(
+    accountInfo: {
+      accountName?: string;
+      accountNumber?: string;
+      bank?: string;
+    }
+  ): Promise<VendorProfile> {
+    try {
+      // TODO: Replace with actual endpoint once backend is ready
+      // For now, this will use the general profile update endpoint as a fallback
+      const response = await apiClient.put<VendorProfile>(
+        API_ENDPOINTS.VENDOR.UPDATE_ACCOUNT_INFO,
+        { accountInfo },
+        { requiresAuth: true }
+      );
+
+      if (response.error || !response.data) {
+        throw new Error(
+          response.message || "Failed to update account information"
+        );
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update account information";
+      throw new Error(errorMessage);
+    }
+  }
 }
 
 // Export singleton instance

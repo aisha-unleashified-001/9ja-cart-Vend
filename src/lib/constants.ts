@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   VENDOR: {
     PROFILE: "/vendor/profile",
     UPDATE_PROFILE: "/vendor/profile",
+    UPDATE_ACCOUNT_INFO: "/vendor/account-info", // TODO: Backend endpoint to be implemented
     DASHBOARD_SUMMARY: "/vendor/dashboard-summary",
   },
   PRODUCTS: {

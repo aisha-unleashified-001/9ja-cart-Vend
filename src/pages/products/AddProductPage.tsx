@@ -53,6 +53,14 @@ export default function AddProductPage() {
     fetchCategories();
   }, [fetchCategories]);
 
+  // Debug: Log categories when they change
+  useEffect(() => {
+    console.log("📊 Categories updated:", {
+      count: categories.length,
+      categories: categories.map((c) => ({ id: c.id, name: c.categoryName })),
+    });
+  }, [categories]);
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -126,9 +134,90 @@ export default function AddProductPage() {
     }
 
     try {
+      // Validate category is selected
+      if (!form.categoryId || form.categoryId.trim() === "") {
+        toast.error("Please select a valid category");
+        setErrors((prev) => ({ ...prev, categoryId: "Please select a category" }));
+        return;
+      }
+
+      // Ensure categories are loaded
+      if (!categories || categories.length === 0) {
+        console.error("❌ Categories not loaded yet");
+        toast.error("Categories are still loading. Please wait a moment and try again.");
+        return;
+      }
+
+      // Debug: Log categories and form data
+      console.log("🔍 Debug - Categories and form state:", {
+        formCategoryId: form.categoryId,
+        formCategoryIdType: typeof form.categoryId,
+        categoriesCount: categories.length,
+        categories: categories.map((c) => ({
+          id: c.id,
+          idType: typeof c.id,
+          name: c.categoryName,
+          match: c.id === form.categoryId,
+          trimmedMatch: String(c.id).trim() === String(form.categoryId).trim(),
+        })),
+      });
+
+      // Verify the selected category exists in the categories list
+      // Try multiple matching strategies to be robust
+      let selectedCategory = categories.find(
+        (cat) => String(cat.id).trim() === String(form.categoryId).trim()
+      );
+
+      // If not found by ID, try matching by category name
+      if (!selectedCategory) {
+        console.warn("⚠️ Category not found by ID, trying to match by name...");
+        const categoryByName = categories.find(
+          (cat) =>
+            cat.categoryName.trim().toLowerCase() ===
+            form.categoryId.trim().toLowerCase()
+        );
+
+        if (categoryByName) {
+          console.log(
+            "✅ Found category by name, using correct ID:",
+            { oldId: form.categoryId, newId: categoryByName.id }
+          );
+          selectedCategory = categoryByName;
+          // Don't mutate form directly here, we'll use selectedCategory.id for the request
+        }
+      }
+
+      if (!selectedCategory) {
+        console.error("❌ Selected category not found in categories list:", {
+          categoryId: form.categoryId,
+          availableCategories: categories.map((c) => ({ id: c.id, name: c.categoryName })),
+        });
+        
+        // Debug: Log keys of the first category to see what the ID field is actually called
+        if (categories.length > 0) {
+          console.log("🔍 Category Object Keys:", Object.keys(categories[0]));
+        }
+
+        toast.error("Selected category is invalid. Please select a different category.");
+        setErrors((prev) => ({ ...prev, categoryId: "Invalid category selected" }));
+        return;
+      }
+
+      // Ensure we have a valid ID
+      if (!selectedCategory.id) {
+        console.error("❌ Selected category has no ID:", selectedCategory);
+        toast.error("Selected category data is incomplete. Please report this issue.");
+        return;
+      }
+
+      console.log("✅ Selected category:", {
+        id: selectedCategory.id,
+        name: selectedCategory.categoryName,
+      });
+
       const productData: CreateProductRequest = {
         productName: form.productName,
-        categoryId: form.categoryId,
+        categoryId: selectedCategory.id, // Use the resolved category ID
         productDescription: form.productDescription,
         productTags: form.productTags,
         unitPrice: form.unitPrice,
@@ -164,8 +253,12 @@ export default function AddProductPage() {
       }
 
       navigate("/products");
-    } catch {
-      toast.error("Failed to create product. Please try again.");
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to create product. Please try again.";
+      toast.error(errorMessage);
+      console.error("Product creation failed:", error);
     }
   };
 
@@ -496,12 +589,8 @@ export default function AddProductPage() {
             {/* Product Images */}
             <div className="bg-card border border-border rounded-lg p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">
-                Product Images
+                Product Images *
               </h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                You can add images now or upload them later after creating the
-                product.
-              </p>
               <ImageUpload
                 images={form.images}
                 onImagesChange={(images) => updateForm("images", images)}
@@ -544,22 +633,34 @@ export default function AddProductPage() {
                   </span>
                 </div>
               ) : (
-                <select
-                  value={form.categoryId}
-                  onChange={(e) => updateForm("categoryId", e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                  disabled={isCreating}
-                >
-                  <option value="">Select a category</option>
-                  {categories.map((category) => (
-                    <option
-                      key={category.id}
-                      value={category.id}
-                    >
-                      {category.categoryName}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={form.categoryId}
+                    onChange={(e) => {
+                      const selectedValue = e.target.value;
+                      console.log("🔍 Category selection changed:", {
+                        selectedValue,
+                        availableCategories: categories.map((c) => ({
+                          id: c.id,
+                          name: c.categoryName,
+                        })),
+                      });
+                      updateForm("categoryId", selectedValue);
+                    }}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    disabled={isCreating}
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((category) => (
+                      <option
+                        key={category.id}
+                        value={category.id}
+                      >
+                        {category.categoryName}
+                      </option>
+                    ))}
+                  </select>
+                </>
               )}
               {errors.categoryId && (
                 <ErrorMessage message={errors.categoryId} className="mt-1" />

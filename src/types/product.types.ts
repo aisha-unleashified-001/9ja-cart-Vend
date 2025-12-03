@@ -44,7 +44,7 @@ export interface ProductsQuery {
   search?: string;
   categoryId?: string;
   isActive?: string;
-  statusFilter?: 'all' | 'active' | 'deactivated' | 'out_of_stock' | 'archived';
+  statusFilter?: 'all' | 'active' | 'deactivated' | 'out_of_stock';
 }
 
 export interface CreateProductRequest {

@@ -106,34 +106,6 @@ export const useProductsStore = create<ProductsStore>()(
           const statusFilter = currentQuery.statusFilter || 'all';
           const archivedIds = get().archivedProductIds;
 
-          // Handle archived filter - show only archived products
-          if (statusFilter === 'archived') {
-            // Fetch all products without isActive filter to get archived ones
-            const allProductsQuery = { ...currentQuery };
-            delete allProductsQuery.isActive;
-            delete allProductsQuery.statusFilter;
-            
-            const response = await productsService.getProducts(allProductsQuery);
-            
-            // Filter to show only archived products
-            const archivedProducts = response.data.filter(
-              product => archivedIds.has(product.productId)
-            );
-
-            set({
-              products: archivedProducts,
-              pagination: {
-                ...response.pagination,
-                totalItems: archivedProducts.length,
-                totalPages: Math.ceil(archivedProducts.length / (currentQuery.perPage || 10)),
-              },
-              query: currentQuery,
-              isLoading: false,
-              error: null,
-            });
-            return;
-          }
-
           const parseStockCount = (product: Product): number => {
             const count = parseInt(product.stock, 10);
             return Number.isNaN(count) ? 0 : count;

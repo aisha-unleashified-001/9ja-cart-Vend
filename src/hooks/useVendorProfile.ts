@@ -9,6 +9,11 @@ interface UseVendorProfileReturn {
   fetchProfile: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (profileData: Partial<VendorProfile>) => Promise<void>;
+  updateAccountInfo: (accountInfo: {
+    accountName?: string;
+    accountNumber?: string;
+    bank?: string;
+  }) => Promise<void>;
 }
 
 export const useVendorProfile = (): UseVendorProfileReturn => {
@@ -53,6 +58,27 @@ export const useVendorProfile = (): UseVendorProfileReturn => {
     }
   }, []);
 
+  const updateAccountInfo = useCallback(async (accountInfo: {
+    accountName?: string;
+    accountNumber?: string;
+    bank?: string;
+  }) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const updatedProfile = await dashboardService.updateAccountInfo(accountInfo);
+      setProfile(updatedProfile);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update account information';
+      setError(errorMessage);
+      console.error('Account info update error:', err);
+      throw err; // Re-throw so the component can handle it
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     profile,
     isLoading,
@@ -60,5 +86,6 @@ export const useVendorProfile = (): UseVendorProfileReturn => {
     fetchProfile,
     refreshProfile,
     updateProfile,
+    updateAccountInfo,
   };
 };

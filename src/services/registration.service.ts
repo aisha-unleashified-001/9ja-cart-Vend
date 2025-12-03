@@ -152,6 +152,14 @@ export class RegistrationService {
               errorMessage = 'Email already exists';
             }
 
+            if (field === 'phoneNumber' && (
+              errorMessage.toLowerCase().includes('unique') ||
+              errorMessage.toLowerCase().includes('already') ||
+              errorMessage.toLowerCase().includes('exist')
+            )) {
+              errorMessage = "You can't use an already existing phone number.";
+            }
+
             if (field === "password") {
               const normalized = errorMessage.toLowerCase();
               if (

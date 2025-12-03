@@ -7,9 +7,10 @@ import type { VendorProfile } from '@/types';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
-  const { profile, isLoading, error, fetchProfile, updateProfile } = useVendorProfile();
+  const { profile, isLoading, error, fetchProfile, updateProfile, updateAccountInfo } = useVendorProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<VendorProfile>>({});
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Fetch profile data on component mount
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function SettingsPage() {
 
   const tabs = [
     { id: 'profile', name: 'Profile', icon: '👤' },
+    { id: 'account-info', name: 'Account Information', icon: '🏦' },
     { id: 'business', name: 'Business', icon: '🏢' },
     { id: 'security', name: 'Security', icon: '🔒' }
   ];
@@ -42,13 +44,45 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     try {
-      await updateProfile(formData);
+      // Use dedicated account info endpoint when saving from account-info tab
+      if (activeTab === 'account-info') {
+        const accountInfoData = {
+          accountName: formData.accountInfo?.accountName,
+          accountNumber: formData.accountInfo?.accountNumber,
+          bank: formData.accountInfo?.bank,
+        };
+        await updateAccountInfo(accountInfoData);
+        toast.success('Account information saved successfully!');
+      } else {
+        // Use general profile update for other tabs
+        await updateProfile(formData);
+        toast.success('Profile updated successfully!');
+      }
       setIsEditing(false);
-      toast.success('Profile updated successfully!');
+      setShowConfirmDialog(false);
     } catch (error) {
-      console.error('Failed to save profile:', error);
-      toast.error('Failed to update profile. Please try again.');
+      console.error('Failed to save:', error);
+      const errorMessage = activeTab === 'account-info' 
+        ? 'Failed to update account information. Please try again.'
+        : 'Failed to update profile. Please try again.';
+      toast.error(errorMessage);
     }
+  };
+
+  const handleSaveClick = () => {
+    if (isEditing) {
+      setShowConfirmDialog(true);
+    } else {
+      handleEdit();
+    }
+  };
+
+  const handleConfirmSave = () => {
+    handleSave();
+  };
+
+  const handleCancelDialog = () => {
+    setShowConfirmDialog(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -138,6 +172,100 @@ export default function SettingsPage() {
                 <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
                   {formatDate(profile.createdAt)}
                 </p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'account-info':
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-foreground">Account Information</h3>
+              {/* {!isEditing && (
+                <button
+                  onClick={handleEdit}
+                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Edit Account Info
+                </button>
+              )} */}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Account Name
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.accountInfo?.accountName || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      accountInfo: { ...(prev.accountInfo || {}), accountName: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    placeholder="Enter account name"
+                  />
+                ) : (
+                  <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
+                    {profile.accountInfo?.accountName || 'Not provided'}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Account Number
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.accountInfo?.accountNumber || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      accountInfo: { ...(prev.accountInfo || {}), accountNumber: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    placeholder="Enter account number"
+                  />
+                ) : (
+                  <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
+                    {profile.accountInfo?.accountNumber || 'Not provided'}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Bank
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={formData.accountInfo?.bank || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      accountInfo: { ...(prev.accountInfo || {}), bank: e.target.value }
+                    }))}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    placeholder="Enter bank name"
+                  />
+                ) : (
+                  <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
+                    {profile.accountInfo?.bank || 'Not provided'}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-end justify-end">
+                <button
+                  onClick={handleSaveClick}
+                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors whitespace-nowrap"
+                >
+                  {isEditing ? 'Save' : 'Edit'}
+                </button>
               </div>
             </div>
           </div>
@@ -377,6 +505,7 @@ export default function SettingsPage() {
                 onClick={() => {
                   setActiveTab(tab.id);
                   setIsEditing(false); // Reset editing state when switching tabs
+                  setShowConfirmDialog(false); // Close dialog when switching tabs
                 }}
                 className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                   activeTab === tab.id
@@ -418,6 +547,40 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={handleCancelDialog}
+        >
+          <div 
+            className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-foreground mb-4">
+              Confirm Save
+            </h2>
+            <p className="text-foreground mb-6">
+              Are you sure you want to save this information? You will be unable to edit it after this.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCancelDialog}
+                className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSave}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

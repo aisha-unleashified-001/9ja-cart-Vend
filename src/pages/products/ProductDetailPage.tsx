@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useProductsStore } from "@/stores/productsStore";
 import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
@@ -18,8 +18,10 @@ import { ProductDebugPanel } from "@/components/debug/ProductDebugPanel";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { isSuspended } = useSuspensionCheck();
   const [images, setImages] = useState<string[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Use direct store access to avoid hook re-render issues
   const product = useProductsStore((state) => state.currentProduct);
@@ -78,26 +80,34 @@ export default function ProductDetailPage() {
   // Check if product is archived by checking the archivedProductIds set
   const isArchived = product ? archivedProductIds.has(product.productId) : false;
 
-  const handleArchiveProduct = async () => {
+  const handleDeleteClick = () => {
     if (!product) return;
 
     if (isSuspended) {
-      toast.error("Your account is suspended. You cannot archive products.");
+      toast.error("Your account is suspended. You cannot delete products.");
       return;
     }
 
-    const confirmed = window.confirm(
-      "Are you sure you want to archive this product? This will hide it from your product list."
-    );
+    setShowDeleteConfirm(true);
+  };
 
-    if (confirmed) {
-      try {
-        await archiveProduct(product.productId);
-        toast.success("Product archived successfully");
-      } catch {
-        toast.error("Failed to archive product");
-      }
+  const handleConfirmDelete = async () => {
+    if (!product) return;
+
+    setShowDeleteConfirm(false);
+    
+    try {
+      await archiveProduct(product.productId);
+      toast.success("Product deleted successfully");
+      // Navigate back to products list after successful delete
+      navigate("/products");
+    } catch {
+      toast.error("Failed to delete product");
     }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteConfirm(false);
   };
 
   const handleRestoreProduct = async () => {
@@ -259,16 +269,16 @@ export default function ProductDetailPage() {
             </button>
           ) : (
             <button
-              onClick={handleArchiveProduct}
+              onClick={handleDeleteClick}
               disabled={isLoading || isSuspended}
               className={`px-4 py-2 rounded-md transition-colors disabled:opacity-50 ${
                 isSuspended
                   ? "bg-gray-400 text-gray-600 cursor-not-allowed"
                   : "bg-red-500 text-white hover:bg-red-600"
               }`}
-              title={isSuspended ? "Account suspended" : "Archive"}
+              title={isSuspended ? "Account suspended" : "Delete"}
             >
-              Archive
+              Delete
             </button>
           )}
         </div>
@@ -456,6 +466,40 @@ export default function ProductDetailPage() {
 
       {/* Debug Panel (development only) */}
       <ProductDebugPanel product={product} />
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={handleCancelDelete}
+        >
+          <div 
+            className="bg-card border border-border rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-foreground mb-4">
+              Confirm Delete
+            </h2>
+            <p className="text-foreground mb-6">
+              Are you sure you want to delete this product?
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCancelDelete}
+                className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors"
+              >
+                No
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

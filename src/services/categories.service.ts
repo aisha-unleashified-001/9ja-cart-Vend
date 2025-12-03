@@ -16,11 +16,28 @@ export class CategoriesService {
       }
 
 
-      console.log(response.data)
+      console.log("📦 Categories API Response:", response.data);
       // Extract categories and pagination from the response
       const responseData = response as unknown as ProductsApiResponseWrapper;
-      const categoriesData = responseData.data as Category[];
+      const rawData = responseData.data as any[];
+      
+      if (rawData.length > 0) {
+        console.log("🔍 Raw Category Keys:", Object.keys(rawData[0]));
+      }
+
+      const categoriesData = rawData.map((item) => ({
+        ...item,
+        id: item.id || item._id || item.categoryId || item.uuid || String(item.key || ""), // Map various ID fields to id
+        categoryName: item.categoryName || item.name || "Unknown Category",
+      })) as Category[];
+
       const paginationData = responseData.pagination;
+
+      console.log("📋 Parsed categories:", categoriesData.map(c => ({ 
+        id: c.id, 
+        name: c.categoryName, 
+        idType: typeof c.id 
+      })));
 
       return {
         data: categoriesData,

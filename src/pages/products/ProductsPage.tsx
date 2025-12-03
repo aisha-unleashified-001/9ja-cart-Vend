@@ -20,28 +20,25 @@ import {
 } from "@/lib/product.utils";
 import { ProductImage } from "@/components/products/ProductImage";
 
-type StatusFilter = 'all' | 'active' | 'deactivated' | 'out_of_stock' | 'archived';
+type StatusFilter = 'all' | 'active' | 'deactivated' | 'out_of_stock';
 
 const FILTER_OPTIONS: Array<{ value: StatusFilter; label: string; indicatorColor: string }> = [
   { value: 'all', label: 'All Products', indicatorColor: 'bg-blue-500' },
   { value: 'active', label: 'Active', indicatorColor: 'bg-green-500' },
   { value: 'deactivated', label: 'Deactivated', indicatorColor: 'bg-gray-500' },
   { value: 'out_of_stock', label: 'Out of Stock', indicatorColor: 'bg-red-500' },
-  { value: 'archived', label: 'Archived', indicatorColor: 'bg-purple-500' },
 ];
 
 const FILTER_BADGE_LABELS: Record<Exclude<StatusFilter, 'all'>, string> = {
   active: 'Active',
   deactivated: 'Deactivated',
   out_of_stock: 'Out of Stock',
-  archived: 'Archived',
 };
 
 const FILTER_BADGE_CLASSES: Record<Exclude<StatusFilter, 'all'>, string> = {
   active: 'bg-green-100 text-green-800',
   deactivated: 'bg-gray-100 text-gray-800',
   out_of_stock: 'bg-red-100 text-red-800',
-  archived: 'bg-purple-100 text-purple-800',
 };
 
 export default function ProductsPage() {
@@ -437,8 +434,6 @@ export default function ProductsPage() {
           <p className="text-muted-foreground mb-4">
             {searchTerm
               ? "Try adjusting your search or filter"
-              : statusFilter === 'archived'
-              ? "You don't have any archived products"
               : statusFilter === 'active'
               ? "You don't have any active products"
               : statusFilter === 'deactivated'
@@ -447,7 +442,7 @@ export default function ProductsPage() {
               ? "You don't have any out of stock products"
               : "Get started by adding your first product"}
           </p>
-          {statusFilter !== 'archived' && !isSuspended && (
+          {!isSuspended && (
             <Link
               to="/products/new"
               className="inline-flex px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"

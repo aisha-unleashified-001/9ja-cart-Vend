@@ -110,8 +110,20 @@ export class ProductsService {
         throw new Error(validationErrors.join(", "));
       }
 
+      // Validate categoryId format (should be a non-empty string)
+      if (!productData.categoryId || productData.categoryId.trim() === "") {
+        throw new Error("Category is required. Please select a valid category.");
+      }
+
       // Create product (JSON only - no images)
       const productPayload = createProductPayload(productData);
+      
+      // Log the payload for debugging
+      console.log("📦 Creating product with payload:", {
+        productPayload,
+        originalCategoryId: productData.categoryId,
+      });
+      
       const createResponse = await apiClient.post<Product>(
         API_ENDPOINTS.PRODUCTS.CREATE,
         productPayload,
@@ -124,8 +136,26 @@ export class ProductsService {
 
       return createResponse.data;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to create product";
+      // Extract detailed error message from API response
+      let errorMessage = "Failed to create product";
+      
+      if (error instanceof Error) {
+        // Check if it's an ApiClientError with detailed error data
+        const apiError = error as any;
+        if (apiError.data?.messages?.error) {
+          errorMessage = apiError.data.messages.error;
+        } else if (apiError.message) {
+          errorMessage = apiError.message;
+        }
+      }
+      
+      console.error("❌ Product creation error:", {
+        error,
+        message: errorMessage,
+        productData: productData,
+        categoryId: productData.categoryId,
+      });
+      
       throw new Error(errorMessage);
     }
   }
