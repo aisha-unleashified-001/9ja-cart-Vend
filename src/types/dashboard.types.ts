@@ -49,6 +49,7 @@ export interface VendorProfile {
     emailAddress: string;
     fullName: string;
     phoneNumber: string;
+    profileImage?: string;
   };
   accountInfo?: {
     accountName?: string;

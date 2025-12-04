@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useVendorProfile } from '@/hooks/useVendorProfile';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import type { VendorProfile } from '@/types';
 
 export default function SettingsPage() {
@@ -100,6 +101,16 @@ export default function SettingsPage() {
       case 'profile':
         return (
           <div className="space-y-6">
+            {/* Profile Image Upload */}
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Profile Photo</h3>
+              <ProfileImageUpload
+                currentImageUrl={profile.account.profileImage}
+                onUploadSuccess={fetchProfile}
+                disabled={isEditing}
+              />
+            </div>
+
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-foreground">Personal Information</h3>
               {!isEditing && (
