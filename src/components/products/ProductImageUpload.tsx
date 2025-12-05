@@ -1,5 +1,5 @@
 import { useState } from "react";
-import toast from "react-hot-toast";
+import { popup } from "@/lib/popup";
 import { productsService } from "@/services/products.service";
 import { LoadingButton } from "@/components/ui/LoadingSpinner";
 import { ImageUpload } from "@/components/ui/ImageUpload";
@@ -33,12 +33,12 @@ export function ProductImageUpload({
 
   const handleUpload = async () => {
     if (isDisabled) {
-      toast.error(suspensionMessage);
+      popup.error(suspensionMessage);
       return;
     }
 
     if (images.length === 0) {
-      toast.error("Please select at least one image");
+      popup.error("Please select at least one image");
       return;
     }
 
@@ -69,13 +69,13 @@ export function ProductImageUpload({
       //   images,
       // });
 
-      toast.success(`Successfully uploaded ${images.length} image(s)!`);
+      popup.success(`Successfully uploaded ${images.length} image(s)!`);
       setImages([]); // Clear selected images
       onUploadSuccess?.(); // Callback to refresh product data
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to upload images";
-      toast.error(errorMessage);
+      popup.error(errorMessage);
     } finally {
       setIsUploading(false);
     }

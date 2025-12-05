@@ -3,7 +3,7 @@ import axios, {
   type AxiosResponse,
   AxiosError,
 } from "axios";
-import toast from "react-hot-toast";
+import { popup } from "@/lib/popup";
 import { apiConfig } from "./config";
 import { tokenStorage, clearAuthData, isTokenExpired } from "@/lib/auth.utils";
 import type { ApiResponse, ApiError } from "@/types";
@@ -108,7 +108,7 @@ class ApiClient {
 
         case 500:
           apiError.message = "Internal server error";
-          toast.error("Server error. Please try again later.");
+          popup.error("Server error. Please try again later.");
           break;
 
         default:
@@ -117,7 +117,7 @@ class ApiClient {
     } else if (error.request) {
       // Network error
       apiError.message = "Network error. Please check your connection.";
-      toast.error(apiError.message);
+      popup.error(apiError.message);
     } else {
       // Request setup error
       apiError.message = "Request failed";

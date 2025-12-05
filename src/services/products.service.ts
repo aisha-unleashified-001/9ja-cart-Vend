@@ -244,7 +244,7 @@ export class ProductsService {
     }
   }
 
-  async deleteProduct(productId: string): Promise<void> {
+  async deleteProduct(productId: string): Promise<{ wasArchived: boolean; message: string }> {
     try {
       const response = await apiClient.delete(
         `${API_ENDPOINTS.PRODUCTS.DELETE}/${productId}`,
@@ -254,6 +254,36 @@ export class ProductsService {
       if (response.error) {
         throw new Error(response.message || "Failed to delete product");
       }
+
+      // Check if the product was archived (based on backend message)
+      // Backend will send a message indicating if it was archived or deleted
+      // Products with active orders or in cart will be archived instead of deleted
+      const message = response.message || "";
+      const messageLower = message.toLowerCase();
+      
+      // Check for various indicators that the product was archived
+      // Backend may mention: archive, archived, order, orders, cart, purchase, bought
+      const wasArchived = 
+        messageLower.includes("archive") || 
+        messageLower.includes("archived") ||
+        messageLower.includes("cannot be deleted") ||
+        messageLower.includes("has active orders") ||
+        messageLower.includes("in cart") ||
+        messageLower.includes("has been purchased") ||
+        messageLower.includes("has orders");
+
+      // Log for debugging
+      console.log("🗑️ Delete product response:", {
+        productId,
+        message,
+        wasArchived,
+        fullResponse: response
+      });
+
+      return {
+        wasArchived,
+        message: message || (wasArchived ? "Product archived successfully" : "Product deleted successfully")
+      };
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to delete product";

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-import { Toast } from './components/ui/Toast';
+import { PopupProvider } from './components/ui/Popup';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import HomePage from './pages/HomePage';
@@ -31,52 +31,53 @@ export default function App() {
   }, [initialize]);
 
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/register/success" element={<RegisterSuccess />} />
-        </Route>
-        
-        {/* Protected Dashboard Routes */}
-        <Route element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }>
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/products" element={
-            <ErrorBoundary>
-              <ProductsPage />
-            </ErrorBoundary>
-          } />
-          <Route path="/products/:id" element={
-            <ErrorBoundary>
-              <ProductDetailPage />
-            </ErrorBoundary>
-          } />
-          <Route path="/products/:id/edit" element={
-            <ErrorBoundary>
-              <EditProductPage />
-            </ErrorBoundary>
-          } />
-          <Route path="/products/new" element={<AddProductPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/storefront" element={<StorefrontPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/notifications/:id" element={<NotificationDetailPage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Route>
-        
-        {/* Catch all route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      <Toast />
-    </Router>
+    <PopupProvider>
+      <Router>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          
+          <Route element={<AuthLayout />}>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/register/success" element={<RegisterSuccess />} />
+          </Route>
+          
+          {/* Protected Dashboard Routes */}
+          <Route element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/products" element={
+              <ErrorBoundary>
+                <ProductsPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/products/:id" element={
+              <ErrorBoundary>
+                <ProductDetailPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/products/:id/edit" element={
+              <ErrorBoundary>
+                <EditProductPage />
+              </ErrorBoundary>
+            } />
+            <Route path="/products/new" element={<AddProductPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/storefront" element={<StorefrontPage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/notifications/:id" element={<NotificationDetailPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
+          
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </PopupProvider>
   );
 }

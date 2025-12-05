@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { popup } from '@/lib/popup';
 import { useVendorProfile } from '@/hooks/useVendorProfile';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
@@ -53,11 +53,11 @@ export default function SettingsPage() {
           bank: formData.accountInfo?.bank,
         };
         await updateAccountInfo(accountInfoData);
-        toast.success('Account information saved successfully!');
+        popup.success('Account information saved successfully!');
       } else {
         // Use general profile update for other tabs
         await updateProfile(formData);
-        toast.success('Profile updated successfully!');
+        popup.success('Profile updated successfully!');
       }
       setIsEditing(false);
       setShowConfirmDialog(false);
@@ -66,7 +66,7 @@ export default function SettingsPage() {
       const errorMessage = activeTab === 'account-info' 
         ? 'Failed to update account information. Please try again.'
         : 'Failed to update profile. Please try again.';
-      toast.error(errorMessage);
+      popup.error(errorMessage);
     }
   };
 
@@ -103,11 +103,12 @@ export default function SettingsPage() {
           <div className="space-y-6">
             {/* Profile Image Upload */}
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-4">Profile Photo</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Business Logo</h3>
               <ProfileImageUpload
                 currentImageUrl={profile.account.profileImage}
                 onUploadSuccess={fetchProfile}
                 disabled={isEditing}
+                storeName={profile.business.storeName}
               />
             </div>
 

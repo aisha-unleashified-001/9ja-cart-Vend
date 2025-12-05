@@ -61,6 +61,11 @@ export interface CompleteRegistrationData {
   businessCategory: number;
   phoneNumber: string;
 
+  // Account information
+  accountNumber: string;
+  settlementBank: string;
+  settlementBankName: string;
+
   // Business details
   businessRegNumber: string;
   storeName: string;
@@ -94,6 +99,10 @@ export interface RegistrationFieldErrors {
   businessName?: string;
   businessCategory?: string;
   phoneNumber?: string;
+  accountNumber?: string;
+  bank?: string;
+  settlementBank?: string;
+  settlementBankName?: string;
   storeName?: string;
   businessAddress?: string;
   businessRegNumber?: string;

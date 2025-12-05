@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { popup } from "@/lib/popup";
 import { useProducts } from "@/hooks/useProducts";
 import { productsService } from "@/services/products.service";
 import { useCategories } from "@/hooks/useCategories";
@@ -128,7 +128,7 @@ export default function AddProductPage() {
 
     if (!isValid) {
       const firstError = Object.values(errors)[0];
-      toast.error(firstError);
+      popup.error(firstError);
       //  || "Please fix the errors in the form"
       return;
     }
@@ -136,7 +136,7 @@ export default function AddProductPage() {
     try {
       // Validate category is selected
       if (!form.categoryId || form.categoryId.trim() === "") {
-        toast.error("Please select a valid category");
+        popup.error("Please select a valid category");
         setErrors((prev) => ({ ...prev, categoryId: "Please select a category" }));
         return;
       }
@@ -144,7 +144,7 @@ export default function AddProductPage() {
       // Ensure categories are loaded
       if (!categories || categories.length === 0) {
         console.error("❌ Categories not loaded yet");
-        toast.error("Categories are still loading. Please wait a moment and try again.");
+        popup.error("Categories are still loading. Please wait a moment and try again.");
         return;
       }
 
@@ -198,7 +198,7 @@ export default function AddProductPage() {
           console.log("🔍 Category Object Keys:", Object.keys(categories[0]));
         }
 
-        toast.error("Selected category is invalid. Please select a different category.");
+        popup.error("Selected category is invalid. Please select a different category.");
         setErrors((prev) => ({ ...prev, categoryId: "Invalid category selected" }));
         return;
       }
@@ -206,7 +206,7 @@ export default function AddProductPage() {
       // Ensure we have a valid ID
       if (!selectedCategory.id) {
         console.error("❌ Selected category has no ID:", selectedCategory);
-        toast.error("Selected category data is incomplete. Please report this issue.");
+        popup.error("Selected category data is incomplete. Please report this issue.");
         return;
       }
 
@@ -239,17 +239,13 @@ export default function AddProductPage() {
             productId: createdProduct.productId,
             images: form.images,
           });
-          toast.success("Product created with images successfully!");
+          popup.success("Product created successfully.");
         } catch (imageError) {
           console.error("Image upload failed:", imageError);
-          toast.success(
-            "Product created successfully, but image upload failed. You can add images later."
-          );
+          popup.success("Product created successfully.");
         }
       } else {
-        toast.success(
-          "Product created successfully! You can add images later."
-        );
+        popup.success("Product created successfully.");
       }
 
       navigate("/products");
@@ -257,7 +253,7 @@ export default function AddProductPage() {
       const errorMessage = error instanceof Error 
         ? error.message 
         : "Failed to create product. Please try again.";
-      toast.error(errorMessage);
+      popup.error(errorMessage);
       console.error("Product creation failed:", error);
     }
   };

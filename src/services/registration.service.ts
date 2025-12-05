@@ -103,6 +103,9 @@ export class RegistrationService {
       formData.append("businessName", data.businessName);
       formData.append("businessCategory", data.businessCategory.toString());
       formData.append("phoneNumber", data.phoneNumber);
+      formData.append("accountNumber", data.accountNumber);
+      formData.append("settlementBank", data.settlementBank);
+      formData.append("settlementBankName", data.settlementBankName);
       formData.append("businessRegNumber", data.businessRegNumber || "");
       formData.append("storeName", data.storeName);
       formData.append("businessAddress", data.businessAddress);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import toast from "react-hot-toast";
+import { popup } from "@/lib/popup";
 import { useProductsStore } from "@/stores/productsStore";
 import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -20,25 +20,28 @@ import {
 } from "@/lib/product.utils";
 import { ProductImage } from "@/components/products/ProductImage";
 
-type StatusFilter = 'all' | 'active' | 'deactivated' | 'out_of_stock';
+type StatusFilter = 'all' | 'active' | 'deactivated' | 'out_of_stock' | 'archived';
 
 const FILTER_OPTIONS: Array<{ value: StatusFilter; label: string; indicatorColor: string }> = [
   { value: 'all', label: 'All Products', indicatorColor: 'bg-blue-500' },
   { value: 'active', label: 'Active', indicatorColor: 'bg-green-500' },
   { value: 'deactivated', label: 'Deactivated', indicatorColor: 'bg-gray-500' },
   { value: 'out_of_stock', label: 'Out of Stock', indicatorColor: 'bg-red-500' },
+  { value: 'archived', label: 'Archived', indicatorColor: 'bg-yellow-500' },
 ];
 
 const FILTER_BADGE_LABELS: Record<Exclude<StatusFilter, 'all'>, string> = {
   active: 'Active',
   deactivated: 'Deactivated',
   out_of_stock: 'Out of Stock',
+  archived: 'Archived',
 };
 
 const FILTER_BADGE_CLASSES: Record<Exclude<StatusFilter, 'all'>, string> = {
   active: 'bg-green-100 text-green-800',
   deactivated: 'bg-gray-100 text-gray-800',
   out_of_stock: 'bg-red-100 text-red-800',
+  archived: 'bg-yellow-100 text-yellow-800',
 };
 
 export default function ProductsPage() {
@@ -132,18 +135,18 @@ export default function ProductsPage() {
     currentStatus: string
   ) => {
     if (isSuspended) {
-      toast.error("Your account is suspended. You cannot modify products.");
+      popup.error("Your account is suspended. You cannot modify products.");
       return;
     }
 
     try {
       const newStatus = currentStatus === "active";
       await toggleProductStatus(productId, !newStatus);
-      toast.success("Product status updated successfully");
+      popup.success("Product status updated successfully");
     } catch (error) {
       // Show error toast but don't let it propagate
       const errorMessage = error instanceof Error ? error.message : "Failed to update product status";
-      toast.error(errorMessage);
+      popup.error(errorMessage);
       console.error("Toggle status error:", error);
     }
   };
@@ -164,7 +167,7 @@ export default function ProductsPage() {
           onClick={(e) => {
             if (isSuspended) {
               e.preventDefault();
-              toast.error("Your account is suspended. You cannot add products.");
+              popup.error("Your account is suspended. You cannot add products.");
             }
           }}
           className={`px-4 py-2 rounded-md transition-colors ${
@@ -440,6 +443,8 @@ export default function ProductsPage() {
               ? "You don't have any deactivated products"
               : statusFilter === 'out_of_stock'
               ? "You don't have any out of stock products"
+              : statusFilter === 'archived'
+              ? "You don't have any archived products"
               : "Get started by adding your first product"}
           </p>
           {!isSuspended && (

@@ -325,14 +325,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   <span className="mr-3">🏪</span>
                   <span className="truncate">My Storefront</span>
                 </Link>
-                <Link
-                  to="/settings"
-                  className="flex items-center px-3 py-2 text-sm text-foreground hover:bg-secondary rounded-md"
-                  onClick={() => setShowProfile(false)}
-                >
-                  <span className="mr-3">⚙️</span>
-                  <span className="truncate">Account Settings</span>
-                </Link>
                 <hr className="my-2 border-border" />
                 <button
                   onClick={handleLogout}

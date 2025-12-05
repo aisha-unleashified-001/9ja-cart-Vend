@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { popup } from "@/lib/popup";
 import { useProductsStore } from "@/stores/productsStore";
 import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -30,7 +30,7 @@ export default function ProductDetailPage() {
   const archivedProductIds = useProductsStore((state) => state.archivedProductIds);
   const fetchProductDetails = useProductsStore((state) => state.fetchProductDetails);
   const toggleProductStatus = useProductsStore((state) => state.toggleProductStatus);
-  const archiveProduct = useProductsStore((state) => state.archiveProduct);
+  const deleteProduct = useProductsStore((state) => state.deleteProduct);
   const restoreProduct = useProductsStore((state) => state.restoreProduct);
   const clearCurrentProduct = useProductsStore((state) => state.clearCurrentProduct);
   const clearError = useProductsStore((state) => state.clearError);
@@ -60,7 +60,7 @@ export default function ProductDetailPage() {
     if (!product) return;
 
     if (isSuspended) {
-      toast.error("Your account is suspended. You cannot modify products.");
+      popup.error("Your account is suspended. You cannot modify products.");
       return;
     }
 
@@ -68,11 +68,11 @@ export default function ProductDetailPage() {
       const currentStatus = getProductStatus(product);
       const newStatus = currentStatus !== "active";
       await toggleProductStatus(product.productId, newStatus);
-      toast.success("Product status updated successfully");
+      popup.success("Product status updated successfully");
     } catch (error) {
       // Show error toast but don't let it propagate
       const errorMessage = error instanceof Error ? error.message : "Failed to update product status";
-      toast.error(errorMessage);
+      popup.error(errorMessage);
       console.error("Toggle status error:", error);
     }
   };
@@ -84,7 +84,7 @@ export default function ProductDetailPage() {
     if (!product) return;
 
     if (isSuspended) {
-      toast.error("Your account is suspended. You cannot delete products.");
+      popup.error("Your account is suspended. You cannot delete products.");
       return;
     }
 
@@ -97,12 +97,20 @@ export default function ProductDetailPage() {
     setShowDeleteConfirm(false);
     
     try {
-      await archiveProduct(product.productId);
-      toast.success("Product deleted successfully");
-      // Navigate back to products list after successful delete
+      const result = await deleteProduct(product.productId);
+      
+      // Show appropriate message based on whether it was archived or deleted
+      if (result.wasArchived) {
+        popup.success(result.message || "Product archived successfully. It can be found in the Archived filter.");
+      } else {
+        popup.success(result.message || "Product deleted successfully");
+      }
+      
+      // Navigate back to products list after successful delete/archive
       navigate("/products");
-    } catch {
-      toast.error("Failed to delete product");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete product";
+      popup.error(errorMessage);
     }
   };
 
@@ -114,7 +122,7 @@ export default function ProductDetailPage() {
     if (!product) return;
 
     if (isSuspended) {
-      toast.error("Your account is suspended. You cannot restore products.");
+      popup.error("Your account is suspended. You cannot restore products.");
       return;
     }
 
@@ -125,14 +133,14 @@ export default function ProductDetailPage() {
     if (confirmed) {
       try {
         await restoreProduct(product.productId);
-        toast.success("Product restored successfully");
+        popup.success("Product restored successfully");
         // Refresh product details after restore to reflect the change
         if (id) {
           await fetchProductDetails(id);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Failed to restore product";
-        toast.error(errorMessage);
+        popup.error(errorMessage);
         console.error("Restore product error:", error);
       }
     }
@@ -242,7 +250,7 @@ export default function ProductDetailPage() {
             onClick={(e) => {
               if (isSuspended) {
                 e.preventDefault();
-                toast.error("Your account is suspended. You cannot edit products.");
+                popup.error("Your account is suspended. You cannot edit products.");
               }
             }}
             className={`px-4 py-2 rounded-md transition-colors ${

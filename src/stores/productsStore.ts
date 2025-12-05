@@ -63,7 +63,7 @@ interface ProductsStore extends ProductsState {
   fetchProductDetails: (productId: string) => Promise<void>;
   createProduct: (productData: CreateProductRequest) => Promise<Product>;
   updateProduct: (productData: UpdateProductRequest) => Promise<void>;
-  deleteProduct: (productId: string) => Promise<void>;
+  deleteProduct: (productId: string) => Promise<{ wasArchived: boolean; message: string }>;
   archiveProduct: (productId: string) => Promise<void>;
   restoreProduct: (productId: string) => Promise<void>;
   toggleProductStatus: (productId: string, isActive: boolean) => Promise<void>;
@@ -141,10 +141,35 @@ export const useProductsStore = create<ProductsStore>()(
 
           const response = await productsService.getProducts(apiQuery);
 
-          // Filter out archived products from the display (unless showing archived)
-          let filteredProducts = response.data.filter(
-            product => !archivedIds.has(product.productId)
+          // Merge newly fetched products with existing archived products
+          // This ensures archived products are available even if backend doesn't return them
+          const currentProducts = get().products;
+          const archivedProductsInStore = currentProducts.filter(
+            product => archivedIds.has(product.productId)
           );
+          
+          // Combine: new response data + existing archived products (avoid duplicates)
+          const allProducts = [
+            ...response.data,
+            ...archivedProductsInStore.filter(
+              archived => !response.data.some(p => p.productId === archived.productId)
+            )
+          ];
+
+          // Handle archived filter
+          let filteredProducts = allProducts;
+          
+          if (statusFilter === 'archived') {
+            // Show only archived products
+            filteredProducts = allProducts.filter(
+              product => archivedIds.has(product.productId)
+            );
+          } else {
+            // Filter out archived products from the display (unless showing archived)
+            filteredProducts = allProducts.filter(
+              product => !archivedIds.has(product.productId)
+            );
+          }
 
           // Apply client-side filtering for status
           if (clientFilter) {
@@ -348,23 +373,48 @@ export const useProductsStore = create<ProductsStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          await productsService.deleteProduct(productId);
+          const result = await productsService.deleteProduct(productId);
 
-          // Remove from products list
           const currentState = get();
-          const filteredProducts = currentState.products.filter(
-            (product) => product.productId !== productId
-          );
 
-          set({
-            products: filteredProducts,
-            currentProduct:
-              currentState.currentProduct?.productId === productId
-                ? null
-                : currentState.currentProduct,
-            isLoading: false,
-            error: null,
-          });
+          if (result.wasArchived) {
+            // Product was archived (likely because it has active orders or is in cart)
+            // Backend handles the logic: if product has orders/cart items, it archives instead of deleting
+            // Add to archived list so it shows up in the Archived filter
+            const newArchivedIds = new Set(currentState.archivedProductIds);
+            newArchivedIds.add(productId);
+            saveArchivedProductIds(newArchivedIds);
+
+            // Keep product in the list (it will be filtered by archivedProductIds in fetchProducts)
+            // This ensures archived products can be viewed in the Archived filter
+            // The fetchProducts function will filter them out from normal views
+            set({
+              products: currentState.products, // Keep products - filtering happens in fetchProducts
+              archivedProductIds: newArchivedIds,
+              // Keep viewing context intact so detail pages remain visible after archiving
+              currentProduct: currentState.currentProduct,
+              isLoading: false,
+              error: null,
+            });
+          } else {
+            // Product was actually deleted - remove completely
+            const filteredProducts = currentState.products.filter(
+              (product) => product.productId !== productId
+            );
+
+            set({
+              products: filteredProducts,
+              currentProduct:
+                currentState.currentProduct?.productId === productId
+                  ? null
+                  : currentState.currentProduct,
+              isLoading: false,
+              error: null,
+            });
+          }
+
+          // Return the result so the component can show the appropriate message
+          return result;
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : "Failed to delete product";

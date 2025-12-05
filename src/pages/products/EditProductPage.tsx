@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import toast from "react-hot-toast";
+import { popup } from "@/lib/popup";
 import { useProductsStore } from "@/stores/productsStore";
 import { useCategories } from "@/hooks/useCategories";
 import { useSuspensionCheck } from "@/hooks/useSuspensionCheck";
@@ -157,12 +157,12 @@ export default function EditProductPage() {
     e.preventDefault();
 
     if (isSuspended) {
-      toast.error("Your account is suspended. You cannot edit products.");
+      popup.error("Your account is suspended. You cannot edit products.");
       return;
     }
 
     if (!validateForm() || !id) {
-      toast.error("Please fix the errors in the form");
+      popup.error("Please fix the errors in the form");
       return;
     }
 
@@ -193,18 +193,18 @@ export default function EditProductPage() {
             productId: id,
             images: form.images
           });
-          toast.success("Product and images updated successfully!");
+          popup.success("Product and images updated successfully!");
         } catch (imageError) {
           console.error('Image upload failed:', imageError);
-          toast.success("Product updated successfully, but image upload failed. You can try uploading images again.");
+          popup.success("Product updated successfully, but image upload failed. You can try uploading images again.");
         }
       } else {
-        toast.success("Product updated successfully!");
+        popup.success("Product updated successfully!");
       }
       
       navigate(`/products/${id}`);
     } catch {
-      toast.error("Failed to update product. Please try again.");
+      popup.error("Failed to update product. Please try again.");
     } finally {
       setIsUpdating(false);
     }

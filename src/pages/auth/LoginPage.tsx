@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import { popup } from '@/lib/popup';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingButton } from '@/components/ui/LoadingSpinner';
@@ -55,7 +55,7 @@ export default function LoginPage() {
 
     try {
       await login({ emailAddress, password });
-      toast.success('Login successful!');
+      popup.success('Login successful!');
       
       // Navigation is handled by the useEffect above
     } catch (error) {
@@ -66,7 +66,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = () => {
     // Handle Google login logic here
-    toast('Google login coming soon!');
+    popup.info('Google login coming soon!');
   };
 
   return (

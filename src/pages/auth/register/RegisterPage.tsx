@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { Eye, EyeOff } from 'lucide-react';
+import { popup } from '@/lib/popup';
+import { Eye, EyeOff, X } from 'lucide-react';
 import { useBusinessCategories } from '@/hooks/useBusinessCategories';
 import { registrationService, RegistrationError } from '@/services/registration.service';
 import { LoadingButton } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { DocumentUpload } from '@/components/ui/DocumentUpload';
+import { searchBanks, type Bank } from '@/lib/banks.data';
 import type { CompleteRegistrationData, RegistrationFieldErrors } from '@/types';
 
 interface FormData {
@@ -21,6 +22,10 @@ interface FormData {
   businessCategory: string;
   businessCategoryId: number;
   phoneNumber: string;
+  accountNumber: string;
+  bank: string;
+  settlementBank: string;
+  settlementBankName: string;
   
   // Step 3: Business Details & Documents
   businessRegNumber: string;
@@ -40,6 +45,10 @@ const initialFormData: FormData = {
   businessCategory: '',
   businessCategoryId: 0,
   phoneNumber: '',
+  accountNumber: '',
+  bank: '',
+  settlementBank: '',
+  settlementBankName: '',
   businessRegNumber: '',
   storeName: '',
   businessAddress: '',
@@ -58,6 +67,10 @@ const FIELD_STEP_MAP: Record<keyof RegistrationFieldErrors, number> = {
   businessName: 2,
   businessCategory: 2,
   phoneNumber: 2,
+  accountNumber: 2,
+  bank: 2,
+  settlementBank: 2,
+  settlementBankName: 2,
   storeName: 3,
   businessAddress: 3,
   businessRegNumber: 3,
@@ -79,6 +92,12 @@ export default function RegisterPage() {
   const [apiError, setApiError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [bankSuggestions, setBankSuggestions] = useState<Bank[]>([]);
+  const [showBankSuggestions, setShowBankSuggestions] = useState(false);
+  const bankInputRef = useRef<HTMLInputElement>(null);
+  const bankSuggestionsRef = useRef<HTMLDivElement>(null);
+  const formContainerRef = useRef<HTMLDivElement>(null);
   
   const navigate = useNavigate();
   const { categories, isLoading: categoriesLoading, fetchCategories } = useBusinessCategories();
@@ -87,6 +106,40 @@ export default function RegisterPage() {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    // Scroll window first
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Find and scroll the scrollable parent container (the left side div in AuthLayout)
+    const scrollableParent = formContainerRef.current?.closest('.overflow-y-auto');
+    if (scrollableParent) {
+      // Small delay to ensure DOM is ready, then scroll to top
+      setTimeout(() => {
+        scrollableParent.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 50);
+    }
+  }, [currentStep]);
+
+  // Handle click outside bank suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        bankSuggestionsRef.current &&
+        !bankSuggestionsRef.current.contains(event.target as Node) &&
+        bankInputRef.current &&
+        !bankInputRef.current.contains(event.target as Node)
+      ) {
+        setShowBankSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const updateFormData = (updates: Partial<FormData>) => {
     if (apiError) {
@@ -144,27 +197,27 @@ export default function RegisterPage() {
     if (step === 1) {
       const isValid = !!(formData.emailAddress && formData.password && formData.confirmPassword);
       if (!isValid) {
-        toast.error('Please fill in all required fields');
+        popup.error('Please fill in all required fields');
       }
       if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
-        toast.error('Passwords do not match');
+        popup.error('Passwords do not match');
         return false;
       }
       return isValid;
     }
     
     if (step === 2) {
-      const isValid = !!(formData.fullName && formData.businessName && formData.businessCategory && formData.phoneNumber);
+      const isValid = !!(formData.fullName && formData.businessName && formData.businessCategory && formData.phoneNumber && formData.accountNumber && formData.bank && formData.settlementBank);
       if (!isValid) {
-        toast.error('Please fill in all required fields');
+        popup.error('Please fill in all required fields');
       }
       return isValid;
     }
     
     if (step === 3) {
-      const isValid = !!(formData.storeName && formData.businessAddress && formData.idDocument && formData.businessRegCertificate);
+      const isValid = !!(formData.storeName && formData.businessAddress && formData.taxIdNumber && formData.idDocument && formData.businessRegCertificate);
       if (!isValid) {
-        toast.error('Please fill in all required fields and upload documents');
+        popup.error('Please fill in all required fields and upload documents');
       }
       return isValid;
     }
@@ -185,7 +238,7 @@ export default function RegisterPage() {
         
         if (!available) {
           setFormErrors({ emailAddress: message || 'Email already exists' });
-          toast.error(message || 'Email already exists');
+          popup.error(message || 'Email already exists');
           setIsLoading(false);
           return;
         }
@@ -199,7 +252,7 @@ export default function RegisterPage() {
 
     if (currentStep < 3) {
       setCurrentStep(prev => prev + 1);
-      toast.success(`Step ${currentStep} completed!`);
+      popup.success(`Step ${currentStep} completed!`);
     }
   };
 
@@ -226,17 +279,41 @@ export default function RegisterPage() {
     });
   };
 
+  const handleBankInputChange = (value: string) => {
+    updateFormData({ bank: value });
+    
+    if (value.trim()) {
+      const suggestions = searchBanks(value);
+      setBankSuggestions(suggestions);
+      setShowBankSuggestions(suggestions.length > 0);
+    } else {
+      setBankSuggestions([]);
+      setShowBankSuggestions(false);
+      updateFormData({ settlementBank: '', settlementBankName: '' });
+    }
+  };
+
+  const handleBankSelect = (bank: Bank) => {
+    updateFormData({
+      bank: bank.name,
+      settlementBank: bank.code,
+      settlementBankName: bank.name,
+    });
+    setShowBankSuggestions(false);
+    setBankSuggestions([]);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateStep(3)) {
-      toast.error('Please complete all required fields');
+      popup.error('Please complete all required fields');
       return;
     }
 
     // Validate required files
     if (!formData.idDocument || !formData.businessRegCertificate) {
-      toast.error('Please upload both required documents');
+      popup.error('Please upload both required documents');
       return;
     }
 
@@ -244,13 +321,26 @@ export default function RegisterPage() {
     if (Object.keys(advancedErrors).length > 0) {
       setFormErrors(prev => ({ ...prev, ...advancedErrors }));
       setCurrentStep(getFirstErrorStep(advancedErrors) ?? 3);
-      toast.error('Please fix the highlighted fields before submitting.');
+      popup.error('Please fix the highlighted fields before submitting.');
       return;
     }
 
+    // Show confirmation dialog before submitting
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmSubmit = async () => {
+    setShowConfirmDialog(false);
     setIsLoading(true);
     setApiError(null);
     setFormErrors({});
+
+    // Validate required files (should already be validated, but TypeScript needs this)
+    if (!formData.idDocument || !formData.businessRegCertificate) {
+      popup.error('Please upload both required documents');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // Prepare complete registration data
@@ -267,6 +357,9 @@ export default function RegisterPage() {
         taxIdNumber: formData.taxIdNumber || '',
         idDocument: formData.idDocument,
         businessRegCertificate: formData.businessRegCertificate,
+        accountNumber: formData.accountNumber,
+        settlementBank: formData.settlementBank,
+        settlementBankName: formData.settlementBankName,
       };
 
       console.log('🚀 Submitting registration with data:', {
@@ -281,7 +374,7 @@ export default function RegisterPage() {
       console.log('✅ Registration successful:', result);
 
       // Success
-      toast.success('Registration completed successfully!');
+      popup.success('Registration completed successfully!');
       navigate('/register/success');
     } catch (error) {
       console.error('❌ Registration failed:', error);
@@ -298,19 +391,24 @@ export default function RegisterPage() {
         // Show specific error message
         const errorCount = Object.keys(error.fieldErrors).length;
         if (errorCount > 0) {
-          toast.error(`Please fix ${errorCount} error${errorCount > 1 ? 's' : ''} in the form`);
+          popup.error(`Please fix ${errorCount} error${errorCount > 1 ? 's' : ''} in the form`);
         } else {
-          toast.error(error.message);
+          popup.error(error.message);
         }
       } else {
         // Handle general errors
         const errorMessage = error instanceof Error ? error.message : 'Registration failed';
         setApiError(errorMessage);
-        toast.error(errorMessage);
+        popup.error(errorMessage);
       }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCancelDialog = () => {
+    setShowConfirmDialog(false);
+    setCurrentStep(2);
   };
 
   const renderStepIndicator = () => (
@@ -556,6 +654,103 @@ export default function RegisterPage() {
           <p className="mt-1 text-sm text-red-600">{formErrors.businessCategory}</p>
         )}
       </div>
+
+      <div className="border-t pt-6 mt-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h3>
+        <p className="text-sm text-gray-600 mb-4">Please provide your bank account details. This information cannot be edited after registration.</p>
+        
+        <div className="space-y-6">
+          <div>
+            <label htmlFor="accountNumber" className="block text-sm font-medium text-gray-700 mb-2">
+              Account Number
+            </label>
+            <input
+              id="accountNumber"
+              type="text"
+              value={formData.accountNumber}
+              onChange={(e) => updateFormData({ accountNumber: e.target.value })}
+              disabled={isLoading}
+              className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+                formErrors.accountNumber
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-primary focus:border-transparent'
+              }`}
+              placeholder="Enter account number"
+            />
+            {formErrors.accountNumber && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.accountNumber}</p>
+            )}
+          </div>
+
+          <div className="relative">
+            <label htmlFor="bank" className="block text-sm font-medium text-gray-700 mb-2">
+              Bank Name
+            </label>
+            <input
+              ref={bankInputRef}
+              id="bank"
+              type="text"
+              value={formData.bank}
+              onChange={(e) => handleBankInputChange(e.target.value)}
+              onFocus={() => {
+                if (bankSuggestions.length > 0) {
+                  setShowBankSuggestions(true);
+                }
+              }}
+              disabled={isLoading}
+              className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+                formErrors.bank || formErrors.settlementBankName
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-primary focus:border-transparent'
+              }`}
+              placeholder="Type to search bank name"
+            />
+            {(formErrors.bank || formErrors.settlementBankName) && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.bank || formErrors.settlementBankName}</p>
+            )}
+            
+            {showBankSuggestions && bankSuggestions.length > 0 && (
+              <div
+                ref={bankSuggestionsRef}
+                className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+              >
+                {bankSuggestions.map((bank) => (
+                  <button
+                    key={bank.code}
+                    type="button"
+                    onClick={() => handleBankSelect(bank)}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                  >
+                    <div className="font-medium text-gray-900">{bank.name}</div>
+                    <div className="text-xs text-gray-500">Code: {bank.code}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="settlementBank" className="block text-sm font-medium text-gray-700 mb-2">
+              Settlement Bank
+            </label>
+            <input
+              id="settlementBank"
+              type="text"
+              value={formData.settlementBank}
+              onChange={() => {}} // Read-only
+              disabled={true}
+              className="w-full px-4 py-3 border rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
+              placeholder="Will be prefilled when you select a bank"
+            />
+            {formErrors.settlementBank && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.settlementBank}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              This field is automatically filled when you select a bank name above
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
@@ -611,9 +806,31 @@ export default function RegisterPage() {
       </div>
 
       <div>
+        <label htmlFor="taxIdNumber" className="block text-sm font-medium text-gray-700 mb-2">
+          Tax Identification Number <span className="text-red-500">*</span>
+        </label>
+        <input
+          id="taxIdNumber"
+          type="text"
+          value={formData.taxIdNumber}
+          onChange={(e) => updateFormData({ taxIdNumber: e.target.value })}
+          disabled={isLoading}
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.taxIdNumber
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
+          placeholder="Enter your TIN"
+        />
+        {formErrors.taxIdNumber && (
+          <p className="mt-1 text-sm text-red-600">{formErrors.taxIdNumber}</p>
+        )}
+      </div>
+
+      <div>
         <label htmlFor="businessRegNumber" className="block text-sm font-medium text-gray-700 mb-2">
           Business Registration Number{' '}
-          <span className="text-xs text-gray-500">(optional but recommended)</span>
+          <span className="text-xs text-gray-500">(optional)</span>
         </label>
         <input
           id="businessRegNumber"
@@ -630,29 +847,6 @@ export default function RegisterPage() {
         />
         {formErrors.businessRegNumber && (
           <p className="mt-1 text-sm text-red-600">{formErrors.businessRegNumber}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="taxIdNumber" className="block text-sm font-medium text-gray-700 mb-2">
-          Tax Identification Number{' '}
-          <span className="text-xs text-gray-500">(if applicable)</span>
-        </label>
-        <input
-          id="taxIdNumber"
-          type="text"
-          value={formData.taxIdNumber}
-          onChange={(e) => updateFormData({ taxIdNumber: e.target.value })}
-          disabled={isLoading}
-          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
-            formErrors.taxIdNumber
-              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-gray-300 focus:ring-primary focus:border-transparent'
-          }`}
-          placeholder="Enter your TIN if available"
-        />
-        {formErrors.taxIdNumber && (
-          <p className="mt-1 text-sm text-red-600">{formErrors.taxIdNumber}</p>
         )}
       </div>
 
@@ -677,7 +871,7 @@ export default function RegisterPage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div ref={formContainerRef} className="space-y-8">
       {renderStepIndicator()}
       
       {apiError && <ErrorMessage message={apiError} className="mb-4" />}
@@ -760,6 +954,77 @@ export default function RegisterPage() {
       {currentStep === 3 && (
         <div className="text-center text-xs text-gray-500">
           By continuing, you agree to 9ja-cart's Conditions of Use and Privacy Notice.
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={handleCancelDialog}
+        >
+          <div 
+            className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={handleCancelDialog}
+              disabled={isLoading}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Close dialog"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold text-gray-900 mb-4 pr-8">
+              Confirm Account Information
+            </h2>
+            <p className="text-gray-700 mb-4">
+              Kindly confirm that the account details provided is correct. You will not be able to edit the Account information later.
+            </p>
+            
+            <div className="bg-gray-50 rounded-md p-4 mb-6 space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-600">Account Number</label>
+                <p className="text-base font-semibold text-gray-900 mt-1">
+                  {formData.accountNumber || 'Not provided'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600">Bank Name</label>
+                <p className="text-base font-semibold text-gray-900 mt-1">
+                  {formData.settlementBankName || formData.bank || 'Not provided'}
+                </p>
+              </div>
+              {formData.settlementBank && (
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Settlement Bank Code</label>
+                  <p className="text-base font-semibold text-gray-900 mt-1">
+                    {formData.settlementBank}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={handleCancelDialog}
+                disabled={isLoading}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSubmit}
+                disabled={isLoading}
+                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                {isLoading ? 'Submitting...' : 'Yes'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

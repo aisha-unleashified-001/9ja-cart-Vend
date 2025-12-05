@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import toast from 'react-hot-toast';
+import { popup } from '@/lib/popup';
 import { dashboardService } from '@/services/dashboard.service';
 import { validateProductImage, createImagePreview, revokeImagePreview } from '@/lib/imageUpload.utils';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -8,12 +8,14 @@ interface ProfileImageUploadProps {
   currentImageUrl?: string;
   onUploadSuccess?: () => void;
   disabled?: boolean;
+  storeName?: string;
 }
 
 export function ProfileImageUpload({
   currentImageUrl,
   onUploadSuccess,
   disabled = false,
+  storeName,
 }: ProfileImageUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export function ProfileImageUpload({
     // Validate file
     const validationError = validateProductImage(file);
     if (validationError) {
-      toast.error(validationError);
+      popup.error(validationError);
       return;
     }
 
@@ -72,7 +74,7 @@ export function ProfileImageUpload({
 
     try {
       await dashboardService.uploadProfileImage(selectedFile);
-      toast.success('Profile image uploaded successfully!');
+      popup.success('Profile image uploaded successfully!');
       
       // Clean up preview
       if (previewUrl) {
@@ -87,7 +89,7 @@ export function ProfileImageUpload({
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to upload profile image';
-      toast.error(errorMessage);
+      popup.error(errorMessage);
     } finally {
       setIsUploading(false);
     }
@@ -96,21 +98,31 @@ export function ProfileImageUpload({
   const displayImage = previewUrl || currentImageUrl;
   const hasChanges = selectedFile !== null;
 
+  // Get first letter of store name for placeholder
+  const getStoreInitial = (name?: string) => {
+    if (!name || name.trim().length === 0) return 'S';
+    return name.trim().charAt(0).toUpperCase();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-start gap-6">
         {/* Image Display/Upload Area */}
         <div className="flex-shrink-0">
           <div className="relative">
-            <div className="w-32 h-32 rounded-full overflow-hidden bg-secondary border-2 border-border flex items-center justify-center">
+            <div className={`w-32 h-32 rounded-full overflow-hidden border-2 border-border flex items-center justify-center ${
+              displayImage ? 'bg-secondary' : 'bg-primary'
+            }`}>
               {displayImage ? (
                 <img
                   src={displayImage}
-                  alt="Profile"
+                  alt="Business Logo"
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="text-4xl text-muted-foreground">👤</div>
+                <span className="text-primary-foreground text-4xl font-medium">
+                  {getStoreInitial(storeName)}
+                </span>
               )}
             </div>
             {isUploading && (
@@ -139,7 +151,7 @@ export function ProfileImageUpload({
                 disabled={disabled || isUploading}
                 className="px-4 py-2 text-sm border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {currentImageUrl ? 'Change Photo' : 'Upload Photo'}
+                {currentImageUrl ? 'Change Business Logo' : 'Upload Business Logo'}
               </button>
               {hasChanges && (
                 <>
@@ -178,5 +190,6 @@ export function ProfileImageUpload({
     </div>
   );
 }
+
 
 
