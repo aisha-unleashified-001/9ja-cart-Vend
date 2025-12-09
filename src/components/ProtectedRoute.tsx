@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,6 +13,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
   const location = useLocation();
+
+  // Check session timeout and auto-logout if expired
+  useSessionTimeout();
 
   // Show loading spinner while checking authentication
   if (isLoading) {

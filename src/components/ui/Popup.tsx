@@ -35,6 +35,9 @@ export function PopupProvider({ children }: PopupProviderProps) {
   const [popup, setPopup] = useState<PopupConfig | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
+  const durationRef = useRef<number>(0);
+  const isHoveringRef = useRef<boolean>(false);
 
   const hidePopup = useCallback(() => {
     setIsVisible(false);
@@ -42,6 +45,9 @@ export function PopupProvider({ children }: PopupProviderProps) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
+    startTimeRef.current = 0;
+    durationRef.current = 0;
+    isHoveringRef.current = false;
     // Wait for animation to complete before removing from DOM
     setTimeout(() => {
       setPopup(null);
@@ -57,14 +63,39 @@ export function PopupProvider({ children }: PopupProviderProps) {
 
     setPopup(config);
     setIsVisible(true);
+    isHoveringRef.current = false;
 
     const duration = config.duration ?? 4000;
+    durationRef.current = duration;
     if (duration > 0) {
+      startTimeRef.current = Date.now();
       timeoutRef.current = setTimeout(() => {
-        hidePopup();
+        if (!isHoveringRef.current) {
+          hidePopup();
+        }
       }, duration);
     }
   }, [hidePopup]);
+
+  const pauseAutoClose = useCallback(() => {
+    if (timeoutRef.current && startTimeRef.current > 0 && durationRef.current > 0) {
+      clearTimeout(timeoutRef.current);
+      const elapsed = Date.now() - startTimeRef.current;
+      durationRef.current = Math.max(0, durationRef.current - elapsed);
+      startTimeRef.current = 0;
+    }
+    isHoveringRef.current = true;
+  }, []);
+
+  const resumeAutoClose = useCallback(() => {
+    isHoveringRef.current = false;
+    if (durationRef.current > 0 && popup) {
+      startTimeRef.current = Date.now();
+      timeoutRef.current = setTimeout(() => {
+        hidePopup();
+      }, durationRef.current);
+    }
+  }, [popup, hidePopup]);
 
   // Register popup instance globally so popup utility functions can use it
   useEffect(() => {
@@ -80,6 +111,9 @@ export function PopupProvider({ children }: PopupProviderProps) {
           type={popup.type ?? 'info'}
           isVisible={isVisible}
           onClose={hidePopup}
+          onMouseEnter={pauseAutoClose}
+          onMouseLeave={resumeAutoClose}
+          isHoveringRef={isHoveringRef}
         />
       )}
     </PopupContext.Provider>
@@ -91,9 +125,12 @@ interface PopupComponentProps {
   type: PopupType;
   isVisible: boolean;
   onClose: () => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
+  isHoveringRef: React.MutableRefObject<boolean>;
 }
 
-function PopupComponent({ message, type, isVisible, onClose }: PopupComponentProps) {
+function PopupComponent({ message, type, isVisible, onClose, onMouseEnter, onMouseLeave, isHoveringRef }: PopupComponentProps) {
   const iconConfig = {
     success: { icon: CheckCircle2, bgColor: 'bg-[#10B981]', textColor: 'text-white' },
     error: { icon: AlertCircle, bgColor: 'bg-[#EF4444]', textColor: 'text-white' },
@@ -104,6 +141,13 @@ function PopupComponent({ message, type, isVisible, onClose }: PopupComponentPro
   const config = iconConfig[type];
   const Icon = config.icon;
 
+  const handleBackdropClick = (_e: React.MouseEvent) => {
+    // Only close if not hovering over the popup
+    if (!isHoveringRef.current) {
+      onClose();
+    }
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -112,7 +156,7 @@ function PopupComponent({ message, type, isVisible, onClose }: PopupComponentPro
           'fixed inset-0 bg-black/50 z-50 transition-opacity duration-300',
           isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
-        onClick={onClose}
+        onClick={handleBackdropClick}
       />
 
       {/* Popup */}
@@ -126,6 +170,9 @@ function PopupComponent({ message, type, isVisible, onClose }: PopupComponentPro
             ? 'scale-100 opacity-100'
             : 'scale-95 opacity-0 pointer-events-none'
         )}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start gap-4 p-6">
           {/* Icon */}

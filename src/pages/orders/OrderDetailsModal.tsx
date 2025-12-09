@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useOrderItems } from "@/hooks/useOrders";
 import { X, Check } from "lucide-react";
 
@@ -12,6 +12,7 @@ export default function OrderDetailsModal({
   order: initialOrderData,
   onClose,
 }: OrderDetailsModalProps) {
+  const [isHovering, setIsHovering] = useState(false);
   // Fetch data from your endpoint
   const { orderItems: fetchedData, isLoading } = useOrderItems(
     initialOrderData?.orderNo
@@ -48,9 +49,24 @@ export default function OrderDetailsModal({
 
   if (!initialOrderData) return null;
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Only close if not hovering over the modal
+    if (!isHovering && e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-md h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        className="bg-white w-full max-w-md h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
           <div>
@@ -144,18 +160,6 @@ export default function OrderDetailsModal({
               <span className="text-gray-400">Customer name</span>
               <span className="font-medium text-[#182F38]">
                 {enrichedOrder.customerName}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Email</span>
-              <span className="font-medium text-[#182F38]">
-                {enrichedOrder.customerEmail || enrichedOrder.email || "N/A"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Phone</span>
-              <span className="font-medium text-[#182F38]">
-                {enrichedOrder.customerPhone || enrichedOrder.phone || "N/A"}
               </span>
             </div>
           </section>

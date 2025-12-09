@@ -93,6 +93,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isHoveringDialog, setIsHoveringDialog] = useState(false);
   const [bankSuggestions, setBankSuggestions] = useState<Bank[]>([]);
   const [showBankSuggestions, setShowBankSuggestions] = useState(false);
   const bankInputRef = useRef<HTMLInputElement>(null);
@@ -961,10 +962,16 @@ export default function RegisterPage() {
       {showConfirmDialog && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={handleCancelDialog}
+          onClick={(e) => {
+            if (!isHoveringDialog && e.target === e.currentTarget) {
+              handleCancelDialog();
+            }
+          }}
         >
           <div 
             className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200 relative"
+            onMouseEnter={() => setIsHoveringDialog(true)}
+            onMouseLeave={() => setIsHoveringDialog(false)}
             onClick={(e) => e.stopPropagation()}
           >
             <button

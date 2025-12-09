@@ -47,6 +47,7 @@ export default function AddProductPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load categories on component mount
   useEffect(() => {
@@ -133,9 +134,12 @@ export default function AddProductPage() {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       // Validate category is selected
       if (!form.categoryId || form.categoryId.trim() === "") {
+        setIsSubmitting(false);
         popup.error("Please select a valid category");
         setErrors((prev) => ({ ...prev, categoryId: "Please select a category" }));
         return;
@@ -143,6 +147,7 @@ export default function AddProductPage() {
 
       // Ensure categories are loaded
       if (!categories || categories.length === 0) {
+        setIsSubmitting(false);
         console.error("❌ Categories not loaded yet");
         popup.error("Categories are still loading. Please wait a moment and try again.");
         return;
@@ -198,6 +203,7 @@ export default function AddProductPage() {
           console.log("🔍 Category Object Keys:", Object.keys(categories[0]));
         }
 
+        setIsSubmitting(false);
         popup.error("Selected category is invalid. Please select a different category.");
         setErrors((prev) => ({ ...prev, categoryId: "Invalid category selected" }));
         return;
@@ -205,6 +211,7 @@ export default function AddProductPage() {
 
       // Ensure we have a valid ID
       if (!selectedCategory.id) {
+        setIsSubmitting(false);
         console.error("❌ Selected category has no ID:", selectedCategory);
         popup.error("Selected category data is incomplete. Please report this issue.");
         return;
@@ -239,17 +246,22 @@ export default function AddProductPage() {
             productId: createdProduct.productId,
             images: form.images,
           });
-          popup.success("Product created successfully.");
         } catch (imageError) {
           console.error("Image upload failed:", imageError);
-          popup.success("Product created successfully.");
         }
-      } else {
-        popup.success("Product created successfully.");
       }
 
+      // Show success popup - keep loading state active until popup is visible
+      popup.success("Product created successfully.");
+      
+      // Keep loader visible for a brief moment to ensure success modal is shown
+      // This prevents users from clicking multiple times
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      setIsSubmitting(false);
       navigate("/products");
     } catch (error) {
+      setIsSubmitting(false);
       const errorMessage = error instanceof Error 
         ? error.message 
         : "Failed to create product. Please try again.";
@@ -320,17 +332,17 @@ export default function AddProductPage() {
           <button
             type="button"
             onClick={() => navigate("/products")}
-            disabled={isCreating}
+            disabled={isCreating || isSubmitting}
             className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <LoadingButton
             type="submit"
-            isLoading={isCreating}
+            isLoading={isCreating || isSubmitting}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
           >
-            {isCreating ? loadingStep || "Creating..." : "Create Product"}
+            {(isCreating || isSubmitting) ? loadingStep || "Creating..." : "Create Product"}
           </LoadingButton>
         </div>
 
@@ -353,7 +365,7 @@ export default function AddProductPage() {
                     onChange={(e) => updateForm("productName", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="Enter product name"
-                    disabled={isCreating}
+                    disabled={isCreating || isSubmitting}
                   />
                   {errors.productName && (
                     <ErrorMessage
@@ -375,7 +387,7 @@ export default function AddProductPage() {
                     }
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="Describe your product"
-                    disabled={isCreating}
+                    disabled={isCreating || isSubmitting}
                   />
                   {errors.productDescription && (
                     <ErrorMessage
@@ -405,7 +417,7 @@ export default function AddProductPage() {
                     onChange={(e) => updateForm("unitPrice", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="0.00"
-                    disabled={isCreating}
+                    disabled={isCreating || isSubmitting}
                   />
                   {errors.unitPrice && (
                     <ErrorMessage message={errors.unitPrice} className="mt-1" />
@@ -420,7 +432,7 @@ export default function AddProductPage() {
                     value={form.discountType}
                     onChange={(e) => updateForm("discountType", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    disabled={isCreating}
+                    disabled={isCreating || isSubmitting}
                   >
                     <option value="0">No Discount</option>
                     <option value="1">Percentage (%)</option>
@@ -444,7 +456,7 @@ export default function AddProductPage() {
                     }
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="0"
-                    disabled={isCreating}
+                    disabled={isCreating || isSubmitting}
                   />
                   {errors.discountValue && (
                     <ErrorMessage
@@ -542,7 +554,7 @@ export default function AddProductPage() {
                     onChange={(e) => updateForm("stock", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="0"
-                    disabled={isCreating}
+                    disabled={isCreating || isSubmitting}
                   />
                   {errors.stock && (
                     <ErrorMessage message={errors.stock} className="mt-1" />
@@ -573,7 +585,7 @@ export default function AddProductPage() {
                     onChange={(e) => updateForm("minStock", e.target.value)}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                     placeholder="0"
-                    disabled={isCreating}
+                    disabled={isCreating || isSubmitting}
                   />
                   {errors.minStock && (
                     <ErrorMessage message={errors.minStock} className="mt-1" />
@@ -644,7 +656,7 @@ export default function AddProductPage() {
                       updateForm("categoryId", selectedValue);
                     }}
                     className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    disabled={isCreating}
+                    disabled={isCreating || isSubmitting}
                   >
                     <option value="">Select a category</option>
                     {categories.map((category) => (
@@ -730,17 +742,17 @@ export default function AddProductPage() {
           <button
             type="button"
             onClick={() => navigate("/products")}
-            disabled={isCreating}
+            disabled={isCreating || isSubmitting}
             className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <LoadingButton
             type="submit"
-            isLoading={isCreating}
+            isLoading={isCreating || isSubmitting}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
           >
-            {isCreating ? loadingStep || "Creating..." : "Create Product"}
+            {(isCreating || isSubmitting) ? loadingStep || "Creating..." : "Create Product"}
           </LoadingButton>
         </div>
       </form>

@@ -5,7 +5,8 @@ import axios, {
 } from "axios";
 import { popup } from "@/lib/popup";
 import { apiConfig } from "./config";
-import { tokenStorage, clearAuthData, isTokenExpired } from "@/lib/auth.utils";
+import { tokenStorage, isTokenExpired } from "@/lib/auth.utils";
+import { useAuthStore } from "@/stores/authStore";
 import type { ApiResponse, ApiError } from "@/types";
 import type {
   ApiClientError,
@@ -72,10 +73,25 @@ class ApiClient {
             // User credentials error - don't clear auth data
             apiError.message = data.messages.error;
           } else {
-            // Token expired or basic auth failed
-            clearAuthData();
-            apiError.message = "Session expired. Please login again.";
-            // Redirect to login could be handled here or in the component
+            // Check if token is actually expired before logging out
+            // This prevents logout on endpoint errors that return 401
+            const token = tokenStorage.get();
+            const isTokenActuallyExpired = token ? isTokenExpired(token) : true;
+            
+            if (isTokenActuallyExpired) {
+              // Token is actually expired - logout silently
+              const logout = useAuthStore.getState().logout;
+              logout().catch(() => {
+                // Silently handle any logout errors
+              });
+              // Don't set error message - session timeout hook will handle redirect
+              apiError.message = data?.messages?.error || "Unauthorized";
+            } else {
+              // Token is valid but got 401 - likely an endpoint issue or permission problem
+              // Don't logout, just return the error so the component can handle it
+              // This prevents logout loops when endpoints have issues
+              apiError.message = data?.messages?.error || "Unauthorized - Please check your permissions or try again";
+            }
           }
           break;
 

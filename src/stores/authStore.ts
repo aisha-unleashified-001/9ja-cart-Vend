@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
 import { authService } from '@/services/auth.service';
 import { dashboardService } from '@/services/dashboard.service';
+import { sessionStartTimeStorage } from '@/lib/auth.utils';
 import type { User, LoginRequest, RegisterRequest } from '@/types';
 
 const SUSPENDED_VALUES = new Set([true, 1, '1']);
@@ -54,6 +55,11 @@ export const useAuthStore = create<AuthStore>()(
           console.log('🔍 AuthStore - Setting user in store:', user);
           console.log('🔍 AuthStore - isSuspended in user:', user?.isSuspended);
           
+          // Set session start time
+          const sessionStartTime = Date.now();
+          sessionStartTimeStorage.set(sessionStartTime);
+          console.log('🔐 Session start time set:', new Date(sessionStartTime).toISOString());
+          
           set({
             user: normalizedUser,
             token,
@@ -85,6 +91,11 @@ export const useAuthStore = create<AuthStore>()(
         try {
           const { user, token } = await authService.register(userData);
           const normalizedUser = withNormalizedSuspension(user);
+          
+          // Set session start time
+          const sessionStartTime = Date.now();
+          sessionStartTimeStorage.set(sessionStartTime);
+          
           set({
             user: normalizedUser,
             token,
@@ -111,6 +122,9 @@ export const useAuthStore = create<AuthStore>()(
         } catch (error) {
           console.warn('Logout error:', error);
         } finally {
+          // Clear session start time
+          sessionStartTimeStorage.remove();
+          
           set({
             user: null,
             token: null,
@@ -139,6 +153,10 @@ export const useAuthStore = create<AuthStore>()(
         const user = storedUser ? withNormalizedSuspension(storedUser) : null;
         
         if (token && user && authService.isAuthenticated()) {
+          // Only restore session start time if it exists
+          // Don't set a new one here - it should only be set during login/register
+          // This preserves the original login time across page refreshes
+          
           set({
             user,
             token,
@@ -146,6 +164,9 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
           });
         } else {
+          // Clear session start time if not authenticated
+          sessionStartTimeStorage.remove();
+          
           set({
             user: null,
             token: null,

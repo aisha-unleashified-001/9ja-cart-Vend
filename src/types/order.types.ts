@@ -17,6 +17,7 @@ export interface Order {
   totalAmount: number;
   status: string;
   paymentMethod: string;
+  paymentStatus?: string;
   customerName: string;
   createdAt: string;
   totalItemsCount: number;

@@ -233,18 +233,20 @@ export default function ProductDetailPage() {
           </div>
         </div>
         <div className="flex space-x-2">
-          <button
-            onClick={handleToggleStatus}
-            disabled={isLoading || isSuspended}
-            className={`px-4 py-2 border border-border rounded-md transition-colors disabled:opacity-50 ${
-              isSuspended
-                ? "cursor-not-allowed bg-gray-100 text-gray-500"
-                : "text-foreground hover:bg-secondary"
-            }`}
-            title={isSuspended ? "Account suspended" : status === "active" ? "Deactivate" : "Activate"}
-          >
-            {status === "active" ? "Deactivate" : "Activate"}
-          </button>
+          {!isArchived && (
+            <button
+              onClick={handleToggleStatus}
+              disabled={isLoading || isSuspended}
+              className={`px-4 py-2 border border-border rounded-md transition-colors disabled:opacity-50 ${
+                isSuspended
+                  ? "cursor-not-allowed bg-gray-100 text-gray-500"
+                  : "text-foreground hover:bg-secondary"
+              }`}
+              title={isSuspended ? "Account suspended" : status === "active" ? "Deactivate" : "Activate"}
+            >
+              {status === "active" ? "Deactivate" : "Activate"}
+            </button>
+          )}
           <Link
             to={isSuspended ? "#" : `/products/${product.productId}/edit`}
             onClick={(e) => {

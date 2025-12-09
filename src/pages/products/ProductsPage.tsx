@@ -385,24 +385,26 @@ export default function ProductsPage() {
                     </span>
                   </div>
 
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() =>
-                        handleToggleStatus(product.productId, status)
-                      }
-                      disabled={isLoading || isSuspended}
-                      className={`flex-1 px-3 py-2 text-center border border-border rounded-md transition-colors disabled:opacity-50 ${
-                        isSuspended
-                          ? "cursor-not-allowed bg-gray-100 text-gray-500"
-                          : "text-foreground hover:bg-secondary"
-                      }`}
-                      title={isSuspended ? "Account suspended" : status === "active" ? "Deactivate" : "Activate"}
-                    >
-                      {status === "active" ? "Deactivate" : "Activate"}
-                    </button>
+                  <div className={`flex space-x-2 ${statusFilter === 'archived' ? 'justify-center' : ''}`}>
+                    {statusFilter !== 'archived' && (
+                      <button
+                        onClick={() =>
+                          handleToggleStatus(product.productId, status)
+                        }
+                        disabled={isLoading || isSuspended}
+                        className={`flex-1 px-3 py-2 text-center border border-border rounded-md transition-colors disabled:opacity-50 ${
+                          isSuspended
+                            ? "cursor-not-allowed bg-gray-100 text-gray-500"
+                            : "text-foreground hover:bg-secondary"
+                        }`}
+                        title={isSuspended ? "Account suspended" : status === "active" ? "Deactivate" : "Activate"}
+                      >
+                        {status === "active" ? "Deactivate" : "Activate"}
+                      </button>
+                    )}
                     <Link
                       to={`/products/${product.productId}`}
-                      className="flex-1 px-3 py-2 text-center bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                      className={`px-3 py-2 text-center bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors ${statusFilter === 'archived' ? '' : 'flex-1'}`}
                     >
                       View
                     </Link>

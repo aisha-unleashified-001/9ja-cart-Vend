@@ -67,7 +67,36 @@ export const isTokenExpired = (token: string): boolean => {
   }
 };
 
+export const sessionStartTimeStorage = {
+  get: (): number | null => {
+    try {
+      const time = localStorage.getItem(STORAGE_KEYS.SESSION_START_TIME);
+      return time ? parseInt(time, 10) : null;
+    } catch (error) {
+      console.error('Error getting session start time from storage:', error);
+      return null;
+    }
+  },
+
+  set: (timestamp: number): void => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SESSION_START_TIME, timestamp.toString());
+    } catch (error) {
+      console.error('Error setting session start time in storage:', error);
+    }
+  },
+
+  remove: (): void => {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.SESSION_START_TIME);
+    } catch (error) {
+      console.error('Error removing session start time from storage:', error);
+    }
+  },
+};
+
 export const clearAuthData = (): void => {
   tokenStorage.remove();
   userStorage.remove();
+  sessionStartTimeStorage.remove();
 };

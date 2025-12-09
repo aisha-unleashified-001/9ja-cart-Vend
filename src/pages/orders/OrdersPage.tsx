@@ -410,7 +410,8 @@ export default function OrdersPage() {
               <th>Date</th>
               <th>Customer</th>
               <th>Total</th>
-              <th>Status</th>
+              <th>Order Status</th>
+              <th>Payment Status</th>
               <th>Items</th>
               <th className="w-10"></th>
             </tr>
@@ -418,13 +419,13 @@ export default function OrdersPage() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={8} className="text-center py-10 text-[#182F38]">
+                <td colSpan={9} className="text-center py-10 text-[#182F38]">
                   Loading orders...
                 </td>
               </tr>
             ) : orders?.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-10 text-[#182F38]">
+                <td colSpan={9} className="text-center py-10 text-[#182F38]">
                   No orders found.
                 </td>
               </tr>
@@ -453,6 +454,22 @@ export default function OrdersPage() {
                       }`}
                     >
                       {order.status}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span
+                      className={`px-2 py-1 rounded-lg text-xs ${
+                        order.paymentStatus?.toLowerCase() === 'paid' || order.paymentStatus?.toLowerCase() === 'completed'
+                          ? "bg-green-100 text-green-700"
+                          : order.paymentStatus?.toLowerCase() === 'pending' || order.paymentStatus?.toLowerCase() === 'unpaid'
+                          ? "bg-yellow-100 text-yellow-700"
+                          : order.paymentStatus?.toLowerCase() === 'failed' || order.paymentStatus?.toLowerCase() === 'cancelled'
+                          ? "bg-red-100 text-red-700"
+                          : "bg-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {order.paymentStatus || 'N/A'}
                     </span>
                   </td>
 

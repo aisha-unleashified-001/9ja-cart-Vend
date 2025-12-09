@@ -17,10 +17,19 @@ export default function LoginPage() {
   const location = useLocation();
 
   // Redirect if already authenticated
+  // Add a small delay to prevent redirect loops if API calls fail immediately after login
   useEffect(() => {
     if (isAuthenticated) {
-      const from = location.state?.from?.pathname || '/dashboard';
-      navigate(from, { replace: true });
+      // Small delay to allow any initial API calls to complete
+      const redirectTimer = setTimeout(() => {
+        // Double-check authentication is still valid before redirecting
+        if (isAuthenticated) {
+          const from = location.state?.from?.pathname || '/dashboard';
+          navigate(from, { replace: true });
+        }
+      }, 500);
+      
+      return () => clearTimeout(redirectTimer);
     }
   }, [isAuthenticated, navigate, location]);
 

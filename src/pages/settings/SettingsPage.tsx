@@ -12,6 +12,7 @@ export default function SettingsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<VendorProfile>>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isHoveringDialog, setIsHoveringDialog] = useState(false);
 
   // Fetch profile data on component mount
   useEffect(() => {
@@ -564,10 +565,16 @@ export default function SettingsPage() {
       {showConfirmDialog && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={handleCancelDialog}
+          onClick={(e) => {
+            if (!isHoveringDialog && e.target === e.currentTarget) {
+              handleCancelDialog();
+            }
+          }}
         >
           <div 
             className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200"
+            onMouseEnter={() => setIsHoveringDialog(true)}
+            onMouseLeave={() => setIsHoveringDialog(false)}
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold text-foreground mb-4">

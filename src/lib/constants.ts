@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
     UPDATE_ACCOUNT_INFO: "/vendor/account-info", // TODO: Backend endpoint to be implemented
     UPLOAD_PROFILE_IMAGE: "/vendor/profile-image", // TODO: Backend endpoint to be implemented
     DASHBOARD_SUMMARY: "/vendor/dashboard-summary",
+    CONTACT_ADMIN: "/vendor/contact-admin",
   },
   PRODUCTS: {
     LIST: "/product/vendor",
@@ -48,7 +49,11 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: "auth_token",
   USER_DATA: "user_data",
   REFRESH_TOKEN: "refresh_token",
+  SESSION_START_TIME: "session_start_time",
 } as const;
+
+// Session timeout: 1 hour in milliseconds
+export const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
 
 export const HTTP_STATUS = {
   OK: 200,
