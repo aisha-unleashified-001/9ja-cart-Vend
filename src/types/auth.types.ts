@@ -10,6 +10,7 @@ export interface User {
   businessName?: string;
   isSuspended?: string | number | boolean;
   avatarUrl?: string;
+  location?: string;
   role?: string;
   createdAt?: string;
   updatedAt?: string;

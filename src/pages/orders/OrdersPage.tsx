@@ -399,33 +399,35 @@ export default function OrdersPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-visible min-h-[400px]">
-        <table className="w-full text-sm border-collapse rounded-md">
+      <div className="overflow-x-auto min-h-[400px] w-full">
+        <table className="w-full text-sm border-separate border-spacing-0 min-w-[1400px]">
           <thead>
-            <tr className="border-b border-[#1E4700] text-white bg-[#1E4700] text-left p-4">
-              <th className="p-3 w-10">
+            <tr className="text-white bg-[#1E4700] text-left">
+              <th className="p-4 w-12 whitespace-nowrap">
                 <input type="checkbox" />
               </th>
-              <th>Order ID</th>
-              <th>Date</th>
-              <th>Customer</th>
-              <th>Total</th>
-              <th>Order Status</th>
-              <th>Payment Status</th>
-              <th>Items</th>
-              <th className="w-10"></th>
+              <th className="p-4 min-w-[120px] whitespace-nowrap">Order ID</th>
+              <th className="p-4 min-w-[110px] whitespace-nowrap">Date</th>
+              <th className="p-4 min-w-[140px] whitespace-nowrap">Customer</th>
+              <th className="p-4 min-w-[110px] whitespace-nowrap">Total</th>
+              <th className="p-4 min-w-[130px] whitespace-nowrap">Order Earning</th>
+              <th className="p-4 min-w-[140px] whitespace-nowrap">Payment Method</th>
+              <th className="p-4 min-w-[130px] whitespace-nowrap">Order Status</th>
+              <th className="p-4 min-w-[130px] whitespace-nowrap">Payment Status</th>
+              <th className="p-4 min-w-[100px] whitespace-nowrap">Items</th>
+              <th className="p-4 w-12 whitespace-nowrap"></th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={9} className="text-center py-10 text-[#182F38]">
+                <td colSpan={11} className="text-center py-10 text-[#182F38]">
                   Loading orders...
                 </td>
               </tr>
             ) : orders?.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-10 text-[#182F38]">
+                <td colSpan={11} className="text-center py-10 text-[#182F38]">
                   No orders found.
                 </td>
               </tr>
@@ -434,18 +436,20 @@ export default function OrdersPage() {
               orders.map((order: any) => (
                 <tr
                   key={order.orderNo}
-                  className="border-b border-neutral-800 text-[#333333] hover:bg-gray-50/50"
+                  className="border-b border-neutral-200 text-[#333333] hover:bg-gray-50/50 bg-white"
                 >
-                  <td className="p-3">
+                  <td className="p-4">
                     <input type="checkbox" />
                   </td>
 
-                  <td>{order.orderNo}</td>
-                  <td>{order.createdAt}</td>
-                  <td>{order.customerName}</td>
-                  <td>₦{order.totalAmount?.toLocaleString()}</td>
+                  <td className="p-4 whitespace-nowrap">{order.orderNo}</td>
+                  <td className="p-4 whitespace-nowrap">{order.createdAt}</td>
+                  <td className="p-4 whitespace-nowrap">{order.customerName}</td>
+                  <td className="p-4 whitespace-nowrap">₦{order.totalAmount?.toLocaleString()}</td>
+                  <td className="p-4 whitespace-nowrap">₦{order.orderEarning?.toLocaleString() || 'N/A'}</td>
+                  <td className="p-4 whitespace-nowrap capitalize">{order.paymentMethod || 'N/A'}</td>
 
-                  <td>
+                  <td className="p-4 whitespace-nowrap">
                     <span
                       className={`px-2 py-1 rounded-lg text-xs ${
                         statusColors[order.status] ||
@@ -457,7 +461,7 @@ export default function OrdersPage() {
                     </span>
                   </td>
 
-                  <td>
+                  <td className="p-4 whitespace-nowrap">
                     <span
                       className={`px-2 py-1 rounded-lg text-xs ${
                         order.paymentStatus?.toLowerCase() === 'paid' || order.paymentStatus?.toLowerCase() === 'completed'
@@ -473,10 +477,10 @@ export default function OrdersPage() {
                     </span>
                   </td>
 
-                  <td>{order.totalItemsCount} items</td>
+                  <td className="p-4 whitespace-nowrap">{order.totalItemsCount} items</td>
 
                   {/* ACTION COLUMN WITH DROPDOWN */}
-                  <td className="relative px-4 text-center">
+                  <td className="p-4 relative text-center">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

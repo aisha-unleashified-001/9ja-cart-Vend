@@ -1,8 +1,4 @@
 export interface ContactAdminPayload {
-  name: string;
-  storeName: string;
-  email: string;
-  phoneNumber: string;
   subject: string;
   message: string;
 }

@@ -48,10 +48,6 @@ export default function ContactAdminPage() {
 
     try {
       await contactService.contactAdmin({
-        name: formData.name,
-        storeName: formData.storeName,
-        email: formData.email,
-        phoneNumber: formData.phoneNumber,
         subject: formData.subject,
         message: formData.message,
       });

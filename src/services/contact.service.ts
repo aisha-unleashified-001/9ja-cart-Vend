@@ -5,19 +5,26 @@ import type { ContactAdminPayload, ContactAdminResponse } from "@/types";
 export class ContactService {
   async contactAdmin(payload: ContactAdminPayload): Promise<ContactAdminResponse> {
     try {
-      const response = await apiClient.post<ContactAdminResponse>(
+      // The API endpoint doesn't return a response body, so we use void as the generic type
+      const response = await apiClient.post<void>(
         API_ENDPOINTS.VENDOR.CONTACT_ADMIN,
         payload,
         { requiresAuth: true }
       );
 
-      if (response.error || !response.data) {
+      // The API may not return a response body, so we check for errors
+      if (response.error) {
         throw new Error(
           response.message || "Failed to send message to admin"
         );
       }
 
-      return response.data;
+      // Return success response since API doesn't return a body
+      return {
+        status: response.status || 200,
+        error: false,
+        message: response.message || "Message sent successfully",
+      };
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -29,6 +36,9 @@ export class ContactService {
 }
 
 export const contactService = new ContactService();
+
+
+
 
 
 

@@ -19,6 +19,7 @@ export interface Order {
   paymentMethod: string;
   paymentStatus?: string;
   customerName: string;
+  orderEarning?: number;
   createdAt: string;
   totalItemsCount: number;
 }

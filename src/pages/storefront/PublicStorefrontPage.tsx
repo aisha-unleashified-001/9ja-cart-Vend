@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import {
   Star,
   MapPin,
@@ -11,14 +12,9 @@ import {
   X,
   Loader2,
   Send,
-  Copy,
 } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
-import { useAuthStore } from "@/stores/authStore";
 import { useStorefrontStore } from "@/stores/storeFront";
 import ProductCard from "./ProductCard";
-import { popup } from "@/lib/popup";
-
 
 const PromoBanner = () => {
   return (
@@ -67,11 +63,25 @@ const PromoBanner = () => {
   );
 };
 
-const StorefrontPage = () => {
-  const [searchParams] = useSearchParams();
-  const user = useAuthStore((state) => state.user);
-  const vendorIdFromUrl = searchParams.get("vendorId");
-  const vendorId = vendorIdFromUrl || user?.vendorId || user?.userId || "";
+const PublicStorefrontPage = () => {
+  const { vendorId } = useParams<{ vendorId: string }>();
+  const [vendorInfo, setVendorInfo] = useState<{
+    businessName?: string;
+    storeName?: string;
+    avatarUrl?: string;
+    location?: string;
+  } | null>(() => {
+    // Seed from URL query params if present (shared by vendor)
+    const searchParams = new URLSearchParams(window.location.search);
+    const businessName = searchParams.get("businessName") || undefined;
+    const storeName = searchParams.get("storeName") || undefined;
+    const avatarUrl = searchParams.get("avatarUrl") || undefined;
+    const location = searchParams.get("location") || undefined;
+    if (businessName || storeName || avatarUrl || location) {
+      return { businessName, storeName, avatarUrl, location };
+    }
+    return null;
+  });
 
   const {
     products,
@@ -93,22 +103,6 @@ const StorefrontPage = () => {
   const [search, setSearch] = useState("");
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
-  const storefrontLink = useMemo(() => {
-    if (!vendorId) return "";
-    const origin =
-      typeof window !== "undefined" && window.location?.origin
-        ? window.location.origin
-        : "";
-
-    const params = new URLSearchParams();
-    if (user?.businessName) params.set("businessName", user.businessName);
-    if (user?.storeName) params.set("storeName", user.storeName);
-    if (user?.avatarUrl) params.set("avatarUrl", user.avatarUrl);
-    if (user?.location) params.set("location", user.location as any);
-
-    const qs = params.toString();
-    return `${origin}/vendor/${vendorId}${qs ? `?${qs}` : ""}`;
-  }, [vendorId, user?.businessName, user?.storeName, user?.avatarUrl, user?.location]);
 
   // Updated state structure to match endpoint expectation
   const [contactForm, setContactForm] = useState({
@@ -134,9 +128,39 @@ const StorefrontPage = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Initial Fetch - CRITICAL: Wait for user ID to prevent 401/Logout
+  // Extract vendor info from available data (products or best sellers)
   useEffect(() => {
-    // Only proceed if we have a valid vendorId (or id).
+    if (vendorInfo) return;
+
+    const extractInfo = (item: any) => {
+      if (!item) return null;
+      const businessName =
+        item.businessName || item.vendorName || item.storeName || item.vendor;
+      const storeName = item.storeName || item.businessName || item.vendorName;
+      const location =
+        item.vendorLocation ||
+        item.location ||
+        item.businessAddress ||
+        item.address;
+      const avatarUrl = item.vendorAvatar || item.avatarUrl;
+
+      if (businessName || storeName || avatarUrl) {
+        return { businessName, storeName, avatarUrl, location };
+      }
+      return null;
+    };
+
+    const fromProducts = products.length ? extractInfo(products[0]) : null;
+    const fromBest = bestSellers.length ? extractInfo(bestSellers[0]) : null;
+
+    const resolved = fromProducts || fromBest;
+    if (resolved) {
+      setVendorInfo(resolved);
+    }
+  }, [products, bestSellers, vendorInfo]);
+
+  // Initial Fetch - Use vendorId from URL params
+  useEffect(() => {
     if (vendorId) {
       setQuery({ vendorId });
       fetchBestSellers(vendorId);
@@ -148,23 +172,22 @@ const StorefrontPage = () => {
   // Search Debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (search !== query.search) {
+      if (search !== query.search && vendorId) {
         setQuery({ search });
-        // Only fetch if user is loaded
-        if (vendorId) {
-          fetchProducts({ search, page: 1, vendorId });
-        }
+        fetchProducts({ search, page: 1, vendorId });
       }
     }, 600);
     return () => clearTimeout(timer);
   }, [search, vendorId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handlePageChange = (newPage: number) => {
+    if (!vendorId) return;
     setQuery({ page: newPage });
     fetchProducts({ page: newPage, vendorId });
   };
 
   const handleCategorySelect = (catId: string) => {
+    if (!vendorId) return;
     const newCat = query.category === catId ? "" : catId;
     setQuery({ category: newCat, page: 1 });
     fetchProducts({ category: newCat, page: 1, vendorId });
@@ -187,6 +210,19 @@ const StorefrontPage = () => {
     categories.find((c) => c.id === query.category)?.categoryName ||
     "All Categories";
 
+  if (!vendorId) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Vendor Not Found
+          </h2>
+          <p className="text-gray-600">Invalid storefront link.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white pb-20 font-sans relative">
       {/* Contact Modal */}
@@ -207,7 +243,7 @@ const StorefrontPage = () => {
               Contact Vendor
             </h2>
             <p className="text-sm text-gray-500 mb-6">
-              Send a message to {user?.fullName || "the vendor"}
+              Send a message to the vendor
             </p>
 
             {contactSuccess ? (
@@ -267,7 +303,6 @@ const StorefrontPage = () => {
                     }
                   />
                 </div>
-                {/* Added Subject Field */}
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     Subject
@@ -325,21 +360,35 @@ const StorefrontPage = () => {
         {/* 1. Header Section */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-100 pb-8 mb-8 gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-100">
-              <img
-                src={user?.avatarUrl}
-                alt="Vendor Avatar"
-                className="w-full h-full object-cover"
-              />
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-100 bg-gray-200 flex items-center justify-center">
+              {vendorInfo?.avatarUrl ? (
+                <img
+                  src={vendorInfo.avatarUrl}
+                  alt="Vendor Avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-2xl font-bold">
+                  {(vendorInfo?.businessName ||
+                    vendorInfo?.storeName ||
+                    "V")[0].toUpperCase()}
+                </div>
+              )}
             </div>
 
             <div>
               <h1 className="text-2xl font-bold text-[#182F38]">
-                {user?.businessName || "La Porsh Footies"}
+                {vendorInfo?.businessName ||
+                  vendorInfo?.storeName ||
+                  "Vendor Store"}
               </h1>
               <div className="flex items-center gap-1 text-gray-500 text-sm mt-1">
                 <MapPin className="w-3 h-3" />
-                <span>{user?.storeName || "Lagos, Nigeria"}</span>
+                <span>
+                  {vendorInfo?.location ||
+                    vendorInfo?.storeName ||
+                    "Nigeria"}
+                </span>
               </div>
               <div className="flex items-center gap-4 mt-2 text-xs">
                 <div className="flex items-center gap-1 text-yellow-500">
@@ -357,28 +406,12 @@ const StorefrontPage = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 self-start md:self-center">
-            <button
-              disabled={!storefrontLink}
-              onClick={() => {
-                if (!storefrontLink) return;
-                navigator.clipboard
-                  .writeText(storefrontLink)
-                  .then(() => popup.success("Storefront link copied!"))
-                  .catch(() => popup.error("Failed to copy link"));
-              }}
-              className="border border-gray-300 text-gray-700 px-4 py-2.5 rounded text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <Copy className="w-4 h-4" />
-              Copy Storefront Link
-            </button>
-            <button
-              onClick={() => setIsContactOpen(true)}
-              className="bg-[#1E4700] text-white px-6 py-2.5 rounded text-sm font-medium hover:bg-[#163600] transition-colors"
-            >
-              Contact Vendor
-            </button>
-          </div>
+          <button
+            onClick={() => setIsContactOpen(true)}
+            className="bg-[#1E4700] text-white px-6 py-2.5 rounded text-sm font-medium hover:bg-[#163600] transition-colors self-start md:self-center"
+          >
+            Contact Vendor
+          </button>
         </header>
 
         {/* 2. Filter Bar */}
@@ -393,7 +426,7 @@ const StorefrontPage = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            {/* Category Dropdown with real data */}
+            {/* Category Dropdown */}
             <div className="relative" ref={catDropdownRef}>
               <button
                 onClick={() =>
@@ -503,7 +536,9 @@ const StorefrontPage = () => {
                 onClick={() => {
                   setSearch("");
                   setQuery({ category: "", search: "" });
-                  fetchProducts({ category: "", search: "", page: 1, vendorId });
+                  if (vendorId) {
+                    fetchProducts({ category: "", search: "", page: 1, vendorId });
+                  }
                 }}
                 className="mt-4 text-[#1E4700] font-medium hover:underline"
               >
@@ -534,7 +569,6 @@ const StorefrontPage = () => {
               {Array.from({ length: Math.min(5, pagination.totalPages) }).map(
                 (_, i) => {
                   let pageNum = i + 1;
-                  // Simple logic to keep current page visible if > 5 pages
                   if (pagination.totalPages > 5 && query.page > 3) {
                     pageNum = query.page - 2 + i;
                   }
@@ -572,4 +606,5 @@ const StorefrontPage = () => {
   );
 };
 
-export default StorefrontPage;
+export default PublicStorefrontPage;
+

@@ -16,6 +16,7 @@ import AddProductPage from './pages/products/AddProductPage';
 import EditProductPage from './pages/products/EditProductPage';
 import OrdersPage from './pages/orders/OrdersPage';
 import StorefrontPage from './pages/storefront/StorefrontPage';
+import PublicStorefrontPage from './pages/storefront/PublicStorefrontPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import NotificationsPage from './pages/notifications/NotificationsPage';
 import NotificationDetailPage from './pages/notifications/NotificationDetailPage';
@@ -37,6 +38,7 @@ export default function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/vendor/:vendorId" element={<PublicStorefrontPage />} />
           
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />

@@ -13,7 +13,9 @@ export const storefrontService = {
     if (query.category) params.append("category", query.category);
     
     const url = `/vendor/${query.vendorId}/best-sellers${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiClient.get(url);
+    const response = await apiClient.get(url, {
+      requiresAuth: false, // Public storefront endpoint - use Basic Auth only
+    });
     return response;
   },
 
@@ -28,17 +30,23 @@ export const storefrontService = {
     if (query.sortBy) params.append("sortBy", query.sortBy);
     
     const url = `/vendor/${query.vendorId}/products${params.toString() ? `?${params.toString()}` : ''}`;
-    const response = await apiClient.get(url);
+    const response = await apiClient.get(url, {
+      requiresAuth: false, // Public storefront endpoint - use Basic Auth only
+    });
     return response;
   },
 
   getCategories: async () => {
-    const response = await apiClient.get(`/business/get-categories`);
+    const response = await apiClient.get(`/business/get-categories`, {
+      requiresAuth: false, // Public endpoint - use Basic Auth only
+    });
     return response;
   },
 
   contactVendor: async (payload: ContactVendorPayload) => {
-    const response = await apiClient.post(`/vendor/contact`, payload);
+    const response = await apiClient.post(`/vendor/contact`, payload, {
+      requiresAuth: false, // Public contact form - use Basic Auth only
+    });
     return response;
   },
 };

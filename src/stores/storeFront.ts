@@ -22,12 +22,14 @@ interface StorefrontState {
 
 interface StorefrontActions {
   fetchProducts: (query?: Partial<StorefrontQuery>) => Promise<void>;
-  fetchBestSellers: () => Promise<void>;
+  fetchBestSellers: (vendorId?: string) => Promise<void>;
   fetchCategories: () => Promise<void>;
   sendContactMessage: (data: {
+    vendorId?: string;
     name: string;
     email: string;
     message: string;
+    subject?: string;
   }) => Promise<void>;
   setQuery: (query: Partial<StorefrontQuery>) => void;
   resetContact: () => void;
@@ -60,8 +62,12 @@ export const useStorefrontStore = create<StorefrontState & StorefrontActions>(
       set({ isLoading: true, error: null });
       try {
         const user = useAuthStore.getState().user;
-        // Ensure we check the correct property for vendor ID (user.userId or user.vendorId)
-        const vendorId = user?.vendorId || user?.userId;
+        // Prefer vendorId passed in queryPayload, then stored query, then auth store
+        const vendorId =
+          queryPayload?.vendorId ||
+          get().query.vendorId ||
+          user?.vendorId ||
+          user?.userId;
 
         if (!vendorId) {
           // Only throw if we strictly need it, otherwise just return
@@ -72,7 +78,7 @@ export const useStorefrontStore = create<StorefrontState & StorefrontActions>(
           return;
         }
 
-        const currentQuery = { ...get().query, ...queryPayload };
+        const currentQuery = { ...get().query, ...queryPayload, vendorId };
 
         // Merge vendorId into the query object
         const fullQuery = {
@@ -112,10 +118,14 @@ export const useStorefrontStore = create<StorefrontState & StorefrontActions>(
       }
     },
 
-    fetchBestSellers: async () => {
+    fetchBestSellers: async (vendorIdParam?: string) => {
       try {
         const user = useAuthStore.getState().user;
-        const vendorId = user?.vendorId;
+        const vendorId =
+          vendorIdParam ||
+          get().query.vendorId ||
+          user?.vendorId ||
+          user?.userId;
 
         if (!vendorId) return;
 
@@ -148,13 +158,18 @@ export const useStorefrontStore = create<StorefrontState & StorefrontActions>(
       set({ isContactSending: true, error: null });
       try {
         const user = useAuthStore.getState().user;
-        const vendorId = user?.vendorId || user?.userId;
+        const vendorId =
+          payload.vendorId ||
+          get().query.vendorId ||
+          user?.vendorId ||
+          user?.userId;
 
         if (!vendorId) throw new Error("Vendor ID unavailable");
 
+        const { vendorId: _, ...contactData } = payload;
         await storefrontService.contactVendor({
           vendorId,
-          ...payload,
+          ...contactData,
         });
         set({ isContactSending: false, contactSuccess: true });
       } catch (err: any) {
