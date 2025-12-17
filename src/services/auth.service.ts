@@ -8,7 +8,9 @@ export class AuthService {
     try {
       const response = await apiClient.post<LoginResponse>(
         API_ENDPOINTS.AUTH.LOGIN,
-        credentials
+        credentials,
+        // Login uses Basic Auth (apiConfig). Do not attach Bearer token even if one exists in storage.
+        { requiresAuth: false }
       );
 
       if (response.error || !response.data) {
@@ -53,7 +55,9 @@ export class AuthService {
     try {
       const response = await apiClient.post<LoginResponse>(
         API_ENDPOINTS.AUTH.REGISTER,
-        userData
+        userData,
+        // Register uses Basic Auth (apiConfig). Do not attach Bearer token even if one exists in storage.
+        { requiresAuth: false }
       );
 
       if (response.error || !response.data) {

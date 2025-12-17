@@ -63,24 +63,24 @@ const FIELD_STEP_MAP: Record<keyof RegistrationFieldErrors, number> = {
   emailAddress: 1,
   password: 1,
   confirmPassword: 1,
-  fullName: 2,
-  businessName: 2,
-  businessCategory: 2,
-  phoneNumber: 2,
-  accountNumber: 2,
-  bank: 2,
-  settlementBank: 2,
-  settlementBankName: 2,
-  storeName: 3,
-  businessAddress: 3,
-  businessRegNumber: 3,
-  taxIdNumber: 3,
-  idDocument: 3,
-  businessRegCertificate: 3,
+  fullName: 3,
+  businessName: 3,
+  businessCategory: 3,
+  phoneNumber: 3,
+  accountNumber: 3,
+  bank: 3,
+  settlementBank: 3,
+  settlementBankName: 3,
+  storeName: 4,
+  businessAddress: 4,
+  businessRegNumber: 4,
+  taxIdNumber: 4,
+  idDocument: 4,
+  businessRegCertificate: 4,
 };
 
 const getFirstErrorStep = (errors: RegistrationFieldErrors): number | null => {
-  const steps = Object.keys(errors).map((field) => FIELD_STEP_MAP[field as keyof RegistrationFieldErrors] ?? 3);
+  const steps = Object.keys(errors).map((field) => FIELD_STEP_MAP[field as keyof RegistrationFieldErrors] ?? 4);
   return steps.length ? Math.min(...steps) : null;
 };
 
@@ -99,6 +99,14 @@ export default function RegisterPage() {
   const bankInputRef = useRef<HTMLInputElement>(null);
   const bankSuggestionsRef = useRef<HTMLDivElement>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
+  
+  // OTP verification state
+  const [otpCode, setOtpCode] = useState('');
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpVerificationId, setOtpVerificationId] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const { categories, isLoading: categoriesLoading, fetchCategories } = useBusinessCategories();
@@ -208,6 +216,11 @@ export default function RegisterPage() {
     }
     
     if (step === 2) {
+      // OTP verification step - validation handled by verifyOTP
+      return isOtpVerified;
+    }
+    
+    if (step === 3) {
       const isValid = !!(formData.fullName && formData.businessName && formData.businessCategory && formData.phoneNumber && formData.accountNumber && formData.bank && formData.settlementBank);
       if (!isValid) {
         popup.error('Please fill in all required fields');
@@ -215,7 +228,7 @@ export default function RegisterPage() {
       return isValid;
     }
     
-    if (step === 3) {
+    if (step === 4) {
       const isValid = !!(formData.storeName && formData.businessAddress && formData.taxIdNumber && formData.idDocument && formData.businessRegCertificate);
       if (!isValid) {
         popup.error('Please fill in all required fields and upload documents');
@@ -231,34 +244,134 @@ export default function RegisterPage() {
       return;
     }
 
-    // Check email availability on step 1 before proceeding
+    // On step 1, send OTP before proceeding to step 2
     if (currentStep === 1) {
       setIsLoading(true);
+      setIsSendingOtp(true);
+      setOtpError(null);
       try {
+        // Check email availability first
         const { available, message } = await registrationService.checkEmailAvailability(formData.emailAddress);
         
         if (!available) {
           setFormErrors({ emailAddress: message || 'Email already exists' });
           popup.error(message || 'Email already exists');
           setIsLoading(false);
+          setIsSendingOtp(false);
           return;
         }
+
+        // Send OTP
+        const sendOtpResult = await registrationService.sendOTP(formData.emailAddress);
+        const verificationId =
+          sendOtpResult?.verificationId ||
+          sendOtpResult?.data?.verificationId ||
+          sendOtpResult?.verification_id ||
+          null;
+        setOtpVerificationId(verificationId);
+        popup.success('Verification code sent to your email!');
+        setCurrentStep(2);
       } catch (error) {
-        console.error('Email check failed:', error);
-        // Continue anyway - the final submission will catch it
+        console.error('Send OTP failed:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Failed to send verification code';
+        setOtpError(errorMessage);
+        popup.error(errorMessage);
       } finally {
         setIsLoading(false);
+        setIsSendingOtp(false);
       }
+      return;
     }
 
-    if (currentStep < 3) {
+    // On step 2 (OTP), user must verify before continuing
+    if (currentStep === 2) {
+      if (!isOtpVerified) {
+        popup.error('Please verify your email address first');
+        return;
+      }
+      setCurrentStep(3);
+      return;
+    }
+
+    // Continue to next step for steps 3 and 4
+    if (currentStep < 4) {
       setCurrentStep(prev => prev + 1);
       popup.success(`Step ${currentStep} completed!`);
     }
   };
 
+  const handleVerifyOTP = async () => {
+    if (!otpCode.trim()) {
+      setOtpError('Please enter the verification code');
+      popup.error('Please enter the verification code');
+      return;
+    }
+
+    if (otpCode.trim().length !== 5) {
+      setOtpError('Verification code must be 5 digits');
+      popup.error('Verification code must be 5 digits');
+      return;
+    }
+
+    if (!otpVerificationId) {
+      const msg = 'Verification session expired. Please resend the verification code.';
+      setOtpError(msg);
+      popup.error(msg);
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpError(null);
+
+    try {
+      await registrationService.verifyOTP(formData.emailAddress, otpCode.trim(), otpVerificationId);
+      setIsOtpVerified(true);
+      popup.success('Email verified successfully!');
+    } catch (error) {
+      console.error('Verify OTP failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Invalid verification code';
+      setOtpError(errorMessage);
+      popup.error(errorMessage);
+      setIsOtpVerified(false);
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    setIsSendingOtp(true);
+    setOtpError(null);
+    setOtpCode('');
+    setIsOtpVerified(false);
+
+    try {
+      const sendOtpResult = await registrationService.sendOTP(formData.emailAddress);
+      const verificationId =
+        sendOtpResult?.verificationId ||
+        sendOtpResult?.data?.verificationId ||
+        sendOtpResult?.verification_id ||
+        null;
+      setOtpVerificationId(verificationId);
+      popup.success('Verification code resent to your email!');
+    } catch (error) {
+      console.error('Resend OTP failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resend verification code';
+      setOtpError(errorMessage);
+      popup.error(errorMessage);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
   const handleBack = () => {
     if (currentStep > 1) {
+      // Reset OTP state when going back from step 2
+      if (currentStep === 2) {
+        setOtpCode('');
+        setIsOtpVerified(false);
+        setOtpError(null);
+        setOtpVerificationId(null);
+      }
       setCurrentStep(prev => prev - 1);
     }
   };
@@ -307,7 +420,7 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateStep(3)) {
+    if (!validateStep(4)) {
       popup.error('Please complete all required fields');
       return;
     }
@@ -387,6 +500,9 @@ export default function RegisterPage() {
         const errorStep = getFirstErrorStep(error.fieldErrors);
         if (errorStep) {
           setCurrentStep(errorStep);
+        } else {
+          // Default to step 4 if no specific error step found
+          setCurrentStep(4);
         }
         
         // Show specific error message
@@ -409,12 +525,12 @@ export default function RegisterPage() {
 
   const handleCancelDialog = () => {
     setShowConfirmDialog(false);
-    setCurrentStep(2);
+    setCurrentStep(3);
   };
 
   const renderStepIndicator = () => (
     <div className="flex items-center justify-center mb-8">
-      {[1, 2, 3].map((step) => (
+      {[1, 2, 3, 4].map((step) => (
         <div key={step} className="flex items-center">
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -425,7 +541,7 @@ export default function RegisterPage() {
           >
             {step}
           </div>
-          {step < 3 && (
+          {step < 4 && (
             <div
               className={`w-16 h-1 mx-2 ${
                 step < currentStep ? 'bg-primary' : 'bg-gray-200'
@@ -547,6 +663,111 @@ export default function RegisterPage() {
   );
 
   const renderStep2 = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-8">
+        {/* Success Icon */}
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg
+            className="w-8 h-8 text-green-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        </div>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
+        <p className="text-gray-600">We've sent a verification code to your email address.</p>
+      </div>
+
+      {/* Email Information Box */}
+      <div className="bg-blue-50 rounded-lg p-4 mb-6">
+        <div className="flex items-center space-x-2 mb-2">
+          <svg
+            className="w-5 h-5 text-blue-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
+          </svg>
+          <span className="text-sm font-medium text-blue-900">Check your email</span>
+        </div>
+        <p className="text-sm text-gray-700">
+          We sent a 5-digit verification code to <span className="font-semibold">{formData.emailAddress}</span>
+        </p>
+      </div>
+
+      {/* OTP Input */}
+      <div>
+        <label htmlFor="otpCode" className="block text-sm font-medium text-gray-700 mb-2">
+          Verification Code
+        </label>
+        <input
+          id="otpCode"
+          type="text"
+          value={otpCode}
+          onChange={(e) => {
+            const value = e.target.value.replace(/\D/g, '').slice(0, 5);
+            setOtpCode(value);
+            if (otpError) setOtpError(null);
+          }}
+          disabled={isVerifyingOtp || isOtpVerified}
+          maxLength={5}
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 text-center text-2xl tracking-widest font-mono ${
+            otpError
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
+          placeholder="00000"
+        />
+        {otpError && (
+          <p className="mt-1 text-sm text-red-600">{otpError}</p>
+        )}
+        {isOtpVerified && (
+          <p className="mt-1 text-sm text-green-600">Email verified successfully!</p>
+        )}
+      </div>
+
+      {/* Verify Email Address Button */}
+      <LoadingButton
+        type="button"
+        onClick={handleVerifyOTP}
+        isLoading={isVerifyingOtp}
+        disabled={isOtpVerified || !otpCode.trim() || otpCode.trim().length !== 5}
+        className="w-full py-3 px-4 bg-green-700 hover:bg-green-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+      >
+        {isVerifyingOtp ? 'Verifying...' : isOtpVerified ? 'Email Verified' : 'Verify Email Address'}
+      </LoadingButton>
+
+      {/* Resend Code Link */}
+      <div className="text-center">
+        <p className="text-sm text-gray-600">
+          Didn't receive the email?{' '}
+          <button
+            type="button"
+            onClick={handleResendOTP}
+            disabled={isSendingOtp}
+            className="text-blue-600 hover:text-blue-800 font-medium focus:outline-none disabled:opacity-50"
+          >
+            {isSendingOtp ? 'Sending...' : 'Resend verification code'}
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+
+  const renderStep3 = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Personal & Business Information</h2>
@@ -755,7 +976,7 @@ export default function RegisterPage() {
     </div>
   );
 
-  const renderStep3 = () => (
+  const renderStep4 = () => (
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Business Details & Documents</h2>
@@ -881,6 +1102,7 @@ export default function RegisterPage() {
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
+        {currentStep === 4 && renderStep4()}
 
         <div className="flex space-x-4">
           {currentStep > 1 && (
@@ -894,11 +1116,11 @@ export default function RegisterPage() {
             </button>
           )}
           
-          {currentStep < 3 ? (
+          {currentStep < 4 ? (
             <button
               type="button"
               onClick={handleNext}
-              disabled={isLoading}
+              disabled={isLoading || isSendingOtp || (currentStep === 2 && !isOtpVerified)}
               className="flex-1 py-3 px-4 bg-primary hover:bg-primary/90 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50"
             >
               Continue
@@ -952,7 +1174,7 @@ export default function RegisterPage() {
         </>
       )}
 
-      {currentStep === 3 && (
+      {currentStep === 4 && (
         <div className="text-center text-xs text-gray-500">
           By continuing, you agree to 9ja-cart's Conditions of Use and Privacy Notice.
         </div>

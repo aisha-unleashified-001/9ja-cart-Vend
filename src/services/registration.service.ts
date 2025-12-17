@@ -20,6 +20,88 @@ export class RegistrationError extends Error {
 
 export class RegistrationService {
   /**
+   * Send OTP to email address
+   */
+  async sendOTP(emailAddress: string): Promise<any> {
+    try {
+      const formData = new FormData();
+      formData.append("emailAddress", emailAddress);
+      // API docs use "identifier" for OTP flows; send both for compatibility.
+      formData.append("identifier", emailAddress);
+
+      const url = `${environment.apiBaseUrl}${API_ENDPOINTS.REGISTRATION.SEND_OTP}`;
+      console.log('📤 Sending OTP request to:', url);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          'Authorization': environment.basicAuthHeader,
+        },
+        body: formData,
+      });
+
+      console.log('📥 OTP response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        const errorMsg = result.message || result.error || `Server returned ${response.status}: ${response.statusText}`;
+        throw new Error(errorMsg);
+      }
+
+      // Some environments return JSON containing verificationId; return it to caller.
+      const result = await response.json().catch(() => ({}));
+      return result;
+    } catch (error) {
+      console.error("Send OTP error:", error);
+      
+      // Provide more specific error messages for common issues
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        throw new Error("Network error: Unable to connect to the server. Please check your internet connection or contact support if the problem persists.");
+      }
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to send OTP";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Verify OTP code
+   */
+  async verifyOTP(identifier: string, otp: string, verificationId: string): Promise<void> {
+    try {
+      const formData = new FormData();
+      // API expects: otp, identifier, verificationId (multipart/form-data)
+      formData.append("identifier", identifier);
+      formData.append("otp", otp);
+      formData.append("verificationId", verificationId);
+
+      const response = await fetch(
+        `${environment.apiBaseUrl}${API_ENDPOINTS.REGISTRATION.VERIFY_OTP}`,
+        {
+          method: "POST",
+          headers: {
+            'Authorization': environment.basicAuthHeader,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({} as any));
+        const messagesObj = result?.messages && typeof result.messages === "object" ? result.messages : null;
+        const messagesText = messagesObj
+          ? Object.values(messagesObj).filter(Boolean).join(" ")
+          : "";
+        throw new Error(result?.message || messagesText || "Invalid OTP code. Please try again.");
+      }
+    } catch (error) {
+      console.error("Verify OTP error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Invalid OTP code";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Check if email is already registered by making a lightweight call
    * to the signup endpoint with placeholder data. The API returns
    * validation messages for duplicate emails before other fields.
