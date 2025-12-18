@@ -121,7 +121,7 @@ export function ProductCard({ product, onToggleStatus, isLoading = false }: Prod
           )}
           <Link
             to={`/products/${product.productId}`}
-            className="flex-1 px-3 py-2 text-center bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            className="flex-1 px-3 py-2 text-center bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
           >
             View Details
           </Link>

@@ -173,7 +173,7 @@ export default function ProductsPage() {
           className={`px-4 py-2 rounded-md transition-colors ${
             isSuspended
               ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-[#8DEB6E] text-primary hover:bg-[#8DEB6E]/90"
           }`}
           title={isSuspended ? "Account suspended - Cannot add products" : "Add Product"}
         >
@@ -249,7 +249,7 @@ export default function ProductsPage() {
         <button
           onClick={handleSearch}
           disabled={isLoading}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+          className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors disabled:opacity-50"
         >
           Search
         </button>
@@ -404,7 +404,7 @@ export default function ProductsPage() {
                     )}
                     <Link
                       to={`/products/${product.productId}`}
-                      className={`px-3 py-2 text-center bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors ${statusFilter === 'archived' ? '' : 'flex-1'}`}
+                      className={`px-3 py-2 text-center bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors ${statusFilter === 'archived' ? '' : 'flex-1'}`}
                     >
                       View
                     </Link>
@@ -452,7 +452,7 @@ export default function ProductsPage() {
           {!isSuspended && (
             <Link
               to="/products/new"
-              className="inline-flex px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              className="inline-flex px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
             >
               Add Product
             </Link>

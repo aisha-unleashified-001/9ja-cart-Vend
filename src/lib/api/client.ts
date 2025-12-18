@@ -79,12 +79,17 @@ class ApiClient {
             const isTokenActuallyExpired = token ? isTokenExpired(token) : true;
             
             if (isTokenActuallyExpired) {
-              // Token is actually expired - logout silently
+              // Token is actually expired - logout silently and redirect to login
               const logout = useAuthStore.getState().logout;
               logout().catch(() => {
                 // Silently handle any logout errors
               });
-              // Don't set error message - session timeout hook will handle redirect
+              // Redirect immediately to login page for better UX
+              // This prevents error messages from being displayed
+              if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                window.location.href = '/login';
+              }
+              // Don't set error message - redirect handles the flow
               apiError.message = data?.messages?.error || "Unauthorized";
             } else {
               // Token is valid but got 401 - likely an endpoint issue or permission problem

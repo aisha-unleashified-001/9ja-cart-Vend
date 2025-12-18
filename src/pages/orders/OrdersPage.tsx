@@ -382,7 +382,7 @@ export default function OrdersPage() {
                     </button>
                     <button
                       onClick={handleApplyFilter}
-                      className="flex-1 py-1.5 text-xs font-medium text-white bg-[#1E4700] hover:bg-[#163600] rounded"
+                      className="flex-1 py-1.5 text-xs font-medium text-primary bg-[#8DEB6E] hover:bg-[#8DEB6E]/90 rounded"
                     >
                       Apply
                     </button>

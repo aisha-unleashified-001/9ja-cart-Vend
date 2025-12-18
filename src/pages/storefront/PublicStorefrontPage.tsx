@@ -45,7 +45,7 @@ const PromoBanner = () => {
           ))}
         </div>
 
-        <button className="bg-[#00FF66] text-white px-8 py-3 rounded-sm font-medium hover:bg-[#00cc52] transition-colors">
+        <button className="bg-[#8DEB6E] text-primary px-8 py-3 rounded-sm font-medium hover:bg-[#8DEB6E]/90 transition-colors">
           Buy Now!
         </button>
       </div>
@@ -340,7 +340,7 @@ const PublicStorefrontPage = () => {
                 <button
                   disabled={isContactSending}
                   type="submit"
-                  className="w-full bg-[#1E4700] text-white py-2.5 rounded text-sm font-medium hover:bg-[#163600] disabled:opacity-70 flex items-center justify-center gap-2"
+                  className="w-full bg-[#8DEB6E] text-primary py-2.5 rounded text-sm font-medium hover:bg-[#8DEB6E]/90 disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {isContactSending ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -408,7 +408,7 @@ const PublicStorefrontPage = () => {
 
           <button
             onClick={() => setIsContactOpen(true)}
-            className="bg-[#1E4700] text-white px-6 py-2.5 rounded text-sm font-medium hover:bg-[#163600] transition-colors self-start md:self-center"
+            className="bg-[#8DEB6E] text-primary px-6 py-2.5 rounded text-sm font-medium hover:bg-[#8DEB6E]/90 transition-colors self-start md:self-center"
           >
             Contact Vendor
           </button>

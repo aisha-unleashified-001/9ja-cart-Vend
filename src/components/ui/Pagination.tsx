@@ -110,7 +110,7 @@ export function Pagination({
                 disabled={isLoading}
                 className={`relative inline-flex items-center px-4 py-2 text-sm font-medium border disabled:opacity-50 disabled:cursor-not-allowed ${
                   page === currentPage
-                    ? 'z-10 bg-primary border-primary text-white'
+                    ? 'z-10 bg-[#8DEB6E] border-[#8DEB6E] text-primary'
                     : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                 }`}
               >

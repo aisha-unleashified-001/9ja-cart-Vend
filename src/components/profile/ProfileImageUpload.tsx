@@ -167,7 +167,7 @@ export function ProfileImageUpload({
                     type="button"
                     onClick={handleUpload}
                     disabled={isUploading || !selectedFile}
-                    className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-4 py-2 text-sm bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {isUploading ? (
                       <>

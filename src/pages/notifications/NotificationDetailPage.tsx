@@ -554,7 +554,7 @@ export default function NotificationDetailPage() {
               <button
                 onClick={handleMarkAsRead}
                 disabled={Boolean(updatingIds[notification.id])}
-                className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-md bg-[#8DEB6E] text-primary text-sm font-medium hover:bg-[#8DEB6E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {updatingIds[notification.id] ? "Marking..." : "Mark as read"}
               </button>

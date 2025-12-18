@@ -269,7 +269,7 @@ export default function EditProductPage() {
         <div className="flex space-x-4">
           <button
             onClick={() => id && fetchProductDetails(id)}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
           >
             Retry
           </button>
@@ -385,7 +385,7 @@ export default function EditProductPage() {
             className={`px-4 py-2 rounded-md transition-colors ${
               isSuspended
                 ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-[#8DEB6E] text-primary hover:bg-[#8DEB6E]/90"
             }`}
           >
             {isUpdating ? loadingStep || "Updating..." : "Update Product"}
@@ -780,7 +780,7 @@ export default function EditProductPage() {
             className={`px-4 py-2 rounded-md transition-colors ${
               isSuspended
                 ? "bg-gray-400 text-gray-600 cursor-not-allowed"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-[#8DEB6E] text-primary hover:bg-[#8DEB6E]/90"
             }`}
           >
             {isUpdating ? loadingStep || "Updating..." : "Update Product"}

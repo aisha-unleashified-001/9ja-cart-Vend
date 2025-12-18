@@ -118,7 +118,7 @@ export default function SettingsPage() {
               {!isEditing && (
                 <button
                   onClick={handleEdit}
-                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                  className="px-4 py-2 text-sm bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
                 >
                   Edit Profile
                 </button>
@@ -198,7 +198,7 @@ export default function SettingsPage() {
               {/* {!isEditing && (
                 <button
                   onClick={handleEdit}
-                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                  className="px-4 py-2 text-sm bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
                 >
                   Edit Account Info
                 </button>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
               <div className="flex items-end justify-end">
                 <button
                   onClick={handleSaveClick}
-                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors whitespace-nowrap"
+                  className="px-4 py-2 text-sm bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors whitespace-nowrap"
                 >
                   {isEditing ? 'Save' : 'Edit'}
                 </button>
@@ -292,7 +292,7 @@ export default function SettingsPage() {
               {!isEditing && (
                 <button
                   onClick={handleEdit}
-                  className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                  className="px-4 py-2 text-sm bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
                 >
                   Edit Business Info
                 </button>
@@ -434,7 +434,7 @@ export default function SettingsPage() {
                       Last updated: {formatDate(profile.updatedAt)}
                     </p>
                   </div>
-                  <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors">
+                  <button className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors">
                     Change Password
                   </button>
                 </div>
@@ -476,7 +476,7 @@ export default function SettingsPage() {
         <ErrorMessage message={error} />
         <button
           onClick={fetchProfile}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
         >
           Retry
         </button>
@@ -522,7 +522,7 @@ export default function SettingsPage() {
                 }}
                 className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-[#8DEB6E] text-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                 }`}
               >
@@ -550,7 +550,7 @@ export default function SettingsPage() {
                   </button>
                   <button
                     onClick={handleSave}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                    className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
                   >
                     Save Changes
                   </button>
@@ -592,7 +592,7 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={handleConfirmSave}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
               >
                 Yes
               </button>
