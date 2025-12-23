@@ -204,15 +204,44 @@ export default function RegisterPage() {
   const validateStep = (step: number): boolean => {
     // Basic validation for UI flow - detailed validation handled by API
     if (step === 1) {
-      const isValid = !!(formData.emailAddress && formData.password && formData.confirmPassword);
-      if (!isValid) {
+      // Check if all fields are filled
+      if (!formData.emailAddress || !formData.password || !formData.confirmPassword) {
         popup.error('Please fill in all required fields');
+        return false;
       }
-      if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
+
+      // Validate email format
+      if (!/\S+@\S+\.\S+/.test(formData.emailAddress)) {
+        setFormErrors({ emailAddress: 'Please enter a valid email address' });
+        popup.error('Please enter a valid email address');
+        return false;
+      }
+
+      // Validate password strength and requirements
+      const passwordError = registrationService.validatePassword(formData.password);
+      if (passwordError) {
+        setFormErrors({ password: passwordError });
+        popup.error(passwordError);
+        return false;
+      }
+
+      // Check if passwords match
+      if (formData.password !== formData.confirmPassword) {
+        setFormErrors({ confirmPassword: 'Passwords do not match' });
         popup.error('Passwords do not match');
         return false;
       }
-      return isValid;
+
+      // Clear any previous errors if validation passes
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.emailAddress;
+        delete newErrors.password;
+        delete newErrors.confirmPassword;
+        return Object.keys(newErrors).length > 0 ? newErrors : {};
+      });
+
+      return true;
     }
     
     if (step === 2) {

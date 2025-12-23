@@ -48,6 +48,7 @@ export default function AddProductPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMinStockInfo, setShowMinStockInfo] = useState(false);
 
   // Load categories on component mount
   useEffect(() => {
@@ -426,7 +427,7 @@ export default function AddProductPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
-                    Discount Type
+                    Add Discount
                   </label>
                   <select
                     value={form.discountType}
@@ -564,18 +565,21 @@ export default function AddProductPage() {
                 <div>
                   <div className="flex items-center gap-1 text-sm font-medium text-foreground mb-1">
                     <span>Minimum Stock *</span>
-                    <div className="relative inline-flex group ml-1">
+                    <div className="relative inline-flex ml-1">
                       <button
                         type="button"
-                        className="p-1 rounded-full text-blue-600 hover:text-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
+                        onClick={() => setShowMinStockInfo(!showMinStockInfo)}
+                        className="p-1 rounded-full text-black hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-200"
                         aria-label="Minimum stock information"
                       >
                         <Info className="h-4 w-4" />
                       </button>
-                      <div className="absolute left-1/2 top-full mt-2 w-56 -translate-x-1/2 rounded-md bg-blue-50 p-2 text-xs text-blue-800 shadow-lg border border-blue-200 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-                        This value sets the threshold that alerts you when stock is
-                        running low so you can restock before products sell out.
-                      </div>
+                      {showMinStockInfo && (
+                        <div className="absolute left-1/2 top-full mt-2 w-56 -translate-x-1/2 rounded-md bg-white p-2 text-xs text-black shadow-lg border border-gray-200 z-10">
+                          This value sets the threshold that alerts you when stock is
+                          running low so you can restock before products sell out.
+                        </div>
+                      )}
                     </div>
                   </div>
                   <input

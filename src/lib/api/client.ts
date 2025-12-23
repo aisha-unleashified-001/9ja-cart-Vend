@@ -127,6 +127,11 @@ class ApiClient {
           apiError.message = "Resource not found";
           break;
 
+        case 405:
+          // Method Not Allowed - preserve the backend error message if available
+          apiError.message = data?.messages?.error || "Method not allowed";
+          break;
+
         case 500:
           apiError.message = "Internal server error";
           popup.error("Server error. Please try again later.");

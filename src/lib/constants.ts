@@ -12,11 +12,13 @@ export const API_ENDPOINTS = {
   },
   VENDOR: {
     PROFILE: "/vendor/profile",
-    UPDATE_PROFILE: "/vendor/profile",
+    UPDATE_PROFILE: "/vendor/profile/edit",
     UPDATE_ACCOUNT_INFO: "/vendor/account-info", // TODO: Backend endpoint to be implemented
     UPLOAD_PROFILE_IMAGE: "/vendor/profile-image", // TODO: Backend endpoint to be implemented
     DASHBOARD_SUMMARY: "/vendor/dashboard-summary",
     CONTACT_ADMIN: "/ticket/contact-admin",
+    GET_LOGO: "/vendor/get-logo",
+    UPLOAD_LOGO: "/vendor/upload-logo",
   },
   PRODUCTS: {
     LIST: "/product/vendor",

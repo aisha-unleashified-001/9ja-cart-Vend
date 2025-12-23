@@ -289,6 +289,27 @@ export class RegistrationService {
   }
 
   /**
+   * Validate password strength and requirements
+   * Returns error message if invalid, null if valid
+   */
+  validatePassword(password: string): string | null {
+    if (!password?.trim()) {
+      return "Password is required";
+    }
+    
+    if (password.length < 8) {
+      return "Password must be at least 8 characters";
+    }
+    
+    const missingRequirements = this.getMissingPasswordRequirements(password);
+    if (missingRequirements.length > 0) {
+      return this.formatPasswordRequirementMessage(missingRequirements);
+    }
+    
+    return null;
+  }
+
+  /**
    * Validate complete registration data
    */
   validateCompleteRegistration(
@@ -304,19 +325,9 @@ export class RegistrationService {
     }
 
     // Password validation
-    if (!data.password?.trim()) {
-      errors.password = "Password is required";
-    } else if (data.password.length < 8) {
-      errors.password = "Password must be at least 8 characters";
-    } else {
-      const missingRequirements = this.getMissingPasswordRequirements(
-        data.password
-      );
-      if (missingRequirements.length > 0) {
-        errors.password = this.formatPasswordRequirementMessage(
-          missingRequirements
-        );
-      }
+    const passwordError = this.validatePassword(data.password || '');
+    if (passwordError) {
+      errors.password = passwordError;
     }
 
     // Personal info validation
@@ -363,7 +374,7 @@ export class RegistrationService {
 
     return errors;
   }
-  private getMissingPasswordRequirements(password: string): string[] {
+  getMissingPasswordRequirements(password: string): string[] {
     const requirements = [
       { regex: /[A-Z]/, label: "an uppercase letter" },
       { regex: /[a-z]/, label: "a lowercase letter" },
@@ -381,7 +392,7 @@ export class RegistrationService {
     return this.formatPasswordRequirementMessage(missingRequirements);
   }
 
-  private formatPasswordRequirementMessage(missingRequirements: string[]): string {
+  formatPasswordRequirementMessage(missingRequirements: string[]): string {
     if (missingRequirements.length === 0) {
       return "Password must include upper & lowercase letters, a number, and a special character.";
     }

@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { useNotificationsStore } from "@/stores/notificationsStore";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorMessage } from "@/components/ui/ErrorMessage";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, Info, Bell, Clock, Check } from "lucide-react";
 import type { NotificationItem } from "@/types";
 
 const formatDateTime = (value?: string | null): string => {
@@ -478,8 +478,32 @@ export default function NotificationDetailPage() {
     [notification]
   );
 
+  const isSuspended = isSuspensionNotification(notification);
+  const isReinstated = containsKeyword(notification, REINSTATE_KEYWORDS);
+
+  // Determine notification icon and styling
+  const getNotificationIcon = () => {
+    if (isSuspended) {
+      return <AlertTriangle className="w-6 h-6 text-red-600" />;
+    }
+    if (isReinstated) {
+      return <CheckCircle2 className="w-6 h-6 text-emerald-600" />;
+    }
+    return <Bell className="w-6 h-6 text-primary" />;
+  };
+
+  const getNotificationHeaderStyle = () => {
+    if (isSuspended) {
+      return "bg-gradient-to-r from-red-50 to-red-100/50 border-red-200";
+    }
+    if (isReinstated) {
+      return "bg-gradient-to-r from-emerald-50 to-emerald-100/50 border-emerald-200";
+    }
+    return "bg-gradient-to-r from-primary/5 to-primary/10 border-border";
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <Link
         to="/notifications"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -488,25 +512,57 @@ export default function NotificationDetailPage() {
         Back to Notifications
       </Link>
 
-      <div className="bg-card border border-border rounded-lg p-6 sm:p-8 space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
-              {notification.title}
-            </h1>
+      {/* Notification Card with Message-like Design */}
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+        {/* Header Section */}
+        <div className={`${getNotificationHeaderStyle()} border-b px-6 py-5`}>
+          <div className="flex items-start gap-4">
+            {/* Icon Avatar */}
+            <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${
+              isSuspended 
+                ? "bg-red-100" 
+                : isReinstated 
+                ? "bg-emerald-100" 
+                : "bg-primary/10"
+            }`}>
+              {getNotificationIcon()}
+            </div>
+            
+            {/* Title and Status */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <h1 className="text-xl sm:text-2xl font-semibold text-foreground leading-tight">
+                  {notification.title}
+                </h1>
+                {!notification.isRead && (
+                  <span className="flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-primary/10 text-primary">
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                    New
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{formatDateTime(notification.createdAt)}</span>
+                </div>
+                {notification.readAt && (
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Read {formatDateTime(notification.readAt)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-              notification.isRead
-                ? "bg-muted text-muted-foreground"
-                : "bg-primary/10 text-primary"
-            }`}
-          >
-            {notification.isRead ? "Read" : "Unread"}
-          </span>
         </div>
 
-        <div className="pt-4 border-t border-border space-y-4">
+        {/* Message Content Section */}
+        <div className="px-6 py-6 space-y-5">
+          {/* Main Message */}
           {messageToDisplay && (
             <div className="prose prose-sm max-w-none">
               <p className="text-base text-foreground whitespace-pre-wrap leading-relaxed">
@@ -515,48 +571,63 @@ export default function NotificationDetailPage() {
             </div>
           )}
 
+          {/* Highlights/Details - Redesigned as Info Cards */}
           {highlights.length > 0 && (
             <div className="space-y-3">
               {highlights.map((highlight) => {
                 const toneStyles = HIGHLIGHT_TONE_STYLES[highlight.tone];
+                const Icon = highlight.tone === "danger" ? AlertTriangle : Info;
                 return (
                   <div
                     key={highlight.id}
-                    className={`rounded-md border px-4 py-3 text-sm ${toneStyles.container}`}
+                    className={`rounded-lg border-2 px-5 py-4 ${toneStyles.container} transition-all hover:shadow-sm`}
                   >
-                    <p className={`font-semibold ${toneStyles.title}`}>
-                      {highlight.title}
-                    </p>
-                    <p className="mt-1 whitespace-pre-line">{highlight.body}</p>
+                    <div className="flex items-start gap-3">
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                        highlight.tone === "danger" 
+                          ? "bg-red-100" 
+                          : "bg-emerald-100"
+                      }`}>
+                        <Icon className={`w-4 h-4 ${
+                          highlight.tone === "danger" 
+                            ? "text-red-600" 
+                            : "text-emerald-600"
+                        }`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`font-semibold text-sm mb-1.5 ${toneStyles.title}`}>
+                          {highlight.title}
+                        </p>
+                        <p className="text-sm whitespace-pre-line leading-relaxed">
+                          {highlight.body}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </div>
 
-        <div className="pt-4 border-t border-border space-y-4">
-          <div className="flex flex-col gap-2 text-sm text-muted-foreground">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">Created:</span>
-              <span>{formatDateTime(notification.createdAt)}</span>
-            </div>
-            {notification.readAt && (
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Read:</span>
-                <span>{formatDateTime(notification.readAt)}</span>
-              </div>
-            )}
-          </div>
-
+          {/* Action Button */}
           {!notification.isRead && (
             <div className="pt-2">
               <button
                 onClick={handleMarkAsRead}
                 disabled={Boolean(updatingIds[notification.id])}
-                className="px-4 py-2 rounded-md bg-[#8DEB6E] text-primary text-sm font-medium hover:bg-[#8DEB6E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#8DEB6E] text-primary text-sm font-medium hover:bg-[#8DEB6E]/90 transition-all hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {updatingIds[notification.id] ? "Marking..." : "Mark as read"}
+                {updatingIds[notification.id] ? (
+                  <>
+                    <LoadingSpinner size="sm" />
+                    Marking...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Mark as read
+                  </>
+                )}
               </button>
             </div>
           )}

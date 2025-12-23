@@ -3,6 +3,7 @@ import { popup } from '@/lib/popup';
 import { dashboardService } from '@/services/dashboard.service';
 import { validateProductImage, createImagePreview, revokeImagePreview } from '@/lib/imageUpload.utils';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { formatImageUrl } from '@/lib/image.utils';
 
 interface ProfileImageUploadProps {
   currentImageUrl?: string;
@@ -20,7 +21,29 @@ export function ProfileImageUpload({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [isLoadingLogo, setIsLoadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch logo on mount
+  useEffect(() => {
+    const fetchLogo = async () => {
+      setIsLoadingLogo(true);
+      try {
+        const logo = await dashboardService.getLogo();
+        if (logo) {
+          setLogoUrl(formatImageUrl(logo));
+        }
+      } catch (error) {
+        // Silently fail - logo might not exist yet
+        console.error('Failed to fetch logo:', error);
+      } finally {
+        setIsLoadingLogo(false);
+      }
+    };
+
+    fetchLogo();
+  }, []);
 
   // Clean up preview URL on unmount
   useEffect(() => {
@@ -50,11 +73,9 @@ export function ProfileImageUpload({
     const preview = createImagePreview(file);
     setSelectedFile(file);
     setPreviewUrl(preview);
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    
+    // Note: Don't reset file input value here - it prevents onChange from firing
+    // if the user selects the same file again. The reset happens in the button click handler.
   };
 
   const handleRemove = () => {
@@ -73,10 +94,30 @@ export function ProfileImageUpload({
     setIsUploading(true);
 
     try {
-      await dashboardService.uploadProfileImage(selectedFile);
-      popup.success('Profile image uploaded successfully!');
+      // Upload the logo (API returns 200 OK with no response body)
+      await dashboardService.uploadLogo(selectedFile);
       
-      // Clean up preview
+      // After successful upload, fetch the logo to get the updated URL
+      // Add a small delay to ensure backend has processed the upload
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      let fetchedLogoUrl: string | null = null;
+      try {
+        const updatedLogo = await dashboardService.getLogo();
+        if (updatedLogo) {
+          // Format the URL (handles both relative and absolute URLs)
+          fetchedLogoUrl = formatImageUrl(updatedLogo);
+          setLogoUrl(fetchedLogoUrl);
+          console.log('Logo fetched successfully:', fetchedLogoUrl);
+        } else {
+          console.warn('Logo uploaded but getLogo returned null');
+        }
+      } catch (fetchError) {
+        // If fetching fails, still show success but log the error
+        console.error('Logo uploaded but failed to fetch updated URL:', fetchError);
+      }
+      
+      // Clean up preview (do this after setting logoUrl so there's no flicker)
       if (previewUrl) {
         revokeImagePreview(previewUrl);
       }
@@ -84,18 +125,21 @@ export function ProfileImageUpload({
       setSelectedFile(null);
       setPreviewUrl(null);
       
+      // Show success message
+      popup.success('Business logo uploaded successfully!');
+      
       // Refresh profile data
       onUploadSuccess?.();
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to upload profile image';
+        error instanceof Error ? error.message : 'Failed to upload business logo';
       popup.error(errorMessage);
     } finally {
       setIsUploading(false);
     }
   };
 
-  const displayImage = previewUrl || currentImageUrl;
+  const displayImage = previewUrl || logoUrl || currentImageUrl;
   const hasChanges = selectedFile !== null;
 
   // Get first letter of store name for placeholder
@@ -113,11 +157,21 @@ export function ProfileImageUpload({
             <div className={`w-32 h-32 rounded-full overflow-hidden border-2 border-border flex items-center justify-center ${
               displayImage ? 'bg-secondary' : 'bg-primary'
             }`}>
-              {displayImage ? (
+              {isLoadingLogo ? (
+                <LoadingSpinner size="sm" />
+              ) : displayImage ? (
                 <img
                   src={displayImage}
                   alt="Business Logo"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Failed to load logo image:', displayImage);
+                    // Fallback to placeholder if image fails to load
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={() => {
+                    console.log('Logo image loaded successfully:', displayImage);
+                  }}
                 />
               ) : (
                 <span className="text-primary-foreground text-4xl font-medium">
@@ -147,11 +201,26 @@ export function ProfileImageUpload({
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  // Clear any existing preview/selection when changing logo
+                  if (previewUrl) {
+                    revokeImagePreview(previewUrl);
+                    setPreviewUrl(null);
+                  }
+                  setSelectedFile(null);
+                  
+                  // Reset file input to allow selecting the same file again
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
+                  
+                  // Trigger file picker
+                  fileInputRef.current?.click();
+                }}
                 disabled={disabled || isUploading}
                 className="px-4 py-2 text-sm border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {currentImageUrl ? 'Change Business Logo' : 'Upload Business Logo'}
+                {logoUrl || currentImageUrl ? 'Change Business Logo' : 'Upload Business Logo'}
               </button>
               {hasChanges && (
                 <>

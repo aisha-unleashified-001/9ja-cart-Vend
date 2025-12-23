@@ -1,11 +1,14 @@
 import React from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { registerImg } from "../../assets/auth";
 import { Image } from "../ui/Image";
 import Logo from "@/assets/logo2.png";
 
 const AuthLayout: React.FC = () => {
+  const location = useLocation();
+  const isSuccessPage = location.pathname === "/register/success";
+
   return (
     <div className="h-screen flex overflow-hidden bg-white">
       {/* Left side - Form Content */}
@@ -19,10 +22,12 @@ const AuthLayout: React.FC = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Store
           </Link>
-          {/* Logo */}
-          <div className="flex mb-6">
-            <img src={Logo} alt="9jacart Logo" className="h-10 w-auto" />
-          </div>
+          {/* Logo - Hidden on success page */}
+          {!isSuccessPage && (
+            <div className="flex mb-6">
+              <img src={Logo} alt="9jacart Logo" className="h-10 w-auto" />
+            </div>
+          )}
           <Outlet />
         </div>
       </div>

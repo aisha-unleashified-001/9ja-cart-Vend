@@ -4,15 +4,20 @@ import { useVendorProfile } from '@/hooks/useVendorProfile';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
+import DocumentViewerModal from '@/components/document/DocumentViewerModal';
 import type { VendorProfile } from '@/types';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
-  const { profile, isLoading, error, fetchProfile, updateProfile, updateAccountInfo } = useVendorProfile();
+  const { profile, isLoading, error, fetchProfile, updateProfile } = useVendorProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<VendorProfile>>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isHoveringDialog, setIsHoveringDialog] = useState(false);
+  const [documentViewer, setDocumentViewer] = useState<{
+    url: string;
+    name: string;
+  } | null>(null);
 
   // Fetch profile data on component mount
   useEffect(() => {
@@ -34,6 +39,10 @@ export default function SettingsPage() {
   ];
 
   const handleEdit = () => {
+    // Account info tab is read-only, don't allow editing
+    if (activeTab === 'account-info') {
+      return;
+    }
     setIsEditing(true);
   };
 
@@ -46,36 +55,14 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     try {
-      // Use dedicated account info endpoint when saving from account-info tab
-      if (activeTab === 'account-info') {
-        const accountInfoData = {
-          accountName: formData.accountInfo?.accountName,
-          accountNumber: formData.accountInfo?.accountNumber,
-          bank: formData.accountInfo?.bank,
-        };
-        await updateAccountInfo(accountInfoData);
-        popup.success('Account information saved successfully!');
-      } else {
-        // Use general profile update for other tabs
-        await updateProfile(formData);
-        popup.success('Profile updated successfully!');
-      }
+      // Account info tab is read-only, so this should only handle profile/business updates
+      await updateProfile(formData);
+      popup.success('Profile updated successfully!');
       setIsEditing(false);
       setShowConfirmDialog(false);
     } catch (error) {
       console.error('Failed to save:', error);
-      const errorMessage = activeTab === 'account-info' 
-        ? 'Failed to update account information. Please try again.'
-        : 'Failed to update profile. Please try again.';
-      popup.error(errorMessage);
-    }
-  };
-
-  const handleSaveClick = () => {
-    if (isEditing) {
-      setShowConfirmDialog(true);
-    } else {
-      handleEdit();
+      popup.error('Failed to update profile. Please try again.');
     }
   };
 
@@ -195,14 +182,6 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-foreground">Account Information</h3>
-              {/* {!isEditing && (
-                <button
-                  onClick={handleEdit}
-                  className="px-4 py-2 text-sm bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
-                >
-                  Edit Account Info
-                </button>
-              )} */}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -210,75 +189,27 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Account Name
                 </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.accountInfo?.accountName || ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      accountInfo: { ...(prev.accountInfo || {}), accountName: e.target.value }
-                    }))}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Enter account name"
-                  />
-                ) : (
-                  <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
-                    {profile.accountInfo?.accountName || 'Not provided'}
-                  </p>
-                )}
+                <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
+                  {profile.accountInfo?.accountName || 'Nil'}
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Account Number
                 </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.accountInfo?.accountNumber || ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      accountInfo: { ...(prev.accountInfo || {}), accountNumber: e.target.value }
-                    }))}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Enter account number"
-                  />
-                ) : (
-                  <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
-                    {profile.accountInfo?.accountNumber || 'Not provided'}
-                  </p>
-                )}
+                <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
+                  {profile.accountInfo?.accountNumber || 'Nil'}
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Bank
                 </label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={formData.accountInfo?.bank || ''}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      accountInfo: { ...(prev.accountInfo || {}), bank: e.target.value }
-                    }))}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Enter bank name"
-                  />
-                ) : (
-                  <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
-                    {profile.accountInfo?.bank || 'Not provided'}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-end justify-end">
-                <button
-                  onClick={handleSaveClick}
-                  className="px-4 py-2 text-sm bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors whitespace-nowrap"
-                >
-                  {isEditing ? 'Save' : 'Edit'}
-                </button>
+                <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
+                  {profile.accountInfo?.bank || 'Nil'}
+                </p>
               </div>
             </div>
           </div>
@@ -368,7 +299,7 @@ export default function SettingsPage() {
                   Business Registration Number
                 </label>
                 <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
-                  {profile.business.businessRegNumber || 'Not provided'}
+                  {profile.business.businessRegNumber || 'Nil'}
                 </p>
               </div>
 
@@ -377,7 +308,7 @@ export default function SettingsPage() {
                   Tax ID Number
                 </label>
                 <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
-                  {profile.business.taxIdNumber || 'Not provided'}
+                  {profile.business.taxIdNumber || 'Nil'}
                 </p>
               </div>
             </div>
@@ -389,14 +320,15 @@ export default function SettingsPage() {
                 <div className="p-4 border border-border rounded-md">
                   <h5 className="font-medium text-foreground mb-2">ID Document</h5>
                   {profile.business.idDocument ? (
-                    <a
-                      href={profile.business.idDocument}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:text-primary/80 text-sm"
+                    <button
+                      onClick={() => setDocumentViewer({
+                        url: profile.business.idDocument,
+                        name: 'ID Document'
+                      })}
+                      className="text-primary hover:text-primary/80 text-sm flex items-center gap-1"
                     >
                       📄 View Document
-                    </a>
+                    </button>
                   ) : (
                     <p className="text-sm text-muted-foreground">Not uploaded</p>
                   )}
@@ -404,14 +336,15 @@ export default function SettingsPage() {
                 <div className="p-4 border border-border rounded-md">
                   <h5 className="font-medium text-foreground mb-2">Business Registration Certificate</h5>
                   {profile.business.businessRegCertificate ? (
-                    <a
-                      href={profile.business.businessRegCertificate}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:text-primary/80 text-sm"
+                    <button
+                      onClick={() => setDocumentViewer({
+                        url: profile.business.businessRegCertificate,
+                        name: 'Business Registration Certificate'
+                      })}
+                      className="text-primary hover:text-primary/80 text-sm flex items-center gap-1"
                     >
                       📄 View Certificate
-                    </a>
+                    </button>
                   ) : (
                     <p className="text-sm text-muted-foreground">Not uploaded</p>
                   )}
@@ -519,6 +452,10 @@ export default function SettingsPage() {
                   setActiveTab(tab.id);
                   setIsEditing(false); // Reset editing state when switching tabs
                   setShowConfirmDialog(false); // Close dialog when switching tabs
+                  // Account info tab is read-only, so ensure editing is disabled
+                  if (tab.id === 'account-info') {
+                    setIsEditing(false);
+                  }
                 }}
                 className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
                   activeTab === tab.id
@@ -538,8 +475,8 @@ export default function SettingsPage() {
           <div className="bg-card border border-border rounded-lg p-4 sm:p-6">
             {renderTabContent()}
             
-            {/* Action Buttons - Only show when editing */}
-            {isEditing && (
+            {/* Action Buttons - Only show when editing (and not on account-info tab which is read-only) */}
+            {isEditing && activeTab !== 'account-info' && (
               <div className="mt-6 pt-6 border-t border-border">
                 <div className="flex justify-end space-x-3">
                   <button
@@ -599,6 +536,15 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Document Viewer Modal */}
+      {documentViewer && (
+        <DocumentViewerModal
+          documentUrl={documentViewer.url}
+          documentName={documentViewer.name}
+          onClose={() => setDocumentViewer(null)}
+        />
       )}
     </div>
   );

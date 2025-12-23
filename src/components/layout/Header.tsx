@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { useNotificationsStore } from "@/stores/notificationsStore";
+import { useBusinessLogo } from "@/hooks/useBusinessLogo";
 
 const RELATIVE_TIME_DIVISIONS: {
   amount: number;
@@ -49,6 +50,7 @@ interface HeaderProps {
 export default function Header({ onMenuClick }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   // Refs for click outside detection
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -57,6 +59,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
   // Get user data from auth store
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  
+  // Get business logo
+  const { logoUrl } = useBusinessLogo();
+  
+  // Reset logo error when logoUrl changes
+  useEffect(() => {
+    setLogoError(false);
+  }, [logoUrl]);
 
   const notifications = useNotificationsStore((state) => state.notifications);
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
@@ -268,10 +278,19 @@ export default function Header({ onMenuClick }: HeaderProps) {
             onClick={() => setShowProfile(!showProfile)}
             className="flex items-center space-x-2 p-2 rounded-md hover:bg-secondary transition-colors"
           >
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-primary-foreground text-sm font-medium">
-                {user ? getInitials(user.fullName) : "U"}
-              </span>
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center overflow-hidden">
+              {logoUrl && !logoError ? (
+                <img
+                  src={logoUrl}
+                  alt="Business Logo"
+                  className="w-full h-full object-cover"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <span className="text-primary-foreground text-sm font-medium">
+                  {user ? getInitials(user.fullName) : "U"}
+                </span>
+              )}
             </div>
             <div className="hidden md:block text-left">
               <p className="text-sm font-medium text-foreground">
@@ -288,10 +307,19 @@ export default function Header({ onMenuClick }: HeaderProps) {
               {/* User Info Header */}
               <div className="p-4 border-b border-border">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-primary-foreground text-sm font-medium">
-                      {user ? getInitials(user.fullName) : "U"}
-                    </span>
+                  <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {logoUrl && !logoError ? (
+                      <img
+                        src={logoUrl}
+                        alt="Business Logo"
+                        className="w-full h-full object-cover"
+                        onError={() => setLogoError(true)}
+                      />
+                    ) : (
+                      <span className="text-primary-foreground text-sm font-medium">
+                        {user ? getInitials(user.fullName) : "U"}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">

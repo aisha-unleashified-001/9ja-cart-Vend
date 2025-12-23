@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
+import { useBusinessLogo } from "@/hooks/useBusinessLogo";
 import Logo from "@/assets/logo.png";
 
 const navigation = [
@@ -9,7 +11,7 @@ const navigation = [
   { name: "Storefront", href: "/storefront", icon: "🏪" },
   { name: "Analytics", href: "/analytics", icon: "📈" },
   { name: "Notifications", href: "/notifications", icon: "🔔" },
-  { name: "Contact Admin", href: "/contact-admin", icon: "✉️" },
+  { name: "Contact Support", href: "/contact-admin", icon: "✉️" },
   { name: "Settings", href: "/settings", icon: "⚙️" },
 ];
 
@@ -21,6 +23,8 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
+  const { logoUrl } = useBusinessLogo();
+  const [logoError, setLogoError] = useState(false);
 
   const getInitials = (fullName: string) => {
     return fullName
@@ -30,6 +34,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Reset logo error when logoUrl changes
+  useEffect(() => {
+    setLogoError(false);
+  }, [logoUrl]);
 
   return (
     <div className={`
@@ -80,10 +89,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* User Profile */}
       <div className="p-4 border-t border-[#8DEB6E]">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#8DEB6E] rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-primary text-sm font-medium">
-              {user ? getInitials(user.fullName) : 'U'}
-            </span>
+          <div className="w-10 h-10 bg-[#8DEB6E] rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {logoUrl && !logoError ? (
+              <img
+                src={logoUrl}
+                alt="Business Logo"
+                className="w-full h-full object-cover"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <span className="text-primary text-sm font-medium">
+                {user ? getInitials(user.fullName) : 'U'}
+              </span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">
