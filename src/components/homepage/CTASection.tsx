@@ -87,7 +87,7 @@ const CTASection = () => {
                   className="bg-[#8DEB6E] hover:bg-[#8DEB6E]/70 text-primary text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all duration-300 group rounded-lg"
                 >
                   <Link
-                    to="/vendor-form"
+                    to="/register"
                     className="inline-flex items-center gap-2"
                   >
                     Sign Up

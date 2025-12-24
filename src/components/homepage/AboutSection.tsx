@@ -250,7 +250,7 @@ const AboutSection = () => {
             Complete registration in under 10 minutes and list your first
             product.
           </p>
-         <Link to={"/signup"}>
+         <Link to={"/register"}>
       <motion.button
         className="group relative cursor-pointer p-3 bg-[#8DEB6E] text-primary font-semibold rounded-lg overflow-hidden"
         onMouseEnter={() => setIsHovered(true)}

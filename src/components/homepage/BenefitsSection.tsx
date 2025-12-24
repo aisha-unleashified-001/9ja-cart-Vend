@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { 
   TrendingUp, 
   Users, 
@@ -225,10 +226,12 @@ const BenefitsSection = () => {
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
-                <button className="px-8 py-3 bg-[#8DEB6E] text-primary font-semibold rounded-lg hover:bg-[#8DEB6E]/90 transition-all duration-200 hover:shadow-lg hover:shadow-primary/25 flex items-center justify-center gap-2">
-                  Start Selling Now
-                  {/* <ArrowUpRight className="w-4 h-4" /> */}
-                </button>
+                <Link to="/register">
+                  <button className="px-8 py-3 bg-[#8DEB6E] text-primary font-semibold rounded-lg hover:bg-[#8DEB6E]/90 transition-all duration-200 hover:shadow-lg hover:shadow-primary/25 flex items-center justify-center gap-2">
+                    Start Selling Now
+                    {/* <ArrowUpRight className="w-4 h-4" /> */}
+                  </button>
+                </Link>
                 {/* <button className="px-8 py-3 border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200">
                   View Seller Dashboard
                 </button> */}

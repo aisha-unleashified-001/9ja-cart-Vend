@@ -75,7 +75,7 @@ const HeroSection = () => {
                 className="text-lg bg-[#8DEB6E] text-primary font-bold px-8 py-6 shadow-lg hover:shadow-xl hover:bg-[#8DEB6E]/80 transition-all duration-300"
               > */}
                 <Link
-                  to="/vendor-form"
+                  to="/register"
                   className=""
                 >
                   {/* Join Our Vendor Network

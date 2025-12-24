@@ -43,7 +43,7 @@ const Footer = ({ variant = 'default' }: FooterProps) => {
           <div className="space-y-4 md:flex jmd:ustify-center">
             <div>
 
-            <h3 className="text-lg font-semibold text-white">Contact Us</h3>
+            <h3 className="text-lg font-semibold text-white mb-3">Contact Us</h3>
             <div className="space-y-3">
               {/* Phone */}
               <a
@@ -135,6 +135,7 @@ const Footer = ({ variant = 'default' }: FooterProps) => {
                 <Link
                   to="/"
                   className="text-sm text-white transition-colors"
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 >
                   Home
                 </Link>
@@ -146,7 +147,7 @@ const Footer = ({ variant = 'default' }: FooterProps) => {
                   Contact
                 </Link>
                 <Link
-                  to="/vendor-form"
+                  to="/register"
                   className="text-sm text-white transition-colors"
                 >
                   Join as Vendor

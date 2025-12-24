@@ -15,18 +15,51 @@ export default function MainHeader() {
           <div>
             {/* Navigation Links can be added here in the future */}
             <nav className="hidden md:flex items-center space-x-8">
-              <a href="#home" className="text-white hover:text-[#8DEB6E] transition-colors">
+              <Link 
+                to="/" 
+                className="text-white hover:text-[#8DEB6E] transition-colors"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
                 Home
-              </a>
-              <a href="#about" className="text-white hover:text-[#8DEB6E] transition-colors">
+              </Link>
+              <Link 
+                to="/#about" 
+                className="text-white hover:text-[#8DEB6E] transition-colors"
+                onClick={(e) => {
+                  // If we're already on home page, scroll to section immediately
+                  if (window.location.pathname === '/') {
+                    e.preventDefault();
+                    const element = document.getElementById('about');
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }
+                }}
+              >
                 About
-              </a>
-              <a href="#faq" className="text-white hover:text-[#8DEB6E] transition-colors">
+              </Link>
+              <Link 
+                to="/#faq" 
+                className="text-white hover:text-[#8DEB6E] transition-colors"
+                onClick={(e) => {
+                  // If we're already on home page, scroll to section immediately
+                  if (window.location.pathname === '/') {
+                    e.preventDefault();
+                    const element = document.getElementById('faq');
+                    if (element) {
+                      element.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }
+                }}
+              >
                 FAQ
-              </a>
-              <a href="#contact" className="text-white hover:text-[#8DEB6E] transition-colors">
+              </Link>
+              <Link 
+                to="/contact" 
+                className="text-white hover:text-[#8DEB6E] transition-colors"
+              >
                 Contact
-              </a>
+              </Link>
             </nav>
           </div>
           

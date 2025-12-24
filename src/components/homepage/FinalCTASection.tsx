@@ -54,7 +54,7 @@ const FinalCTASection = () => {
                     ease: [0.25, 0.1, 0.25, 1],
                   }}
                 >
-                  <Link to="/vendor-form">
+                  <Link to="/register">
                     <Button className="text-primary bg-[#8DEB6E] hover:bg-[#8DEB6E]/80">
                       <span>Take Profit</span>
                       <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />

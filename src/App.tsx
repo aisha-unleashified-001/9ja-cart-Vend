@@ -21,6 +21,7 @@ import AnalyticsPage from './pages/analytics/AnalyticsPage';
 import NotificationsPage from './pages/notifications/NotificationsPage';
 import NotificationDetailPage from './pages/notifications/NotificationDetailPage';
 import ContactAdminPage from './pages/contact/ContactAdminPage';
+import ContactPage from './pages/ContactPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import AuthLayout from './components/layout/AuthLayout';
 
@@ -38,6 +39,7 @@ export default function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/vendor/:vendorId" element={<PublicStorefrontPage />} />
           
           <Route element={<AuthLayout />}>

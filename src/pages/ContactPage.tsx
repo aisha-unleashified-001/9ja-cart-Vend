@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -9,6 +9,8 @@ import { Link } from "react-router-dom";
 import { CheckCircle, AlertCircle, Send } from "lucide-react";
 import { submitContact, type ContactFormData, type ContactFormErrors, type ContactSubmissionState } from "@/types";
 import { validateContactField, validateContactForm } from "@/types/validation";
+import MainHeader from "@/components/MainHeader";
+import Footer from "@/components/homepage/Footer";
 
 const ContactPage = () => {
   const [formData, setFormData] = useState<ContactFormData>({
@@ -22,6 +24,11 @@ const ContactPage = () => {
   const [submissionState, setSubmissionState] = useState<ContactSubmissionState>({
     status: "idle",
   });
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -101,8 +108,8 @@ const ContactPage = () => {
   };
 
   return (
-    <>
-   
+    <div className="min-h-screen bg-background">
+      <MainHeader />
       <motion.main
         id="main-content"
         className="flex-1"
@@ -425,9 +432,11 @@ const ContactPage = () => {
                   to common inquiries.
                 </p>
             
-                <Button variant="outline" className="w-full">
-                  View FAQ
-                </Button>
+                <Link to="/#faq">
+                  <Button variant="outline" className="w-full">
+                    View FAQ
+                  </Button>
+                </Link>
               </div>
             </motion.div>
           </div>
@@ -445,7 +454,8 @@ const ContactPage = () => {
           </div>
         </div>
       </motion.main>
-    </>
+      <Footer />
+    </div>
   );
 };
 
