@@ -4,6 +4,7 @@ import { parseBooleanish } from "@/lib/boolean.utils";
 import { validateProductImage } from "@/lib/imageUpload.utils";
 import { tokenStorage } from "@/lib/auth.utils";
 import { environment } from "@/config/environment";
+import { getVendorStorefrontUrl } from "@/lib/vendor.utils";
 import type {
   DashboardSummary,
   DashboardSummaryResponse,
@@ -76,7 +77,11 @@ const normalizeVendorProfile = (data: any): VendorProfile => {
     profileImage: accountData.profileImage || data.profileImage,
   };
 
+  // Extract vendorId from various possible locations in the API response
+  const vendorId = data.vendorId || data.userId || data.id || accountData.vendorId || accountData.userId || accountData.id;
+
   const normalized: VendorProfile = {
+    vendorId,
     account: normalizedAccount,
     accountInfo,
     business: data.business || {
@@ -89,6 +94,7 @@ const normalizeVendorProfile = (data: any): VendorProfile => {
       idDocument: data.idDocument || '',
       businessRegCertificate: data.businessRegCertificate || '',
     },
+    storefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
     createdAt: data.createdAt || '',
     updatedAt: data.updatedAt || '',
   };

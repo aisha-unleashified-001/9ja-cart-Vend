@@ -3,6 +3,7 @@ interface Environment {
   basicAuthUsername: string;
   basicAuthPassword: string;
   basicAuthHeader: string;
+  buyerAppUrl: string;
 }
 
 const validateEnvVar = (name: string, value: string | undefined): string => {
@@ -26,4 +27,5 @@ export const environment: Environment = {
     validateEnvVar('VITE_API_BASIC_AUTH_USERNAME', import.meta.env.VITE_API_BASIC_AUTH_USERNAME),
     validateEnvVar('VITE_API_BASIC_AUTH_PASSWORD', import.meta.env.VITE_API_BASIC_AUTH_PASSWORD)
   ),
+  buyerAppUrl: import.meta.env.VITE_BUYER_APP_URL || 'https://9ja-cartbuyer.vercel.app',
 };

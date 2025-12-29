@@ -12,6 +12,7 @@ export interface User {
   avatarUrl?: string;
   location?: string;
   role?: string;
+  storefrontUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }

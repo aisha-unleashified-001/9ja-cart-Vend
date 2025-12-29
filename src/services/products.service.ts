@@ -1,7 +1,8 @@
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/constants";
 import { environment } from "@/config/environment";
-import { tokenStorage } from "@/lib/auth.utils";
+import { tokenStorage, userStorage } from "@/lib/auth.utils";
+import { getVendorStorefrontUrl } from "@/lib/vendor.utils";
 import {
   createProductPayload,
   createEditProductPayload,
@@ -49,8 +50,25 @@ export class ProductsService {
       const productsData = responseData.data as Product[];
       const paginationData = responseData.pagination;
 
+      // Get vendorId from current user to enrich products with storefront URL
+      const currentUser = userStorage.get();
+      const vendorId = currentUser?.vendorId || currentUser?.userId;
+
+      // Enrich products with vendorStorefrontUrl if vendorId is available
+      const enrichedProducts = vendorId
+        ? productsData.map((product) => ({
+            ...product,
+            vendorId: product.vendorId || vendorId,
+            vendorStorefrontUrl: getVendorStorefrontUrl(product.vendorId || vendorId),
+          }))
+        : productsData.map((product) => ({
+            ...product,
+            vendorId: product.vendorId,
+            vendorStorefrontUrl: product.vendorId ? getVendorStorefrontUrl(product.vendorId) : undefined,
+          }));
+
       return {
-        data: productsData,
+        data: enrichedProducts,
         pagination: paginationData,
       };
     } catch (error) {
@@ -71,7 +89,18 @@ export class ProductsService {
         throw new Error(response.message || "Failed to fetch product");
       }
 
-      return response.data;
+      // Enrich product with vendorStorefrontUrl
+      const product = response.data;
+      const currentUser = userStorage.get();
+      const vendorId = product.vendorId || currentUser?.vendorId || currentUser?.userId;
+      
+      const enrichedProduct: Product = {
+        ...product,
+        vendorId: product.vendorId || vendorId,
+        vendorStorefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
+      };
+
+      return enrichedProduct;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to fetch product";
@@ -92,7 +121,19 @@ export class ProductsService {
 
       // The API returns { status, error, message, data: Product }
       // apiClient.get returns the full response, so response.data contains the Product
-      return response.data as Product;
+      const product = response.data as Product;
+      
+      // Enrich product with vendorStorefrontUrl
+      const currentUser = userStorage.get();
+      const vendorId = product.vendorId || currentUser?.vendorId || currentUser?.userId;
+      
+      const enrichedProduct: Product = {
+        ...product,
+        vendorId: product.vendorId || vendorId,
+        vendorStorefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
+      };
+
+      return enrichedProduct;
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -134,7 +175,18 @@ export class ProductsService {
         throw new Error(createResponse.message || "Failed to create product");
       }
 
-      return createResponse.data;
+      // Enrich product with vendorStorefrontUrl
+      const product = createResponse.data;
+      const currentUser = userStorage.get();
+      const vendorId = product.vendorId || currentUser?.vendorId || currentUser?.userId;
+      
+      const enrichedProduct: Product = {
+        ...product,
+        vendorId: product.vendorId || vendorId,
+        vendorStorefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
+      };
+
+      return enrichedProduct;
     } catch (error) {
       // Extract detailed error message from API response
       let errorMessage = "Failed to create product";
@@ -236,7 +288,18 @@ export class ProductsService {
         throw new Error(response.message || "Failed to update product");
       }
 
-      return response.data;
+      // Enrich product with vendorStorefrontUrl
+      const product = response.data;
+      const currentUser = userStorage.get();
+      const vendorId = product.vendorId || currentUser?.vendorId || currentUser?.userId;
+      
+      const enrichedProduct: Product = {
+        ...product,
+        vendorId: product.vendorId || vendorId,
+        vendorStorefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
+      };
+
+      return enrichedProduct;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Failed to update product";
@@ -345,7 +408,18 @@ export class ProductsService {
         throw new Error(response.message || "Failed to update product status");
       }
 
-      return response.data;
+      // Enrich product with vendorStorefrontUrl
+      const product = response.data;
+      const currentUser = userStorage.get();
+      const vendorId = product.vendorId || currentUser?.vendorId || currentUser?.userId;
+      
+      const enrichedProduct: Product = {
+        ...product,
+        vendorId: product.vendorId || vendorId,
+        vendorStorefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
+      };
+
+      return enrichedProduct;
     } catch (error) {
       const errorMessage =
         error instanceof Error

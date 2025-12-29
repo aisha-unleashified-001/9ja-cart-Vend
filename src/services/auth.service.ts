@@ -1,6 +1,7 @@
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants';
 import { tokenStorage, userStorage } from '@/lib/auth.utils';
+import { getVendorStorefrontUrl } from '@/lib/vendor.utils';
 import type { LoginRequest, LoginResponse, RegisterRequest, User, VendorProfile } from '@/types';
 
 export class AuthService {
@@ -19,12 +20,20 @@ export class AuthService {
 
       const { token, ...userData } = response.data;
       
+      // Enrich user data with storefront URL if vendorId is available
+      const enrichedUser = userData.vendorId || userData.userId
+        ? {
+            ...userData,
+            storefrontUrl: getVendorStorefrontUrl(userData.vendorId || userData.userId || ''),
+          }
+        : userData;
+      
       // Store auth data
       tokenStorage.set(token);
-      userStorage.set(userData);
+      userStorage.set(enrichedUser);
 
       return {
-        user: userData,
+        user: enrichedUser,
         token,
       };
     } catch (error) {
@@ -44,7 +53,18 @@ export class AuthService {
         throw new Error(response.message || 'Failed to fetch profile');
       }
 
-      return response.data;
+      // Enrich profile with storefront URL if vendorId is available
+      const profile = response.data;
+      const vendorId = profile.vendorId || (profile as any).account?.vendorId;
+      const enrichedProfile = vendorId
+        ? {
+            ...profile,
+            vendorId,
+            storefrontUrl: getVendorStorefrontUrl(vendorId),
+          }
+        : profile;
+
+      return enrichedProfile;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch profile';
       throw new Error(errorMessage);
@@ -66,12 +86,20 @@ export class AuthService {
 
       const { token, ...user } = response.data;
       
+      // Enrich user data with storefront URL if vendorId is available
+      const enrichedUser = user.vendorId || user.userId
+        ? {
+            ...user,
+            storefrontUrl: getVendorStorefrontUrl(user.vendorId || user.userId || ''),
+          }
+        : user;
+      
       // Store auth data
       tokenStorage.set(token);
-      userStorage.set(user);
+      userStorage.set(enrichedUser);
 
       return {
-        user,
+        user: enrichedUser,
         token,
       };
     } catch (error) {

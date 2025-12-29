@@ -13,6 +13,8 @@ export interface Product {
   minStock: string;
   images: string[];
   isActive: string | number | boolean;
+  vendorId?: string;
+  vendorStorefrontUrl?: string;
   createdAt: string;
   updatedAt: string;
 }

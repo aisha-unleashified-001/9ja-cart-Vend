@@ -18,6 +18,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useStorefrontStore } from "@/stores/storeFront";
 import ProductCard from "./ProductCard";
 import { popup } from "@/lib/popup";
+import { getVendorStorefrontUrl } from "@/lib/vendor.utils";
 
 
 const PromoBanner = () => {
@@ -95,11 +96,11 @@ const StorefrontPage = () => {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const storefrontLink = useMemo(() => {
     if (!vendorId) return "";
-    const origin =
-      typeof window !== "undefined" && window.location?.origin
-        ? window.location.origin
-        : "";
+    
+    // Use the buyer app URL from environment configuration
+    const baseUrl = getVendorStorefrontUrl(vendorId);
 
+    // Add query parameters if available
     const params = new URLSearchParams();
     if (user?.businessName) params.set("businessName", user.businessName);
     if (user?.storeName) params.set("storeName", user.storeName);
@@ -107,7 +108,7 @@ const StorefrontPage = () => {
     if (user?.location) params.set("location", user.location as any);
 
     const qs = params.toString();
-    return `${origin}/vendor/${vendorId}${qs ? `?${qs}` : ""}`;
+    return `${baseUrl}${qs ? `?${qs}` : ""}`;
   }, [vendorId, user?.businessName, user?.storeName, user?.avatarUrl, user?.location]);
 
   // Updated state structure to match endpoint expectation
@@ -360,12 +361,36 @@ const StorefrontPage = () => {
           <div className="flex flex-wrap gap-2 self-start md:self-center">
             <button
               disabled={!storefrontLink}
-              onClick={() => {
+              onClick={async () => {
                 if (!storefrontLink) return;
-                navigator.clipboard
-                  .writeText(storefrontLink)
-                  .then(() => popup.success("Storefront link copied!"))
-                  .catch(() => popup.error("Failed to copy link"));
+                
+                try {
+                  // Try modern clipboard API first
+                  if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(storefrontLink);
+                    popup.success("Storefront link copied!");
+                  } else {
+                    // Fallback for older browsers
+                    const textArea = document.createElement("textarea");
+                    textArea.value = storefrontLink;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-999999px";
+                    textArea.style.top = "-999999px";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                      document.execCommand("copy");
+                      popup.success("Storefront link copied!");
+                    } catch (err) {
+                      popup.error("Failed to copy link. Please copy manually.");
+                    }
+                    document.body.removeChild(textArea);
+                  }
+                } catch (err) {
+                  console.error("Failed to copy link:", err);
+                  popup.error("Failed to copy link. Please copy manually.");
+                }
               }}
               className="border border-gray-300 text-gray-700 px-4 py-2.5 rounded text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
             >

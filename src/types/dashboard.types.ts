@@ -45,6 +45,7 @@ export interface TopProduct {
 }
 
 export interface VendorProfile {
+  vendorId?: string;
   account: {
     emailAddress: string;
     fullName: string;
@@ -66,6 +67,7 @@ export interface VendorProfile {
     idDocument: string;
     businessRegCertificate: string;
   };
+  storefrontUrl?: string;
   createdAt: string;
   updatedAt: string;
 }
