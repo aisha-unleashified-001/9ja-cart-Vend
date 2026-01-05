@@ -20,7 +20,7 @@ const AuthLayout: React.FC = () => {
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Store
+            Back to Homepage
           </Link>
           {/* Logo - Hidden on success page */}
           {!isSuccessPage && (

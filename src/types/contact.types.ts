@@ -44,9 +44,12 @@ export async function submitContact(
 ): Promise<ContactSubmissionResult> {
   try {
     const { contactService } = await import("@/services/contact.service");
-    const response = await contactService.contactAdmin({
+    // Use the public contact endpoint /vendor/contact
+    const response = await contactService.contactPublic({
+      fullName: data.fullName,
+      emailAddress: data.emailAddress,
       subject: data.subject,
-      message: `From: ${data.fullName} (${data.emailAddress})\n\n${data.message}`,
+      message: data.message,
     });
 
     if (response.error) {
