@@ -25,7 +25,7 @@ export default function RegisterSuccess() {
             <div className="text-sm text-gray-600 space-y-2">
               <div className="flex items-start space-x-2">
                 <span className="text-green-700">1.</span>
-                <span>Our team will review your application and documents within 2-3 business days</span>
+                <span>Our team will review your application and documents within 24-48 hours</span>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="text-green-700">2.</span>
