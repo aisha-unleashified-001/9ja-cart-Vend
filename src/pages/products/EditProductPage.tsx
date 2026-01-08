@@ -10,6 +10,8 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { TagsInput } from "@/components/ui/TagsInput";
+import { formatImageUrls } from "@/lib/image.utils";
+import { getProductStatus } from "@/lib/product.utils";
 import type { Product, UpdateProductRequest } from "@/types";
 
 const normalizeIsActiveValue = (value: Product["isActive"]): string =>
@@ -41,6 +43,7 @@ export default function EditProductPage() {
   const loadingStep = useProductsStore((state) => state.loadingStep);
   const fetchProductDetails = useProductsStore((state) => state.fetchProductDetails);
   const updateProduct = useProductsStore((state) => state.updateProduct);
+  const toggleProductStatus = useProductsStore((state) => state.toggleProductStatus);
   const clearCurrentProduct = useProductsStore((state) => state.clearCurrentProduct);
   const clearError = useProductsStore((state) => state.clearError);
 
@@ -66,6 +69,8 @@ export default function EditProductPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isUpdating, setIsUpdating] = useState(false);
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
   // Load product and categories on component mount
   useEffect(() => {
@@ -97,6 +102,8 @@ export default function EditProductPage() {
         images: [], // Start with empty images for new uploads
         isActive: normalizeIsActiveValue(product.isActive),
       });
+      // Store existing images separately
+      setExistingImages(product.images || []);
     }
   }, [product]);
 
@@ -186,14 +193,35 @@ export default function EditProductPage() {
 
       await updateProduct(productData);
       
-      // If user selected new images, upload them after product update
-      if (form.images.length > 0) {
+      // Handle images: upload new ones and keep existing ones that weren't removed
+      if (form.images.length > 0 || existingImages.length > 0) {
         try {
-          await productsService.uploadProductImages({
-            productId: id,
-            images: form.images
-          });
-          popup.success("Product and images updated successfully!");
+          // Convert existing image URLs to File objects to combine with new images
+          const existingImageFiles: File[] = [];
+          for (let i = 0; i < existingImages.length; i++) {
+            try {
+              const response = await fetch(existingImages[i]);
+              const blob = await response.blob();
+              const file = new File([blob], `existing-${i}.jpg`, { type: blob.type });
+              existingImageFiles.push(file);
+            } catch (fetchError) {
+              console.warn(`Failed to fetch existing image ${i}:`, fetchError);
+              // Continue with other images even if one fails
+            }
+          }
+          
+          // Combine existing (kept) images with new images
+          const allImages = [...existingImageFiles, ...form.images];
+          
+          if (allImages.length > 0) {
+            await productsService.uploadProductImages({
+              productId: id,
+              images: allImages
+            });
+            popup.success("Product and images updated successfully!");
+          } else {
+            popup.success("Product updated successfully!");
+          }
         } catch (imageError) {
           console.error('Image upload failed:', imageError);
           popup.success("Product updated successfully, but image upload failed. You can try uploading images again.");
@@ -222,6 +250,48 @@ export default function EditProductPage() {
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  // Handle product status change
+  const handleStatusChange = async (newValue: string) => {
+    if (!product || !id) return;
+
+    if (isSuspended) {
+      popup.error("Your account is suspended. You cannot modify product status.");
+      return;
+    }
+
+    // Check if status is actually changing
+    const currentStatus = getProductStatus(product);
+    const newIsActive = newValue === "1";
+    const willBeActive = newIsActive;
+    
+    // If clicking the same status, don't do anything
+    if ((currentStatus === "active" && willBeActive) || 
+        (currentStatus !== "active" && !willBeActive)) {
+      return;
+    }
+
+    setIsTogglingStatus(true);
+
+    try {
+      await toggleProductStatus(id, willBeActive);
+      popup.success(`Product ${willBeActive ? "activated" : "deactivated"} successfully`);
+      
+      // Update form state to reflect the change
+      updateForm("isActive", newValue);
+      
+      // Refresh product details to get updated data
+      await fetchProductDetails(id);
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to update product status";
+      popup.error(errorMessage);
+      console.error("Toggle status error:", error);
+    } finally {
+      setIsTogglingStatus(false);
     }
   };
 
@@ -607,13 +677,65 @@ export default function EditProductPage() {
                 Product Images
               </h2>
               <p className="text-sm text-muted-foreground mb-4">
-                Upload new images to replace existing ones (optional)
+                Manage existing images or upload new ones (optional)
               </p>
-              <ImageUpload
-                images={form.images}
-                onImagesChange={(images) => updateForm("images", images)}
-                maxImages={5}
-              />
+              
+              {/* Existing Images */}
+              {existingImages.length > 0 && (
+                <div className="mb-6">
+                  <p className="text-sm font-medium text-foreground mb-3">
+                    Existing Images ({existingImages.length})
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Click the × button to remove an image. Removed images will be deleted when you save.
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {formatImageUrls(existingImages).map((imageUrl, index) => (
+                      <div
+                        key={index}
+                        className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden"
+                      >
+                        <img
+                          src={imageUrl}
+                          alt={`Existing image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Hide broken images
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setExistingImages((prev) =>
+                              prev.filter((_, i) => i !== index)
+                            );
+                          }}
+                          className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100 z-10"
+                          disabled={isUpdating || isSuspended}
+                          aria-label="Remove image"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* New Image Upload */}
+              <div>
+                <p className="text-sm font-medium text-foreground mb-3">
+                  Add New Images
+                </p>
+                <ImageUpload
+                  images={form.images}
+                  onImagesChange={(images) => updateForm("images", images)}
+                  maxImages={5 - existingImages.length}
+                  disabled={isSuspended}
+                  disabledMessage="Your account is suspended. You cannot upload images."
+                />
+              </div>
               {errors.images && (
                 <ErrorMessage message={errors.images} className="mt-2" />
               )}
@@ -678,6 +800,12 @@ export default function EditProductPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4">
                 Product Status
               </h2>
+              {isTogglingStatus && (
+                <div className="mb-3 text-sm text-muted-foreground flex items-center gap-2">
+                  <LoadingSpinner size="sm" />
+                  <span>Updating status...</span>
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="flex items-center">
                   <input
@@ -685,8 +813,8 @@ export default function EditProductPage() {
                     name="isActive"
                     value="1"
                     checked={form.isActive === "1"}
-                    onChange={(e) => updateForm("isActive", e.target.value)}
-                    disabled={isUpdating}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    disabled={isUpdating || isSuspended || isTogglingStatus}
                     className="mr-2"
                   />
                   <div className="flex items-center">
@@ -705,8 +833,8 @@ export default function EditProductPage() {
                     name="isActive"
                     value="0"
                     checked={form.isActive === "0"}
-                    onChange={(e) => updateForm("isActive", e.target.value)}
-                    disabled={isUpdating}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    disabled={isUpdating || isSuspended || isTogglingStatus}
                     className="mr-2"
                   />
                   <div className="flex items-center">

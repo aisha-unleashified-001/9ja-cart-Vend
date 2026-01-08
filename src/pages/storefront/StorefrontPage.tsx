@@ -397,12 +397,6 @@ const StorefrontPage = () => {
               <Copy className="w-4 h-4" />
               Copy Storefront Link
             </button>
-            <button
-              onClick={() => setIsContactOpen(true)}
-              className="bg-[#8DEB6E] text-primary px-6 py-2.5 rounded text-sm font-medium hover:bg-[#8DEB6E]/90 transition-colors"
-            >
-              Contact Vendor
-            </button>
           </div>
         </header>
 

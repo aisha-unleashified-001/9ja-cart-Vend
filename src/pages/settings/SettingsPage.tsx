@@ -74,6 +74,22 @@ export default function SettingsPage() {
     setShowConfirmDialog(false);
   };
 
+  // Handle ESC key to close confirmation dialog
+  useEffect(() => {
+    if (!showConfirmDialog) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowConfirmDialog(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [showConfirmDialog]);
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',

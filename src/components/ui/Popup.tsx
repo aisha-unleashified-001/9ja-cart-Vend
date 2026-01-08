@@ -148,6 +148,22 @@ function PopupComponent({ message, type, isVisible, onClose, onMouseEnter, onMou
     }
   };
 
+  // Handle ESC key to close popup
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isVisible, onClose]);
+
   return (
     <>
       {/* Backdrop */}

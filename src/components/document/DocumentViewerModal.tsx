@@ -23,6 +23,20 @@ export default function DocumentViewerModal({
     setIsPdf(urlLower.includes('.pdf') || urlLower.includes('application/pdf'));
   }, [documentUrl]);
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
+
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget && !isHovering) {
       onClose();
