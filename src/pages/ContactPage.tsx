@@ -104,6 +104,7 @@ const ContactPage = () => {
         status: "error",
         message: "An unexpected error occurred. Please try again later.",
       });
+      console.error(error)
     }
   };
 
