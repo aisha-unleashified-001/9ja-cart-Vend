@@ -144,22 +144,22 @@ export default function OrderDetailsModal({
           </section>
 
           {/* Details Grid */}
-          <section className="grid grid-cols-2 gap-y-4 text-sm">
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 text-sm">
             <div>
               <p className="text-gray-400 text-xs mb-1">Created at</p>
-              <p className="font-medium text-[#182F38]">
+              <p className="font-medium text-[#182F38] break-words">
                 {enrichedOrder.createdAt || enrichedOrder.orderDate}
               </p>
             </div>
             <div>
               <p className="text-gray-400 text-xs mb-1">Payment method</p>
-              <p className="font-medium text-[#182F38] capitalize">
+              <p className="font-medium text-[#182F38] capitalize break-words">
                 {enrichedOrder.paymentMethod || "Bank Transfer"}
               </p>
             </div>
             <div>
               <p className="text-gray-400 text-xs mb-1">Status</p>
-              <p className="font-medium text-[#1E4700] capitalize">
+              <p className="font-medium text-[#1E4700] capitalize break-words">
                 {enrichedOrder.status?.replace("_", " ") ||
                   enrichedOrder.orderStatus}
               </p>

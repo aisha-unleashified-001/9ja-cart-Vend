@@ -19,6 +19,7 @@ import { useStorefrontStore } from "@/stores/storeFront";
 import ProductCard from "./ProductCard";
 import { popup } from "@/lib/popup";
 import { getVendorStorefrontUrl } from "@/lib/vendor.utils";
+import { useBusinessLogo } from "@/hooks/useBusinessLogo";
 
 
 const PromoBanner = () => {
@@ -94,6 +95,10 @@ const StorefrontPage = () => {
   const [search, setSearch] = useState("");
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  
+  // Get business logo
+  const { logoUrl } = useBusinessLogo();
   const storefrontLink = useMemo(() => {
     if (!vendorId) return "";
     
@@ -187,6 +192,12 @@ const StorefrontPage = () => {
   const currentCategoryName =
     categories.find((c) => c.id === query.category)?.categoryName ||
     "All Categories";
+
+  // Helper to get first letter of business name
+  const getBusinessInitial = () => {
+    const businessName = user?.businessName || user?.storeName || "V";
+    return businessName.trim().charAt(0).toUpperCase();
+  };
 
   return (
     <div className="min-h-screen bg-white pb-20 font-sans relative">
@@ -326,12 +337,19 @@ const StorefrontPage = () => {
         {/* 1. Header Section */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-100 pb-8 mb-8 gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-100">
-              <img
-                src={user?.avatarUrl}
-                alt="Vendor Avatar"
-                className="w-full h-full object-cover"
-              />
+            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-100 bg-gray-200 flex items-center justify-center">
+              {logoUrl && !logoError ? (
+                <img
+                  src={logoUrl}
+                  alt="Business Logo"
+                  className="w-full h-full object-cover"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <span className="text-gray-600 text-2xl font-bold">
+                  {getBusinessInitial()}
+                </span>
+              )}
             </div>
 
             <div>
@@ -395,7 +413,7 @@ const StorefrontPage = () => {
               className="border border-gray-300 text-gray-700 px-4 py-2.5 rounded text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <Copy className="w-4 h-4" />
-              Copy Storefront Link
+              Copy Your Store Link
             </button>
           </div>
         </header>
