@@ -758,7 +758,7 @@ const SellProductsPage = () => {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-6 py-4 border-2 border-secondary text-secondary rounded-lg font-semibold hover:bg-secondary/5 transition-colors"
+                    className="px-6 py-4 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-secondary/5 transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       <Headphones className="w-5 h-5" />
