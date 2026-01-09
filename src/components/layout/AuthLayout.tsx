@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { registerImg } from "../../assets/auth";
 import { Image } from "../ui/Image";
 import Logo from "@/assets/logo2.png";
@@ -12,20 +11,14 @@ const AuthLayout: React.FC = () => {
   return (
     <div className="h-screen flex overflow-hidden bg-white">
       {/* Left side - Form Content */}
-      <div className="flex-1 flex flex-col px-6 py-12 lg:px-8 overflow-y-auto">
-        <div className="sm:mx-auto sm:w-full sm:max-w-lg">
-          {/* Back to home link */}
-          <Link
-            to="/"
-            className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-8 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Homepage
-          </Link>
-          {/* Logo - Hidden on success page */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 lg:px-8 overflow-y-auto">
+        <div className="w-full max-w-lg">
+          {/* Logo - Hidden on success page, centered and linked to homepage */}
           {!isSuccessPage && (
-            <div className="flex mb-6">
-              <img src={Logo} alt="9jacart Logo" className="h-10 w-auto" />
+            <div className="flex justify-center mb-6">
+              <Link to="/">
+                <img src={Logo} alt="9jacart Logo" className="h-10 w-auto" />
+              </Link>
             </div>
           )}
           <Outlet />

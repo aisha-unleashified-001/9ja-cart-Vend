@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useOrderItems } from "@/hooks/useOrders";
 import { X, Check } from "lucide-react";
 
@@ -55,6 +55,20 @@ export default function OrderDetailsModal({
       onClose();
     }
   };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [onClose]);
 
   return (
     <div 

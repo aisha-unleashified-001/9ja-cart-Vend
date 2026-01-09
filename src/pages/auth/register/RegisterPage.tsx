@@ -250,11 +250,42 @@ export default function RegisterPage() {
     }
     
     if (step === 3) {
-      const isValid = !!(formData.fullName && formData.businessName && formData.businessCategory && formData.phoneNumber && formData.accountNumber && formData.bank && formData.settlementBank);
-      if (!isValid) {
+      const errors: RegistrationFieldErrors = {};
+      
+      // Check if all required fields are filled
+      if (!formData.fullName || !formData.businessName || !formData.businessCategory || !formData.phoneNumber || !formData.accountNumber || !formData.bank || !formData.settlementBank) {
         popup.error('Please fill in all required fields');
+        return false;
       }
-      return isValid;
+      
+      // Validate account number - must be exactly 10 characters
+      if (formData.accountNumber) {
+        const accountNumberTrimmed = formData.accountNumber.trim();
+        if (accountNumberTrimmed.length !== 10) {
+          errors.accountNumber = 'Account number must be exactly 10 digits';
+          setFormErrors(prev => ({ ...prev, ...errors }));
+          popup.error('Account number must be exactly 10 digits');
+          return false;
+        }
+        // Check if it contains only digits
+        if (!/^\d+$/.test(accountNumberTrimmed)) {
+          errors.accountNumber = 'Account number must contain only digits';
+          setFormErrors(prev => ({ ...prev, ...errors }));
+          popup.error('Account number must contain only digits');
+          return false;
+        }
+      }
+      
+      // Clear account number error if validation passes
+      if (formErrors.accountNumber && !errors.accountNumber) {
+        setFormErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.accountNumber;
+          return newErrors;
+        });
+      }
+      
+      return true;
     }
     
     if (step === 4) {
@@ -449,9 +480,32 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validate all steps before final submission
+    if (!validateStep(3)) {
+      setCurrentStep(3);
+      return;
+    }
+    
     if (!validateStep(4)) {
       popup.error('Please complete all required fields');
       return;
+    }
+
+    // Validate account number one more time before submission
+    if (formData.accountNumber) {
+      const accountNumberTrimmed = formData.accountNumber.trim();
+      if (accountNumberTrimmed.length !== 10) {
+        setFormErrors(prev => ({ ...prev, accountNumber: 'Account number must be exactly 10 digits' }));
+        setCurrentStep(3);
+        popup.error('Account number must be exactly 10 digits');
+        return;
+      }
+      if (!/^\d+$/.test(accountNumberTrimmed)) {
+        setFormErrors(prev => ({ ...prev, accountNumber: 'Account number must contain only digits' }));
+        setCurrentStep(3);
+        popup.error('Account number must contain only digits');
+        return;
+      }
     }
 
     // Validate required files
@@ -500,7 +554,7 @@ export default function RegisterPage() {
         taxIdNumber: formData.taxIdNumber || '',
         idDocument: formData.idDocument,
         businessRegCertificate: formData.businessRegCertificate,
-        accountNumber: formData.accountNumber,
+        accountNumber: formData.accountNumber.trim(),
         settlementBank: formData.settlementBank,
         settlementBankName: formData.settlementBankName,
       };
@@ -919,14 +973,31 @@ export default function RegisterPage() {
               id="accountNumber"
               type="text"
               value={formData.accountNumber}
-              onChange={(e) => updateFormData({ accountNumber: e.target.value })}
+              onChange={(e) => {
+                // Only allow digits and limit to 10 characters
+                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                updateFormData({ accountNumber: value });
+                
+                // Real-time validation feedback
+                if (value && value.length !== 10) {
+                  setFormErrors(prev => ({ ...prev, accountNumber: 'Account number must be exactly 10 digits' }));
+                } else if (value && value.length === 10) {
+                  // Clear error if valid
+                  setFormErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.accountNumber;
+                    return newErrors;
+                  });
+                }
+              }}
               disabled={isLoading}
+              maxLength={10}
               className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 disabled:opacity-50 ${
                 formErrors.accountNumber
                   ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                   : 'border-gray-300 focus:ring-primary focus:border-transparent'
               }`}
-              placeholder="Enter account number"
+              placeholder="Enter 10-digit account number"
             />
             {formErrors.accountNumber && (
               <p className="mt-1 text-sm text-red-600">{formErrors.accountNumber}</p>

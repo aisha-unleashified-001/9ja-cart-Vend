@@ -60,6 +60,17 @@ class ApiClient {
   private handleError(error: AxiosError<ApiError>): Promise<never> {
     const apiError: ApiClientError = new Error("API Error");
 
+    // Helper function to transform error messages
+    const transformErrorMessage = (message: string | undefined): string => {
+      if (!message) return message || "";
+      // Transform "Account is not active" to "Account pending approval"
+      if (message.toLowerCase().includes("account is not active") || 
+          message.toLowerCase().includes("account not active")) {
+        return "Account pending approval";
+      }
+      return message;
+    };
+
     if (error.response) {
       const { status, data } = error.response;
       apiError.status = status;
@@ -71,7 +82,7 @@ class ApiClient {
           // Check if it's a token expiration or basic auth issue
           if (data?.messages?.error?.includes("Invalid login credentials")) {
             // User credentials error - don't clear auth data
-            apiError.message = data.messages.error;
+            apiError.message = transformErrorMessage(data.messages.error);
           } else {
             // Check if token is actually expired before logging out
             // This prevents logout on endpoint errors that return 401
@@ -90,12 +101,12 @@ class ApiClient {
                 window.location.href = '/login';
               }
               // Don't set error message - redirect handles the flow
-              apiError.message = data?.messages?.error || "Unauthorized";
+              apiError.message = transformErrorMessage(data?.messages?.error) || "Unauthorized";
             } else {
               // Token is valid but got 401 - likely an endpoint issue or permission problem
               // Don't logout, just return the error so the component can handle it
               // This prevents logout loops when endpoints have issues
-              apiError.message = data?.messages?.error || "Unauthorized - Please check your permissions or try again";
+              apiError.message = transformErrorMessage(data?.messages?.error) || "Unauthorized - Please check your permissions or try again";
             }
           }
           break;
@@ -111,11 +122,11 @@ class ApiClient {
           // Preserve the original error structure for registration errors
           if (data?.messages && typeof data.messages === 'object') {
             // This is likely a validation error with field-specific messages
-            apiError.message = data?.messages?.error || "Validation failed";
+            apiError.message = transformErrorMessage(data?.messages?.error) || "Validation failed";
             // Preserve the response data so registration service can access it
             apiError.response = error.response;
           } else {
-            apiError.message = data?.messages?.error || "Bad request";
+            apiError.message = transformErrorMessage(data?.messages?.error) || "Bad request";
           }
           break;
 
@@ -129,7 +140,7 @@ class ApiClient {
 
         case 405:
           // Method Not Allowed - preserve the backend error message if available
-          apiError.message = data?.messages?.error || "Method not allowed";
+          apiError.message = transformErrorMessage(data?.messages?.error) || "Method not allowed";
           break;
 
         case 500:
@@ -138,7 +149,7 @@ class ApiClient {
           break;
 
         default:
-          apiError.message = data?.messages?.error || "An error occurred";
+          apiError.message = transformErrorMessage(data?.messages?.error) || "An error occurred";
       }
     } else if (error.request) {
       // Network error
