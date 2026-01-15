@@ -241,19 +241,19 @@ const BenefitsSection = () => {
             {/* Stats Row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">Early Access</div>
+                <div className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">Early Access</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Seller Onboarding</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">₦0</div>
+                <div className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">₦0</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Listing Fees</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">Flexible</div>
+                <div className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">Flexible</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Commision Model</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900 dark:text-white">Launch-Ready</div>
+                <div className="text-lg md:text-2xl font-bold text-gray-900 dark:text-white">Launch-Ready</div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">Seller Tools</div>
               </div>
             </div>

@@ -214,9 +214,9 @@ export default function FAQs() {
 
         {/* Main Content */}
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Left Column - FAQ Categories */}
+          {/* Left Column - FAQ Categories - Hidden on mobile */}
           <motion.div
-            className="lg:col-span-1"
+            className="hidden lg:block lg:col-span-1"
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.3 }}
@@ -271,9 +271,9 @@ export default function FAQs() {
             </Card>
           </motion.div>
 
-          {/* Right Column - FAQ Accordion */}
+          {/* Right Column - FAQ Accordion - Full width on mobile */}
           <motion.div
-            className="lg:col-span-2"
+            className="lg:col-span-2 w-full"
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, amount: 0.3 }}
@@ -345,8 +345,8 @@ export default function FAQs() {
             >
               <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-r from-primary/5 to-primary/10">
                 <CardContent className="p-8">
-                  <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-                    <div className="text-left">
+                  <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-6">
+                    <div className="text-center lg:text-left">
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                         Still have questions?
                       </h3>
@@ -355,7 +355,7 @@ export default function FAQs() {
                         started.
                       </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex flex-col sm:flex-row gap-4 items-center">
                       <Link to={"/contact"}>
                         <Button size="lg" className="gap-2">
                           <MessageSquare className="w-4 h-4" />

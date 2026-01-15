@@ -120,22 +120,10 @@ const AboutSection = () => {
 
             {/* Seller Testimonial */}
             <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
-              <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center text-primary font-bold">
-                  S
-                </div>
-                <div>
-                  <p className="text-foreground italic mb-2">
-                    "Our sales increased by 15% in the first week. The BNPL
-                    option brought in customers we couldn't reach before."
-                  </p>
-                  <p className="text-sm font-medium text-foreground">
-                    Sarah K., Fashion Retailer
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Selling on 9jacart for 8 months
-                  </p>
-                </div>
+              <div>
+                <p className="text-foreground italic">
+                  "Increase your sales by 15% in the first 3 weeks of 9ja-cart usage. Reach more customers with our BNPL option."
+                </p>
               </div>
             </div>
           </motion.div>
@@ -167,7 +155,7 @@ const AboutSection = () => {
                   <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                     <BarChart3 className="w-7 h-7 text-primary" />
                   </div>
-                  <div className="text-3xl font-bold text-foreground mb-1">
+                  <div className="text-xl md:text-3xl font-bold text-foreground mb-1">
                     99.9%
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">
@@ -182,7 +170,7 @@ const AboutSection = () => {
                   <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Shield className="w-7 h-7 text-primary" />
                   </div>
-                  <div className="text-3xl font-bold text-foreground mb-1">
+                  <div className="text-xl md:text-3xl font-bold text-foreground mb-1">
                     100%
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">
@@ -197,7 +185,7 @@ const AboutSection = () => {
                   <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Users className="w-7 h-7 text-primary" />
                   </div>
-                  <div className="text-3xl font-bold text-foreground mb-1">
+                  <div className="text-xl md:text-3xl font-bold text-foreground mb-1">
                     Multi-Category
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">
@@ -212,7 +200,7 @@ const AboutSection = () => {
                   <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Clock className="w-7 h-7 text-primary" />
                   </div>
-                  <div className="text-3xl font-bold text-foreground mb-1">
+                  <div className="text-xl md:text-3xl font-bold text-foreground mb-1">
                     10 min
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">

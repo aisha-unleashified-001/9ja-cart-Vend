@@ -189,8 +189,8 @@ export default function FlowTransition() {
         </div>
       </div>
 
-      {/* Modern Step Navigation Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
+      {/* Modern Step Navigation Grid - Hidden on mobile */}
+      <div className="hidden md:grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
         {flowSteps.map((step, index) => (
           <motion.button
             key={step.id}
