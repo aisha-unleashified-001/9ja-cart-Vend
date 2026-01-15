@@ -20,14 +20,14 @@ const Footer = ({ variant = "default" }: FooterProps) => {
 
   return (
     <footer className="bg-[#193540]" id="contact">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 flex flex-col md:block">
-        {/* Logo and Writeup - First on mobile */}
-        <div className="order-1 md:order-none mb-8 md:mb-0 md:hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        {/* Logo and Writeup - First on mobile, shown at top */}
+        <div className="md:hidden mb-8 pb-8 border-b border-border">
           <div className="space-y-4">
             <div className="flex items-center">
               <img src={Logo} alt="9jacart" className="h-8 w-auto" />
             </div>
-            <p className="text-white text-sm max-w-md">
+            <p className="text-white text-sm">
               Empowering vendors with Nigeria's leading Buy Now, Pay Later
               e-commerce platform. Join thousands of vendors growing their
               business with 9jacart.
@@ -35,7 +35,7 @@ const Footer = ({ variant = "default" }: FooterProps) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 border-b border-border pb-8 order-2 md:order-none">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 border-b border-border pb-8">
           {/* Brand Section */}
           <div>
             <h3 className="text-lg font-semibold mb-6 text-white">

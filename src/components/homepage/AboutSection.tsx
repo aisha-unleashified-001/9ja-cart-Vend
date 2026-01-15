@@ -186,10 +186,10 @@ const AboutSection = () => {
                     <Users className="w-7 h-7 text-primary" />
                   </div>
                   <div className="text-xl md:text-3xl font-bold text-foreground mb-1">
-                    Multi-Category
+                    Listings
                   </div>
                   <div className="text-sm text-muted-foreground font-medium">
-                    Product Listings
+                    Multiple Products
                   </div>
                   {/* <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
                     Growing daily
