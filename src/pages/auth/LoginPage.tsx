@@ -150,7 +150,7 @@ export default function LoginPage() {
         <LoadingButton
           type="submit"
           isLoading={isLoading}
-          className="w-full py-3 px-4 bg-[#8DEB6E] hover:bg-[#8DEB6E]/90 text-primary font-medium rounded-md transition-colors focus:outline-none"
+          className="w-full py-3 px-4 border border-[#2ac12a] bg-[#8DEB6E] hover:bg-[#8DEB6E]/90 text-primary font-medium rounded-md transition-colors focus:outline-none"
         >
           {isLoading ? 'Signing in...' : 'Login'}
         </LoadingButton>
@@ -178,7 +178,7 @@ export default function LoginPage() {
 
       <div className="text-center text-sm text-gray-600">
         Not registered yet?{' '}
-        <Link to="/register" className="text-primary hover:text-primary font-medium">
+        <Link to="/register" className="text-[#1E4700] hover:text-[#1E4700]/80 font-medium">
           Create an account
         </Link>
       </div>

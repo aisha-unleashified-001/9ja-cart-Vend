@@ -15,13 +15,19 @@ const AuthLayout: React.FC = () => {
         <div className="w-full max-w-lg">
           {/* Logo - Hidden on success page, centered and linked to homepage */}
           {!isSuccessPage && (
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-8">
               <Link to="/">
-                <img src={Logo} alt="9jacart Logo" className="h-10 w-auto" />
+                <img src={Logo} alt="9jacart Logo" className="h-10 w-auto opacity-80" />
               </Link>
             </div>
           )}
-          <Outlet />
+          {isSuccessPage ? (
+            <Outlet />
+          ) : (
+            <div className="bg-[#F0FBF0] border border-[#C8E6C8] rounded-lg p-8 shadow-sm">
+              <Outlet />
+            </div>
+          )}
         </div>
       </div>
 

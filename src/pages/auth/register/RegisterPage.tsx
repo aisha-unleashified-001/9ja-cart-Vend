@@ -1210,7 +1210,7 @@ export default function RegisterPage() {
               type="button"
               onClick={handleBack}
               disabled={isLoading}
-              className="flex-1 py-3 px-4 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
+              className="flex-1 py-3 px-4 border border-[#2ac12a] bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50"
             >
               Back
             </button>
@@ -1244,7 +1244,7 @@ export default function RegisterPage() {
             <button
               type="button"
               disabled
-              className="w-full py-3 px-4 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
+              className="w-full py-3 px-4 border border-[#2ac12a] bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -1273,7 +1273,7 @@ export default function RegisterPage() {
 
           <div className="text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:text-primary font-medium">
+            <Link to="/login" className="text-[#1E4700] hover:text-[#1E4700]/80 font-medium">
               Sign in here
             </Link>
           </div>
@@ -1346,7 +1346,7 @@ export default function RegisterPage() {
                 type="button"
                 onClick={handleCancelDialog}
                 disabled={isLoading}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="px-4 py-2 border border-[#2ac12a] rounded-md text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>

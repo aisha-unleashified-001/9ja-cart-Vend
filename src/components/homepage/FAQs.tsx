@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ChevronDown,
@@ -165,6 +165,24 @@ const faqs = [
 export default function FAQs() {
   const [openCategories, setOpenCategories] =
     useState<string>("getting-started");
+  const isMobile =
+    typeof window !== "undefined" &&
+    window.matchMedia("(max-width: 1023px)").matches;
+
+  const handleCategoryChange = useCallback(
+    (value: string) => {
+      setOpenCategories(value);
+
+      // On mobile, ensure the opened accordion starts from the top in view.
+      if (!isMobile || !value) return;
+
+      window.setTimeout(() => {
+        const el = document.getElementById(`faq-${value}`);
+        el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    },
+    [isMobile]
+  );
 
   return (
     <section
@@ -177,8 +195,8 @@ export default function FAQs() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6 }}
+            viewport={{ once: true, amount: isMobile ? 0.1 : 0.3 }}
+            transition={{ duration: isMobile ? 0.3 : 0.6 }}
             className="inline-flex items-center gap-2 mb-6"
           >
             <Badge
@@ -194,8 +212,8 @@ export default function FAQs() {
             className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
+            viewport={{ once: true, amount: isMobile ? 0.1 : 0.3 }}
+            transition={{ duration: isMobile ? 0.3 : 0.6, delay: isMobile ? 0 : 0.1 }}
           >
             Everything You Need to <span className="text-primary">Know</span>
           </motion.h2>
@@ -204,8 +222,8 @@ export default function FAQs() {
             className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: true, amount: isMobile ? 0.1 : 0.3 }}
+            transition={{ duration: isMobile ? 0.3 : 0.6, delay: isMobile ? 0 : 0.2 }}
           >
             Get answers to common questions about selling, payments, logistics,
             and growing your business on 9jacart.
@@ -276,13 +294,13 @@ export default function FAQs() {
             className="lg:col-span-2 w-full"
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: true, amount: isMobile ? 0.1 : 0.3 }}
+            transition={{ duration: isMobile ? 0.25 : 0.6, delay: isMobile ? 0 : 0.2 }}
           >
             <Accordion
               type="single"
               value={openCategories}
-              onValueChange={setOpenCategories}
+              onValueChange={handleCategoryChange}
               className="space-y-4"
               collapsible
             >
@@ -292,7 +310,8 @@ export default function FAQs() {
                   <AccordionItem
                     key={category.id}
                     value={category.id}
-                    className="border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden data-[state=open]:border-primary/30"
+                    id={`faq-${category.id}`}
+                    className="scroll-mt-24 border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden data-[state=open]:border-primary/30"
                   >
                     <AccordionTrigger className="p-6 hover:no-underline hover:bg-gray-50 dark:hover:bg-gray-800/50 data-[state=open]:bg-gradient-to-r data-[state=open]:from-primary/5 data-[state=open]:to-transparent">
                       <div className="flex items-center gap-4">
@@ -340,8 +359,8 @@ export default function FAQs() {
               className="mt-8"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
+              viewport={{ once: true, amount: isMobile ? 0.1 : 0.3 }}
+              transition={{ duration: isMobile ? 0.25 : 0.6, delay: isMobile ? 0 : 0.4 }}
             >
               <Card className="border-gray-200 dark:border-gray-800 bg-gradient-to-r from-primary/5 to-primary/10">
                 <CardContent className="p-8">

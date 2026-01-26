@@ -19,7 +19,7 @@ const HeroSection = () => {
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="grid lg:grid-cols-2 gap-20 lg:gap-16 items-center">
           {/* Left Column - Text Content */}
           <div className="text-center lg:text-left">
             <motion.h1

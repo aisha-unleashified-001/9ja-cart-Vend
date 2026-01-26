@@ -149,7 +149,7 @@ const Footer = ({ variant = "default" }: FooterProps) => {
               <div className="space-y-3">
                 {/* Phone */}
                 <p className=" text-white flex gap-2">
-                  <MapPinCheck/>
+                  <MapPinCheck className="h-4 w-4 shrink-0 mt-0.5" />
                   <span>
                     Office Address: 1, Oregun way, Ikeja, Lagos State, Nigeria
                   </span>
@@ -158,7 +158,7 @@ const Footer = ({ variant = "default" }: FooterProps) => {
                   href={`tel:${contactInfo.phone}`}
                   className="flex items-center space-x-3 text-white transition-colors group"
                 >
-                  <Phone className="h-4 w-4" />
+                  <Phone className="h-4 w-4 shrink-0" />
                   <span className="text-sm">{contactInfo.phone}</span>
                 </a>
 
@@ -167,7 +167,7 @@ const Footer = ({ variant = "default" }: FooterProps) => {
                   href={`mailto:${contactInfo.email}`}
                   className="flex items-center space-x-3 text-white  transition-colors group"
                 >
-                  <Mail className="h-4 w-4 " />
+                  <Mail className="h-4 w-4 shrink-0" />
                   <span className="text-sm">{contactInfo.email}</span>
                 </a>
               </div>
