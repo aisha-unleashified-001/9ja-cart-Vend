@@ -17,14 +17,14 @@ const AuthLayout: React.FC = () => {
           {!isSuccessPage && (
             <div className="flex justify-center mb-8">
               <Link to="/">
-                <img src={Logo} alt="9jacart Logo" className="h-10 w-auto opacity-80" />
+                <img src={Logo} alt="9jacart Logo" className="h-16 w-auto opacity-50" />
               </Link>
             </div>
           )}
           {isSuccessPage ? (
             <Outlet />
           ) : (
-            <div className="bg-[#F0FBF0] border border-[#C8E6C8] rounded-lg p-8 shadow-sm">
+            <div className="bg-[#F8FEF8] border border-[#C8E6C8] rounded-lg p-8 shadow-sm">
               <Outlet />
             </div>
           )}
