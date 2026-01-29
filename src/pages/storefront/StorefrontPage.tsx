@@ -21,54 +21,6 @@ import { popup } from "@/lib/popup";
 import { getVendorStorefrontUrl } from "@/lib/vendor.utils";
 import { useBusinessLogo } from "@/hooks/useBusinessLogo";
 
-
-const PromoBanner = () => {
-  return (
-    <div className="bg-black rounded-sm p-10 md:p-14 my-10 relative overflow-hidden flex flex-col md:flex-row items-center justify-between min-h-[400px]">
-      <div className="z-10 text-white space-y-8 max-w-lg">
-        <span className="text-[#00FF66] font-semibold text-sm">Categories</span>
-        <h2 className="text-4xl md:text-5xl font-semibold leading-tight">
-          Enhance Your <br /> Music Experience
-        </h2>
-
-        {/* Countdown */}
-        <div className="flex gap-4">
-          {[
-            { val: 23, label: "Hours" },
-            { val: 5, label: "Days" },
-            { val: 59, label: "Mins" },
-            { val: 35, label: "Secs" },
-          ].map((item, idx) => (
-            <div
-              key={idx}
-              className="bg-white text-black rounded-full w-16 h-16 flex flex-col items-center justify-center"
-            >
-              <span className="font-bold text-sm leading-none">{item.val}</span>
-              <span className="text-[10px] leading-none mt-1">
-                {item.label}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <button className="bg-[#8DEB6E] text-primary px-8 py-3 rounded-sm font-medium hover:bg-[#8DEB6E]/90 transition-colors">
-          Buy Now!
-        </button>
-      </div>
-
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white/20 blur-[100px] rounded-full pointer-events-none" />
-
-      <div className="relative z-10 mt-8 md:mt-0 max-w-lg">
-        <img
-          src="https://pngimg.com/d/jbl_speaker_PNG31.png"
-          alt="JBL Speaker"
-          className="w-full drop-shadow-2xl"
-        />
-      </div>
-    </div>
-  );
-};
-
 const StorefrontPage = () => {
   const [searchParams] = useSearchParams();
   const user = useAuthStore((state) => state.user);
