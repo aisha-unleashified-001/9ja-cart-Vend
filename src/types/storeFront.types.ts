@@ -10,6 +10,15 @@ export interface Product {
   colors?: string[];
   category?: string;
   description?: string;
+  /** When present, only active products are shown in "All Products" */
+  status?: string;
+  isActive?: string | number | boolean;
+  productId?: string;
+  productName?: string;
+  productImages?: string[];
+  currentPrice?: number;
+  shortDescription?: string;
+  inventory?: { inStock?: boolean };
 }
 
 export interface Category {

@@ -16,7 +16,7 @@ import {
 import { useSearchParams } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { useStorefrontStore } from "@/stores/storeFront";
-import ProductCard from "./ProductCard";
+import ProductCard, { type ProductCardProps } from "./ProductCard";
 import { popup } from "@/lib/popup";
 import { getVendorStorefrontUrl } from "@/lib/vendor.utils";
 import { useBusinessLogo } from "@/hooks/useBusinessLogo";
@@ -198,6 +198,16 @@ const StorefrontPage = () => {
     const businessName = user?.businessName || user?.storeName || "V";
     return businessName.trim().charAt(0).toUpperCase();
   };
+
+  // Only show active products in All Products section (filter when API provides status/isActive)
+  const activeProducts = useMemo(() => {
+    return products.filter((p: { status?: string; isActive?: string | number | boolean }) => {
+      if (p.status !== undefined) return p.status === "active";
+      if (p.isActive !== undefined)
+        return p.isActive === true || p.isActive === 1 || p.isActive === "1";
+      return true;
+    });
+  }, [products]);
 
   return (
     <div className="min-h-screen bg-white pb-20 font-sans relative">
@@ -505,27 +515,12 @@ const StorefrontPage = () => {
           </div>
         </div>
 
-        {/* 3. Best Sellers Grid (Top) */}
-        {bestSellers.length > 0 && (
-          <div className="mb-10">
-            <h3 className="text-lg font-bold text-[#182F38] mb-4 flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-500 fill-current" />
-              Best Sellers
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-              {bestSellers.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 4. Promo Banner */}
-        <PromoBanner />
-
-        {/* 5. Main Product Grid */}
-        <div className="mb-14">
-          {products.length === 0 && !isLoading ? (
+        {/* 3. All Active Products (above Best Sellers) */}
+        <div className="mb-10">
+          <h3 className="text-lg font-bold text-[#182F38] mb-4">
+            All Products
+          </h3>
+          {activeProducts.length === 0 && !isLoading ? (
             <div className="text-center py-20 bg-gray-50 rounded-lg border border-dashed border-gray-200">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
                 <Search className="w-8 h-8" />
@@ -549,16 +544,16 @@ const StorefrontPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {activeProducts.map((product) => (
+                <ProductCard key={product.id || (product as any).productId} product={product as ProductCardProps["product"]} showQuickAdd={false} />
               ))}
             </div>
           )}
         </div>
 
-        {/* 6. Pagination */}
+        {/* 4. Pagination for All Products */}
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex justify-center md:justify-end">
+          <div className="flex justify-center md:justify-end mb-10">
             <div className="flex gap-2">
               <button
                 onClick={() => handlePageChange(query.page - 1)}
@@ -571,7 +566,6 @@ const StorefrontPage = () => {
               {Array.from({ length: Math.min(5, pagination.totalPages) }).map(
                 (_, i) => {
                   let pageNum = i + 1;
-                  // Simple logic to keep current page visible if > 5 pages
                   if (pagination.totalPages > 5 && query.page > 3) {
                     pageNum = query.page - 2 + i;
                   }
@@ -604,6 +598,24 @@ const StorefrontPage = () => {
             </div>
           </div>
         )}
+
+        {/* 5. Best Sellers Grid */}
+        {bestSellers.length > 0 && (
+          <div className="mb-10">
+            <h3 className="text-lg font-bold text-[#182F38] mb-4 flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-500 fill-current" />
+              Best Sellers
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+              {bestSellers.slice(0, 4).map((product) => (
+                <ProductCard key={product.id} product={product as ProductCardProps["product"]} showQuickAdd={false} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 6. Promo Banner - hidden per request */}
+        {/* <PromoBanner /> */}
       </div>
     </div>
   );
