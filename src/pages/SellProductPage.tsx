@@ -1,4 +1,5 @@
 // SellProductsPage.tsx
+import { Link } from "react-router-dom";
 import Footer from "@/components/homepage/Footer";
 import MainHeader from "@/components/MainHeader";
 import { motion } from "framer-motion";
@@ -10,7 +11,6 @@ import {
   CreditCard,
   ShoppingBag,
   Truck,
-  DollarSign,
   TrendingUp,
   Shield,
   ChevronRight,
@@ -28,6 +28,21 @@ import {
   Headphones,
 } from "lucide-react";
 import { useState } from "react";
+
+// Naira icon (Lucide has no Naira - Nigerian currency symbol ₦)
+const NairaIcon = ({ className, ...props }: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    {...props}
+  >
+    <text x="12" y="18" textAnchor="middle" fontSize="16" fontWeight="bold" fontFamily="system-ui, sans-serif">
+      ₦
+    </text>
+  </svg>
+);
 
 const SellProductsPage = () => {
   const [activeStep, setActiveStep] = useState<number | null>(null);
@@ -167,7 +182,7 @@ const SellProductsPage = () => {
     {
       id: 8,
       title: "Get Paid",
-      icon: DollarSign,
+      icon: NairaIcon,
       description: "Secure and fast payouts",
       details: [
         "Payments securely processed",
@@ -246,7 +261,7 @@ const SellProductsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <MainHeader />
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/10">
         {/* Hero Section */}
         <section className="relative py-20 lg:py-28 px-4 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/5" />
@@ -286,21 +301,25 @@ const SellProductsPage = () => {
                 variants={fadeInUp}
                 className="flex flex-col sm:flex-row gap-4 justify-center items-center"
               >
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-lg shadow-primary/20"
-                >
-                  Start Selling Free
-                  <ChevronRight className="w-5 h-5" />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition-colors"
-                >
-                  Watch Demo Video
-                </motion.button>
+                <Link to="/register">
+                  <motion.span
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                  >
+                    Start Selling Free
+                    <ChevronRight className="w-5 h-5" />
+                  </motion.span>
+                </Link>
+                <Link to="/#demo-video">
+                  <motion.span
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="inline-flex items-center gap-2 px-8 py-4 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition-colors"
+                  >
+                    Watch Demo Video
+                  </motion.span>
+                </Link>
               </motion.div>
 
               <motion.div
@@ -378,11 +397,11 @@ const SellProductsPage = () => {
                         setActiveStep(activeStep === step.id ? null : step.id)
                       }
                       className={`w-1/2 ${
-                        index % 2 === 0 ? "pr-12 text-right" : "pl-12"
+                        index % 2 === 0 ? "pr-12" : "pl-12"
                       }`}
                     >
                       <div
-                        className={`bg-gradient-to-br ${step.color} rounded-2xl p-8 border border-border hover:shadow-xl transition-all duration-300 cursor-pointer`}
+                        className={`bg-gradient-to-br ${step.color} rounded-2xl p-8 border border-border hover:shadow-xl transition-all duration-300 cursor-pointer text-center`}
                       >
                         <div
                           className={`inline-flex p-3 rounded-xl ${
@@ -454,26 +473,26 @@ const SellProductsPage = () => {
                   }
                   className="bg-gradient-to-br from-card to-card/50 rounded-2xl p-6 border border-border hover:shadow-lg transition-all duration-300 cursor-pointer"
                 >
-                  <div className="flex items-start gap-4">
+                  <div className="flex flex-col items-center gap-4 text-center">
                     <div
                       className={`p-3 rounded-xl ${step.color.split(" ")[0]}`}
                     >
                       <step.icon className={`w-6 h-6 ${step.iconColor}`} />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1 w-full relative">
+                      <div className="flex justify-center mb-2">
                         <h3 className="text-xl font-bold text-foreground">
                           {step.title}
                         </h3>
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            activeStep === step.id
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-foreground"
-                          }`}
-                        >
-                          {step.id}
-                        </div>
+                      </div>
+                      <div
+                        className={`absolute top-0 right-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                          activeStep === step.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground"
+                        }`}
+                      >
+                        {step.id}
                       </div>
                       <p className="text-muted-foreground mb-3">
                         {step.description}
@@ -482,7 +501,7 @@ const SellProductsPage = () => {
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
-                          className="space-y-2"
+                          className="space-y-2 text-left"
                         >
                           <ul className="space-y-2">
                             {step.details.map((detail, i) => (
@@ -585,7 +604,7 @@ const SellProductsPage = () => {
 
                 <div className="space-y-6">
                   <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-500/5 to-emerald-500/5 rounded-xl">
-                    <DollarSign className="w-6 h-6 text-emerald-600 mt-1 flex-shrink-0" />
+                    <NairaIcon className="w-6 h-6 text-emerald-600 mt-1 flex-shrink-0" />
                     <div>
                       <h4 className="font-bold text-foreground mb-1">
                         Get Paid Upfront
@@ -734,37 +753,39 @@ const SellProductsPage = () => {
                 variants={fadeInUp}
                 className="flex flex-col sm:flex-row gap-4 justify-center items-center"
               >
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors flex items-center gap-2 shadow-lg shadow-primary/20"
-                >
-                  <Upload className="w-5 h-5" />
-                  Start Selling Free
-                </motion.button>
+                <Link to="/register">
+                  <motion.span
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                  >
+                    <Upload className="w-5 h-5" />
+                    Start Selling Free
+                  </motion.span>
+                </Link>
 
                 <div className="flex items-center gap-4">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-4 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
+                  <Link to="/#faq">
+                    <motion.span
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="inline-flex items-center gap-2 px-6 py-4 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-primary/5 transition-colors"
+                    >
                       <HelpCircle className="w-5 h-5" />
                       Seller FAQ
-                    </div>
-                  </motion.button>
+                    </motion.span>
+                  </Link>
 
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 py-4 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-secondary/5 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
+                  <Link to="/contact">
+                    <motion.span
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="inline-flex items-center gap-2 px-6 py-4 border-2 border-primary text-primary rounded-lg font-semibold hover:bg-secondary/5 transition-colors"
+                    >
                       <Headphones className="w-5 h-5" />
                       Contact Support
-                    </div>
-                  </motion.button>
+                    </motion.span>
+                  </Link>
                 </div>
               </motion.div>
 

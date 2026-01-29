@@ -46,7 +46,7 @@ const Footer = ({ variant = "default" }: FooterProps) => {
               {/* <li><Link to="/blog" className="text-gray-300 hover:text-white transition-colors">Blog</Link></li> */}
               <li>
                 <Link
-                  to="/about"
+                  to="/#about"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
                   About Us
@@ -101,7 +101,7 @@ const Footer = ({ variant = "default" }: FooterProps) => {
               {/* <li><Link to="/blog" className="text-gray-300 hover:text-white transition-colors">Blog</Link></li> */}
               <li>
                 <Link
-                  to="/about"
+                  to="/privacy-policy"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
                  Privacy Policy
@@ -109,7 +109,7 @@ const Footer = ({ variant = "default" }: FooterProps) => {
               </li>
               <li>
                 <Link
-                  to="/terms"
+                  to="/terms-of-use"
                   className="text-gray-300 hover:text-white transition-colors"
                 >
                   Terms of Use

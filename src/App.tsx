@@ -27,6 +27,9 @@ import NotificationsPage from "./pages/notifications/NotificationsPage";
 import NotificationDetailPage from "./pages/notifications/NotificationDetailPage";
 import ContactAdminPage from "./pages/contact/ContactAdminPage";
 import ContactPage from "./pages/ContactPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsOfUsePage from "./pages/TermsOfUsePage";
 import SettingsPage from "./pages/settings/SettingsPage";
 import AuthLayout from "./components/layout/AuthLayout";
 import SellProductPage from "./pages/SellProductPage";
@@ -46,6 +49,9 @@ export default function App() {
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms-of-use" element={<TermsOfUsePage />} />
           <Route path="/sell-product" element={<SellProductPage />} />
           <Route path="/vendor/:vendorId" element={<PublicStorefrontPage />} />
 
