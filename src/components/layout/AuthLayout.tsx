@@ -2,14 +2,14 @@ import React from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { registerImg } from "../../assets/auth";
 import { Image } from "../ui/Image";
-import Logo from "@/assets/logo2.png";
+import Logo from "@/assets/logo.png";
 
 const AuthLayout: React.FC = () => {
   const location = useLocation();
   const isSuccessPage = location.pathname === "/register/success";
 
   return (
-    <div className="h-screen flex overflow-hidden bg-white">
+    <div className="min-h-screen flex overflow-hidden bg-white">
       {/* Left side - Form Content */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 lg:px-8 overflow-y-auto">
         <div className="w-full max-w-lg">
@@ -32,12 +32,12 @@ const AuthLayout: React.FC = () => {
       </div>
 
       {/* Right side - Static Image */}
-      <div className="hidden lg:flex lg:w-1/2 relative h-screen">
+      <div className="hidden lg:flex lg:w-1/2 relative min-h-screen">
         {/* Background Image */}
         <Image
           src={registerImg}
           alt="E-commerce shopping experience"
-          className="absolute inset-0 w-full h-full"
+          className="absolute inset-0 w-full h-full aspect-square"
           objectFit="cover"
           lazy={false}
         />

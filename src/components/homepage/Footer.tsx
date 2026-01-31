@@ -87,7 +87,6 @@ const Footer = ({ variant = "default" }: FooterProps) => {
                   Sell Products on 9jacart
                 </Link>
               </li>
-            
             </ul>
           </div>
 
@@ -99,30 +98,23 @@ const Footer = ({ variant = "default" }: FooterProps) => {
             <ul className="space-y-3 text-sm">
               {/* <li><Link to="/careers" className="text-gray-300 hover:text-white transition-colors">Careers</Link></li> */}
               {/* <li><Link to="/blog" className="text-gray-300 hover:text-white transition-colors">Blog</Link></li> */}
-              <li>
-                <Link
-                  to="/privacy-policy"
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                 Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/terms-of-use"
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                  Terms of Use
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/contact"
-                  className="text-gray-300 hover:text-white transition-colors"
-                >
-                  Contact Admin
-                </Link>
-              </li>
+
+              {[
+                "Privacy Policy",
+                "Terms of Use",
+                "Shipping and return policy",
+                "Refund Policy",
+                "Dispute Policy",
+              ].map((ele) => (
+                <li key={ele}>
+                  <Link
+                    to={`/${ele.toLowerCase().replace(/\s+/g, "-")}`}
+                    className="text-gray-300 hover:text-white transition-colors"
+                  >
+                    {ele}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         </div>

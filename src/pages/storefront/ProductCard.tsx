@@ -86,11 +86,14 @@ export interface ProductCardProps {
 }
 
 const ProductCard = ({ product, showQuickAdd = true, className }: ProductCardProps) => {
+
+  console.log("Rendering ProductCard for product:", product);
   const navigate = useNavigate();
   const [wishlisted, setWishlisted] = useState(false);
   const [addState, setAddState] = useState<"idle" | "loading" | "success">("idle");
-
+  
   const p = normalizeProduct(product);
+  console.log("lol", p);
   const showDiscount = (p.discountPercentage ?? 0) > 0;
   const showOriginalPrice =
     p.originalPrice != null && p.originalPrice > p.price;

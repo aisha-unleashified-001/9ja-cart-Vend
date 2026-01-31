@@ -33,6 +33,9 @@ import TermsOfUsePage from "./pages/TermsOfUsePage";
 import SettingsPage from "./pages/settings/SettingsPage";
 import AuthLayout from "./components/layout/AuthLayout";
 import SellProductPage from "./pages/SellProductPage";
+import DisputePolicy from "./pages/DisputePolicy";
+import ShippingAndReturnPolicy from "./pages/ShippingAndReturnPolicy";
+import RefundPolicy from "./pages/RefundPolicy";
 
 export default function App() {
   const initialize = useAuthStore((state) => state.initialize);
@@ -50,6 +53,9 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/shipping-and-return-policy" element={<ShippingAndReturnPolicy />} />
+          <Route path="/dispute-policy" element={<DisputePolicy />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms-of-use" element={<TermsOfUsePage />} />
           <Route path="/sell-product" element={<SellProductPage />} />

@@ -469,9 +469,10 @@ const StorefrontPage = () => {
 
         {/* 3. All Active Products (above Best Sellers) */}
         <div className="mb-10">
-          <h3 className="text-lg font-bold text-[#182F38] mb-4">
+          <h3 className="text-lg font-bold text-[#182F38] ">
             All Products
           </h3>
+          <p className="mb-4">lol</p>
           {activeProducts.length === 0 && !isLoading ? (
             <div className="text-center py-20 bg-gray-50 rounded-lg border border-dashed border-gray-200">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">

@@ -85,7 +85,7 @@ const getFirstErrorStep = (errors: RegistrationFieldErrors): number | null => {
 };
 
 export default function RegisterPage() {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(2);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [formErrors, setFormErrors] = useState<RegistrationFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -769,10 +769,10 @@ export default function RegisterPage() {
       </div>
 
       {/* Email Information Box */}
-      <div className="bg-blue-50 rounded-lg p-4 mb-6">
+      <div className="bg-green-100 rounded-lg p-4 mb-6">
         <div className="flex items-center space-x-2 mb-2">
           <svg
-            className="w-5 h-5 text-blue-600"
+            className="w-5 h-5 text-gray-700"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -784,7 +784,7 @@ export default function RegisterPage() {
               d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
             />
           </svg>
-          <span className="text-sm font-medium text-blue-900">Check your email</span>
+          <span className="text-sm font-medium text-gray-700">Check your email</span>
         </div>
         <p className="text-sm text-gray-700">
           We sent a 5-digit verification code to <span className="font-semibold">{formData.emailAddress}</span>
@@ -841,7 +841,7 @@ export default function RegisterPage() {
             type="button"
             onClick={handleResendOTP}
             disabled={isSendingOtp}
-            className="text-blue-600 hover:text-blue-800 font-medium focus:outline-none disabled:opacity-50"
+            className="text-[#1E4700] hover:text-[#1E4700]/80 font-medium focus:outline-none disabled:opacity-50"
           >
             {isSendingOtp ? 'Sending...' : 'Resend verification code'}
           </button>
@@ -1241,7 +1241,7 @@ export default function RegisterPage() {
       {currentStep === 1 && (
         <>
           <div className="relative group">
-            <button
+            {/* <button
               type="button"
               disabled
               className="w-full py-3 px-4 border border-[#2ac12a] bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center justify-center space-x-2"
@@ -1265,7 +1265,7 @@ export default function RegisterPage() {
                 />
               </svg>
               <span>Register with Google</span>
-            </button>
+            </button> */}
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100/90 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
               <Ban className="w-6 h-6 text-red-500" />
             </div>

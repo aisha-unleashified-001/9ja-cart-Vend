@@ -311,7 +311,7 @@ const SellProductsPage = () => {
                     <ChevronRight className="w-5 h-5" />
                   </motion.span>
                 </Link>
-                <Link to="/#demo-video">
+                {/* <Link to="/#demo-video">
                   <motion.span
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -319,7 +319,7 @@ const SellProductsPage = () => {
                   >
                     Watch Demo Video
                   </motion.span>
-                </Link>
+                </Link> */}
               </motion.div>
 
               <motion.div
@@ -603,7 +603,8 @@ const SellProductsPage = () => {
                 </h2>
 
                 <div className="space-y-6">
-                  <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-500/5 to-emerald-500/5 rounded-xl">
+                  <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-500/10 to-green-600/5 rounded-xl">
+                  {/* <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-500/5 to-emerald-500/5 rounded-xl"> */}
                     <NairaIcon className="w-6 h-6 text-emerald-600 mt-1 flex-shrink-0" />
                     <div>
                       <h4 className="font-bold text-foreground mb-1">
@@ -616,7 +617,8 @@ const SellProductsPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 rounded-xl">
+                  <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-blue-500/10 to-blue-600/5 rounded-xl">
+                  {/* <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-xl"> */}
                     <TrendingUp className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
                     <div>
                       <h4 className="font-bold text-foreground mb-1">
@@ -629,7 +631,8 @@ const SellProductsPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl">
+                  <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-purple-500/10 to-purple-600/5 rounded-xl">
+                  {/* <div className="flex items-start gap-4 p-4 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-xl"> */}
                     <Shield className="w-6 h-6 text-purple-600 mt-1 flex-shrink-0" />
                     <div>
                       <h4 className="font-bold text-foreground mb-1">
