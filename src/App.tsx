@@ -36,6 +36,7 @@ import SellProductPage from "./pages/SellProductPage";
 import DisputePolicy from "./pages/DisputePolicy";
 import ShippingAndReturnPolicy from "./pages/ShippingAndReturnPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
+import ResetPasswordPage from "./pages/auth/ResetPage";
 
 export default function App() {
   const initialize = useAuthStore((state) => state.initialize);
@@ -63,6 +64,7 @@ export default function App() {
 
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/register/success" element={<RegisterSuccess />} />
           </Route>

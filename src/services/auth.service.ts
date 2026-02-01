@@ -1,9 +1,31 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants';
 import { tokenStorage, userStorage } from '@/lib/auth.utils';
 import { getVendorStorefrontUrl } from '@/lib/vendor.utils';
 import type { LoginRequest, LoginResponse, RegisterRequest, User, VendorProfile } from '@/types';
+import type { ResetPasswordRequest } from '@/stores/authStore';
 
+export interface ForgotPasswordResponse {
+  status: number;
+  error: boolean;
+  message: string;
+  data?: {
+    identifier: string;
+    verificationId?: string;
+    messageId?: string | null;
+  };
+}
+// {
+//     "status": 200,
+//     "error": false,
+//     "message": "Password reset OTP sent successfully. Please check your email.",
+//     "data": {
+//         "identifier": "jejraenterprises@gmail.com",
+//         "messageId": null,
+//         "verificationId": "1d14b016-f4ee-4c4a-b528-7bbdd586743b"
+//     }
+// }
 export class AuthService {
   async login(credentials: LoginRequest): Promise<{ user: User; token: string }> {
     try {
@@ -104,6 +126,43 @@ export class AuthService {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+      throw new Error(errorMessage);
+    }
+  }
+
+  async forgotPassword(emailAddress: string): Promise<ForgotPasswordResponse> {
+    try {
+      const response = await apiClient.post<ForgotPasswordResponse>(
+        API_ENDPOINTS.AUTH.FORGOT,
+        { emailAddress },
+        { requiresAuth: false }
+      );
+
+      // Even if data is empty, check for error flags from your apiClient wrapper
+      if (response.error) {
+        throw new Error(response.message || 'Failed to request password reset');
+      }
+
+      return response as ForgotPasswordResponse;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Forgot password request failed';
+      throw new Error(errorMessage);
+    }
+  }
+
+  async resetPassword(data: ResetPasswordRequest): Promise<void> {
+    try {
+      const response = await apiClient.post(
+        API_ENDPOINTS.AUTH.RESET,
+        data,
+        { requiresAuth: false }
+      );
+
+      if (response.error) {
+        throw new Error(response.message || 'Failed to reset password');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Reset password failed';
       throw new Error(errorMessage);
     }
   }

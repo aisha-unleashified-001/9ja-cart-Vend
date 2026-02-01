@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
-import { authService } from '@/services/auth.service';
+import { authService, type ForgotPasswordResponse } from '@/services/auth.service';
 import { dashboardService } from '@/services/dashboard.service';
 import { sessionStartTimeStorage } from '@/lib/auth.utils';
 import type { User, LoginRequest, RegisterRequest } from '@/types';
@@ -12,6 +12,14 @@ const withNormalizedSuspension = (user: User): User => ({
   ...user,
   isSuspended: normalizeSuspensionFlag(user.isSuspended),
 });
+
+export interface ResetPasswordRequest {
+  otp: string;
+  identifier: string;
+  verificationId: string;
+  newPassword: string;
+  confirmNewPassword: string;
+}
 
 interface AuthStore {
   // State
@@ -30,6 +38,10 @@ interface AuthStore {
   setToken: (token: string) => void;
   initialize: () => void;
   syncSuspensionStatus: () => Promise<void>;
+
+  // New Actions
+  forgotPassword: (email: string) => Promise<ForgotPasswordResponse>;
+  resetPassword: (data: ResetPasswordRequest) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -132,6 +144,33 @@ export const useAuthStore = create<AuthStore>()(
             isLoading: false,
             error: null,
           });
+        }
+      },
+      // Actions
+      forgotPassword: async (email: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          // Assuming authService has a forgotPassword method
+          const response = await authService.forgotPassword(email);
+          set({ isLoading: false });
+          return response;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to send reset email';
+          set({ isLoading: false, error: errorMessage });
+          throw error;
+        }
+      },
+
+      resetPassword: async (resetData: ResetPasswordRequest) => {
+        set({ isLoading: true, error: null });
+        try {
+          // Assuming authService has a resetPassword method
+          await authService.resetPassword(resetData);
+          set({ isLoading: false });
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Password reset failed';
+          set({ isLoading: false, error: errorMessage });
+          throw error;
         }
       },
 

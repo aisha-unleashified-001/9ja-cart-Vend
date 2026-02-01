@@ -1,20 +1,33 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { popup } from '@/lib/popup';
-import { Eye, EyeOff, Ban } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { LoadingButton } from '@/components/ui/LoadingSpinner';
-import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { popup } from "@/lib/popup";
+import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { LoadingButton } from "@/components/ui/LoadingSpinner";
+import { ErrorMessage } from "@/components/ui/ErrorMessage";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert } from "@/components/Alert";
 
 export default function LoginPage() {
-  const [emailAddress, setEmailAddress] = useState('');
-  const [password, setPassword] = useState('');
+  const [emailAddress, setEmailAddress] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  
-  const { login, isLoading, error, clearError, isAuthenticated } = useAuth();
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({
+  });
+   const location = useLocation();
+
+    const resetSuccess = (location.state as { resetSuccess?: boolean } | null)?.resetSuccess ?? false;
+
+  //forget password states
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState("");
+  const [forgotPasswordError, setForgotPasswordError] = useState("");
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
+
+  const { login, isLoading, error, clearError, isAuthenticated,forgotPassword } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Redirect if already authenticated
   // Add a small delay to prevent redirect loops if API calls fail immediately after login
@@ -24,11 +37,11 @@ export default function LoginPage() {
       const redirectTimer = setTimeout(() => {
         // Double-check authentication is still valid before redirecting
         if (isAuthenticated) {
-          const from = location.state?.from?.pathname || '/dashboard';
+          const from = location.state?.from?.pathname || "/dashboard";
           navigate(from, { replace: true });
         }
       }, 500);
-      
+
       return () => clearTimeout(redirectTimer);
     }
   }, [isAuthenticated, navigate, location]);
@@ -42,13 +55,13 @@ export default function LoginPage() {
     const errors: Record<string, string> = {};
 
     if (!emailAddress.trim()) {
-      errors.emailAddress = 'Email is required';
+      errors.emailAddress = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(emailAddress)) {
-      errors.emailAddress = 'Please enter a valid email address';
+      errors.emailAddress = "Please enter a valid email address";
     }
 
     if (!password.trim()) {
-      errors.password = 'Password is required';
+      errors.password = "Password is required";
     }
 
     setFormErrors(errors);
@@ -57,20 +70,66 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     try {
       await login({ emailAddress, password });
-      popup.success('Login successful!');
-      
+      popup.success("Login successful!");
+
       // Navigation is handled by the useEffect above
     } catch (error) {
       // Error is handled by the auth context and displayed via the error state
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
     }
+  };
+
+const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setForgotPasswordError("");
+  setForgotPasswordSuccess("");
+  
+  const email = forgotPasswordEmail.trim() || emailAddress.trim();
+  
+  if (!email) {
+    setForgotPasswordError("Please enter your email address.");
+    return;
+  }
+
+  setForgotPasswordLoading(true);
+
+  try {
+
+    const response = await forgotPassword(email); 
+
+    setForgotPasswordSuccess("Password reset OTP sent successfully. Please check your email.");
+    setForgotPasswordEmail("");
+
+     const identifier = response.data?.identifier ?? email;
+      const verificationId = response.data?.verificationId ??'';
+      navigate('/reset-password', {
+        state: { identifier, verificationId },
+        replace: false,
+      });
+
+  } catch (err) {
+    setForgotPasswordError(
+      err instanceof Error
+        ? err.message
+        : "Something went wrong. Please try again."
+    );
+  } finally {
+    setForgotPasswordLoading(false);
+  }
+};
+
+   const handleBackToSignIn = () => {
+    setShowForgotPassword(false);
+    setForgotPasswordEmail('');
+    setForgotPasswordSuccess('');
+    setForgotPasswordError('');
   };
 
   // const handleGoogleLogin = () => {
@@ -81,14 +140,84 @@ export default function LoginPage() {
   return (
     <div className="space-y-8">
       <div className="text-left">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+        {/* <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2> */}
+
+        <h1 className="text-2xl font-bold text-gray-900">
+          {showForgotPassword ? "Forgot your password?" : "Welcome Back"}
+        </h1>
+        <p className="mt-2 text-sm text-gray-600">
+          {showForgotPassword ? (
+            <>Enter your email and we&apos;ll send you reset instructions.</>
+          ) : (
+            <></>
+          )}
+        </p>
       </div>
 
       {error && <ErrorMessage message={error} />}
-      
-      <form className="space-y-6" onSubmit={handleSubmit}>
+
+       {resetSuccess && (
+        <Alert variant="success" className="mb-6">
+          Your password has been reset. You can sign in with your new password.
+        </Alert>
+      )}
+
+
+      {showForgotPassword ? (
+        <>
+          {forgotPasswordSuccess && (
+            <Alert variant="success" className="mb-6">
+              {forgotPasswordSuccess}
+            </Alert>
+          )}
+          {forgotPasswordError && (
+            <Alert variant="destructive" className="mb-6">
+              {forgotPasswordError}
+            </Alert>
+          )}
+          <form onSubmit={handleForgotPasswordSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email address
+              </label>
+              <Input
+                id="forgot-email"
+                type="email"
+                autoComplete="email"
+                value={forgotPasswordEmail || emailAddress}
+                onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="w-full !border-gray-400"
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={handleBackToSignIn}
+                disabled={forgotPasswordLoading}
+              >
+                Back to sign in
+              </Button>
+              <Button
+                type="submit"
+                className="flex-1 !text-[#1E4700]"
+                disabled={forgotPasswordLoading}
+              >
+                {forgotPasswordLoading ? 'Sending...' : 'Send OTP'}
+              </Button>
+            </div>
+          </form>
+        </>
+      ) :
+
+      (<form className="space-y-6" onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="emailAddress" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="emailAddress"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Email address
           </label>
           <input
@@ -99,31 +228,36 @@ export default function LoginPage() {
             onChange={(e) => {
               setEmailAddress(e.target.value);
               if (formErrors.emailAddress) {
-                setFormErrors(prev => ({ ...prev, emailAddress: '' }));
+                setFormErrors((prev) => ({ ...prev, emailAddress: "" }));
               }
             }}
             className="w-full px-4 py-3 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             placeholder="john.doe@example.com"
           />
           {formErrors.emailAddress && (
-            <p className="mt-1 text-sm text-red-600">{formErrors.emailAddress}</p>
+            <p className="mt-1 text-sm text-red-600">
+              {formErrors.emailAddress}
+            </p>
           )}
         </div>
-        
+
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Password
           </label>
           <div className="relative">
             <input
               id="password"
               name="password"
-              type={showPassword ? 'text' : 'password'}
+              type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
                 if (formErrors.password) {
-                  setFormErrors(prev => ({ ...prev, password: '' }));
+                  setFormErrors((prev) => ({ ...prev, password: "" }));
                 }
               }}
               className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -133,7 +267,7 @@ export default function LoginPage() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
               {showPassword ? (
                 <EyeOff className="w-5 h-5" />
@@ -142,9 +276,26 @@ export default function LoginPage() {
               )}
             </button>
           </div>
-          {formErrors.password && (
-            <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
-          )}
+          <div className="flex">
+            {formErrors.password && (
+              <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
+            )}
+
+            <div className="text-sm mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotPasswordEmail(emailAddress);
+                  setShowForgotPassword(true);
+                  setForgotPasswordSuccess("");
+                  setForgotPasswordError("");
+                }}
+                className="font-medium text-[#1E4700] hover:text-[#1E4700]/80"
+              >
+                Forgot your password?
+              </button>
+            </div>
+          </div>
         </div>
 
         <LoadingButton
@@ -152,11 +303,11 @@ export default function LoginPage() {
           isLoading={isLoading}
           className="w-full py-3 px-4 border border-[#2ac12a] bg-[#8DEB6E] hover:bg-[#8DEB6E]/90 text-primary font-medium rounded-md transition-colors focus:outline-none"
         >
-          {isLoading ? 'Signing in...' : 'Login'}
+          {isLoading ? "Signing in..." : "Login"}
         </LoadingButton>
 
-        <div className="relative group">
-          {/* <button
+        {/* <div className="relative group">
+          <button
             type="button"
             disabled
             onClick={handleGoogleLogin}
@@ -169,19 +320,24 @@ export default function LoginPage() {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             <span>Login with Google</span>
-          </button> */}
+          </button>
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100/90 rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
             <Ban className="w-6 h-6 text-red-500" />
           </div>
-        </div>
-      </form>
+        </div> */}
+      </form>)}
 
-      <div className="text-center text-sm text-gray-600">
-        Not registered yet?{' '}
-        <Link to="/register" className="text-[#1E4700] hover:text-[#1E4700]/80 font-medium">
-          Create an account
-        </Link>
-      </div>
+      {!showForgotPassword && (
+        <div className="text-center text-sm text-gray-600">
+          Not registered yet?{" "}
+          <Link
+            to="/register"
+            className="text-[#1E4700] hover:text-[#1E4700]/80 font-medium"
+          >
+            Create an account
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
