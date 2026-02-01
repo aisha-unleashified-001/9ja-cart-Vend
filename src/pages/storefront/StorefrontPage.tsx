@@ -43,17 +43,16 @@ const StorefrontPage = () => {
     sendContactMessage,
     resetContact,
   } = useStorefrontStore();
-
   const [search, setSearch] = useState("");
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [logoError, setLogoError] = useState(false);
-  
+
   // Get business logo
   const { logoUrl } = useBusinessLogo();
   const storefrontLink = useMemo(() => {
     if (!vendorId) return "";
-    
+
     // Use the buyer app URL from environment configuration
     const baseUrl = getVendorStorefrontUrl(vendorId);
 
@@ -66,7 +65,13 @@ const StorefrontPage = () => {
 
     const qs = params.toString();
     return `${baseUrl}${qs ? `?${qs}` : ""}`;
-  }, [vendorId, user?.businessName, user?.storeName, user?.avatarUrl, user?.location]);
+  }, [
+    vendorId,
+    user?.businessName,
+    user?.storeName,
+    user?.avatarUrl,
+    user?.location,
+  ]);
 
   // Updated state structure to match endpoint expectation
   const [contactForm, setContactForm] = useState({
@@ -136,7 +141,7 @@ const StorefrontPage = () => {
       vendorId,
       name: contactForm.fullName,
       email: contactForm.emailAddress,
-      message: `${contactForm.subject ? `Subject: ${contactForm.subject}\n\n` : ''}${contactForm.message}`,
+      message: `${contactForm.subject ? `Subject: ${contactForm.subject}\n\n` : ""}${contactForm.message}`,
     });
   };
 
@@ -153,12 +158,14 @@ const StorefrontPage = () => {
 
   // Only show active products in All Products section (filter when API provides status/isActive)
   const activeProducts = useMemo(() => {
-    return products.filter((p: { status?: string; isActive?: string | number | boolean }) => {
-      if (p.status !== undefined) return p.status === "active";
-      if (p.isActive !== undefined)
-        return p.isActive === true || p.isActive === 1 || p.isActive === "1";
-      return true;
-    });
+    return products.filter(
+      (p: { status?: string; isActive?: string | number | boolean }) => {
+        if (p.status !== undefined) return p.status === "active";
+        if (p.isActive !== undefined)
+          return p.isActive === true || p.isActive === 1 || p.isActive === "1";
+        return true;
+      },
+    );
   }, [products]);
 
   return (
@@ -343,7 +350,7 @@ const StorefrontPage = () => {
               disabled={!storefrontLink}
               onClick={async () => {
                 if (!storefrontLink) return;
-                
+
                 try {
                   // Try modern clipboard API first
                   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -469,10 +476,10 @@ const StorefrontPage = () => {
 
         {/* 3. All Active Products (above Best Sellers) */}
         <div className="mb-10">
-          <h3 className="text-lg font-bold text-[#182F38] ">
-            All Products
-          </h3>
-          <p className="mb-4">lol</p>
+          <h3 className="text-lg font-bold text-[#182F38] ">All Products</h3>
+          <p className="mb-4">
+            Explore everything available — updated in real time
+          </p>
           {activeProducts.length === 0 && !isLoading ? (
             <div className="text-center py-20 bg-gray-50 rounded-lg border border-dashed border-gray-200">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
@@ -488,7 +495,12 @@ const StorefrontPage = () => {
                 onClick={() => {
                   setSearch("");
                   setQuery({ category: "", search: "" });
-                  fetchProducts({ category: "", search: "", page: 1, vendorId });
+                  fetchProducts({
+                    category: "",
+                    search: "",
+                    page: 1,
+                    vendorId,
+                  });
                 }}
                 className="mt-4 text-[#1E4700] font-medium hover:underline"
               >
@@ -498,7 +510,11 @@ const StorefrontPage = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
               {activeProducts.map((product) => (
-                <ProductCard key={product.id || (product as any).productId} product={product as ProductCardProps["product"]} showQuickAdd={false} />
+                <ProductCard
+                  key={product.id || (product as any).productId}
+                  product={product as ProductCardProps["product"]}
+                  showQuickAdd={false}
+                />
               ))}
             </div>
           )}
@@ -538,7 +554,7 @@ const StorefrontPage = () => {
                       {pageNum}
                     </button>
                   );
-                }
+                },
               )}
 
               <button
@@ -555,13 +571,20 @@ const StorefrontPage = () => {
         {/* 5. Best Sellers Grid */}
         {bestSellers.length > 0 && (
           <div className="mb-10">
-            <h3 className="text-lg font-bold text-[#182F38] mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-bold text-[#182F38] flex items-center gap-2">
               <Star className="w-5 h-5 text-yellow-500 fill-current" />
               Best Sellers
             </h3>
+            <p className="mb-4">
+              Our most popular products based on sales
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
               {bestSellers.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product as ProductCardProps["product"]} showQuickAdd={false} />
+                <ProductCard
+                  key={product.id}
+                  product={product as ProductCardProps["product"]}
+                  showQuickAdd={false}
+                />
               ))}
             </div>
           </div>
