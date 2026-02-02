@@ -56,6 +56,7 @@ export const STORAGE_KEYS = {
   USER_DATA: "user_data",
   REFRESH_TOKEN: "refresh_token",
   SESSION_START_TIME: "session_start_time",
+  REMEMBER_ME_EMAIL: "remember_me_email",
 } as const;
 
 // Session timeout: 1 hour in milliseconds
