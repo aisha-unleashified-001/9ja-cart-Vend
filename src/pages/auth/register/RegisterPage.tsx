@@ -85,7 +85,7 @@ const getFirstErrorStep = (errors: RegistrationFieldErrors): number | null => {
 };
 
 export default function RegisterPage() {
-  const [currentStep, setCurrentStep] = useState(2);
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [formErrors, setFormErrors] = useState<RegistrationFieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
