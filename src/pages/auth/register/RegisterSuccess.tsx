@@ -62,8 +62,8 @@ export default function RegisterSuccess() {
           <div className="text-xs text-gray-500">
             <p>
               Need help? Contact our support team at{' '}
-              <a href="mailto:support@9ja-cart.com" className="text-green-700 hover:text-green-800">
-                support@9ja-cart.com
+              <a href="mailto:support@9jacart.ng" className="text-green-700 hover:text-green-800">
+                support@9jacart.ng
               </a>
             </p>
           </div>
