@@ -4,8 +4,8 @@ export const API_ENDPOINTS = {
     REGISTER: "/vendor/register",
     LOGOUT: "/vendor/logout",
     REFRESH: "/vendor/refresh",
-    FORGOT: "/vendor/forgot-password",
-    RESET: "/vendor/reset-password",
+    FORGOT: "/buyer/forgot-password",
+    RESET: "/buyer/reset-password",
   },
   REGISTRATION: {
     SIGNUP: "/vendor/signup", // Single endpoint for complete registration

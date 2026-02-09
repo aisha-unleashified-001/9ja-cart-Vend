@@ -467,12 +467,14 @@ const StorefrontPage = () => {
           </div>
         </div>
 
-        {/* 3. All Active Products (above Best Sellers) */}
+        {/* 3. All Products section */}
         <div className="mb-10">
-          <h3 className="text-lg font-bold text-[#182F38] ">
+          <h2 className="text-2xl font-bold text-[#182F38] mb-1">
             All Products
-          </h3>
-          <p className="mb-4">lol</p>
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Explore everything available — updated in real time
+          </p>
           {activeProducts.length === 0 && !isLoading ? (
             <div className="text-center py-20 bg-gray-50 rounded-lg border border-dashed border-gray-200">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
@@ -552,13 +554,16 @@ const StorefrontPage = () => {
           </div>
         )}
 
-        {/* 5. Best Sellers Grid */}
+        {/* 5. Fast Selling section */}
         {bestSellers.length > 0 && (
           <div className="mb-10">
-            <h3 className="text-lg font-bold text-[#182F38] mb-4 flex items-center gap-2">
+            <h2 className="text-2xl font-bold text-[#182F38] mb-1 flex items-center gap-2">
               <Star className="w-5 h-5 text-yellow-500 fill-current" />
-              Best Sellers
-            </h3>
+              Fast Selling
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Popular items selling out quickly
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
               {bestSellers.slice(0, 4).map((product) => (
                 <ProductCard key={product.id} product={product as ProductCardProps["product"]} showQuickAdd={false} />
