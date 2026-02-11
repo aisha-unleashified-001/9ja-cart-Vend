@@ -14,6 +14,10 @@ interface UseVendorProfileReturn {
     accountNumber?: string;
     bank?: string;
   }) => Promise<void>;
+  changePassword: (params: {
+    currentPassword: string;
+    newPassword: string;
+  }) => Promise<void>;
 }
 
 export const useVendorProfile = (): UseVendorProfileReturn => {
@@ -79,6 +83,25 @@ export const useVendorProfile = (): UseVendorProfileReturn => {
     }
   }, []);
 
+  const changePassword = useCallback(async (params: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await dashboardService.changePassword(params);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to change password';
+      setError(errorMessage);
+      console.error('Change password error:', err);
+      throw err; // Re-throw so the component can handle it
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     profile,
     isLoading,
@@ -87,5 +110,6 @@ export const useVendorProfile = (): UseVendorProfileReturn => {
     refreshProfile,
     updateProfile,
     updateAccountInfo,
+    changePassword,
   };
 };

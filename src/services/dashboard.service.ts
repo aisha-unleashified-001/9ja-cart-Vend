@@ -148,6 +148,36 @@ export class DashboardService {
     }
   }
 
+  /**
+   * Change vendor account password
+   * POST /vendor/profile/change-password
+   * Expected request body: { currentPassword: string; newPassword: string }
+   * Endpoint returns 200 with no response body on success
+   */
+  async changePassword(params: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> {
+    try {
+      const response = await apiClient.post<void>(
+        API_ENDPOINTS.VENDOR.CHANGE_PASSWORD,
+        {
+          currentPassword: params.currentPassword,
+          newPassword: params.newPassword,
+        },
+        { requiresAuth: true }
+      );
+
+      if (response.error) {
+        throw new Error(response.message || "Failed to change password");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to change password";
+      throw new Error(errorMessage);
+    }
+  }
+
   async updateVendorProfile(
     profileData: Partial<VendorProfile>
   ): Promise<VendorProfile> {
