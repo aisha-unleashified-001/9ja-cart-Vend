@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Alert } from '@/components/Alert';
+import { validatePasswords } from '@/lib/helper';
 
 export interface ResetPasswordLocationState {
   identifier?: string;
@@ -82,13 +83,14 @@ const ResetPasswordPage: React.FC = () => {
       return;
     }
 
-    if (!newPassword || newPassword.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
+    // if (!newPassword || newPassword.length < 8) {
+    //   setError('Password must be at least 8 characters.');
+    //   return;
+    // }
+    const passwordError = validatePasswords(newPassword, confirmPassword);
 
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
