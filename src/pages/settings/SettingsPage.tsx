@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { popup } from '@/lib/popup';
 import { useVendorProfile } from '@/hooks/useVendorProfile';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -9,7 +10,7 @@ import type { VendorProfile } from '@/types';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
-  const { profile, isLoading, error, fetchProfile, updateProfile } = useVendorProfile();
+  const { profile, isLoading, error, fetchProfile, updateProfile, changePassword } = useVendorProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<VendorProfile>>({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -18,6 +19,16 @@ export default function SettingsPage() {
     url: string;
     name: string;
   } | null>(null);
+  const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Fetch profile data on component mount
   useEffect(() => {
@@ -72,6 +83,56 @@ export default function SettingsPage() {
 
   const handleCancelDialog = () => {
     setShowConfirmDialog(false);
+  };
+
+  const handleOpenChangePassword = () => {
+    setPasswordForm({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    });
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    setShowChangePasswordDialog(true);
+  };
+
+  const handleCloseChangePassword = () => {
+    if (isChangingPassword) return;
+    setShowChangePasswordDialog(false);
+  };
+
+  const handleSubmitChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      popup.error('Please fill in all password fields.');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      popup.error('New password and confirmation do not match.');
+      return;
+    }
+
+    try {
+      setIsChangingPassword(true);
+      await changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      popup.success('Password changed successfully.');
+      setShowChangePasswordDialog(false);
+      // Optionally refresh profile so "Last updated" reflects latest change
+      fetchProfile();
+    } catch (err) {
+      console.error('Failed to change password:', err);
+      popup.error(
+        err instanceof Error ? err.message : 'Failed to change password. Please try again.'
+      );
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   // Handle ESC key to close confirmation dialog
@@ -383,12 +444,16 @@ export default function SettingsPage() {
                       Last updated: {formatDate(profile.updatedAt)}
                     </p>
                   </div>
-                  <button className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors">
+                  <button
+                    onClick={handleOpenChangePassword}
+                    className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
+                  >
                     Change Password
                   </button>
                 </div>
               </div>
 
+              {/* Archived: Account Security section
               <div className="p-6 border border-border rounded-md">
                 <div className="flex items-center justify-between">
                   <div>
@@ -402,6 +467,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
               </div>
+              */}
             </div>
           </div>
         );
@@ -561,6 +627,139 @@ export default function SettingsPage() {
           documentName={documentViewer.name}
           onClose={() => setDocumentViewer(null)}
         />
+      )}
+
+      {/* Change Password Dialog */}
+      {showChangePasswordDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              handleCloseChangePassword();
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-xl font-bold text-foreground mb-4">
+              Change Password
+            </h2>
+            <form className="space-y-4" onSubmit={handleSubmitChangePassword}>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={passwordForm.currentPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        currentPassword: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                    aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        newPassword: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                    aria-label={showNewPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        confirmPassword: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                    aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={handleCloseChangePassword}
+                  className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors"
+                  disabled={isChangingPassword}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors disabled:opacity-50"
+                  disabled={isChangingPassword}
+                >
+                  {isChangingPassword ? 'Changing...' : 'Change Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

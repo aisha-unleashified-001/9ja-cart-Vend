@@ -4,8 +4,8 @@ export const API_ENDPOINTS = {
     REGISTER: "/vendor/register",
     LOGOUT: "/vendor/logout",
     REFRESH: "/vendor/refresh",
-    FORGOT: "/vendor/forgot-password",
-    RESET: "/vendor/reset-password",
+    FORGOT: "/buyer/forgot-password",
+    RESET: "/buyer/reset-password",
   },
   REGISTRATION: {
     SIGNUP: "/vendor/signup", // Single endpoint for complete registration
@@ -15,6 +15,7 @@ export const API_ENDPOINTS = {
   VENDOR: {
     PROFILE: "/vendor/profile",
     UPDATE_PROFILE: "/vendor/profile/edit",
+    CHANGE_PASSWORD: "/vendor/profile/change-password",
     UPDATE_ACCOUNT_INFO: "/vendor/account-info", // TODO: Backend endpoint to be implemented
     UPLOAD_PROFILE_IMAGE: "/vendor/profile-image", // TODO: Backend endpoint to be implemented
     DASHBOARD_SUMMARY: "/vendor/dashboard-summary",
@@ -56,6 +57,7 @@ export const STORAGE_KEYS = {
   USER_DATA: "user_data",
   REFRESH_TOKEN: "refresh_token",
   SESSION_START_TIME: "session_start_time",
+  REMEMBER_ME_EMAIL: "remember_me_email",
 } as const;
 
 // Session timeout: 1 hour in milliseconds

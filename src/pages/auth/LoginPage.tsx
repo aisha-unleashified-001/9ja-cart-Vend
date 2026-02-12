@@ -8,11 +8,33 @@ import { ErrorMessage } from "@/components/ui/ErrorMessage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert } from "@/components/Alert";
+import { STORAGE_KEYS } from "@/lib/constants";
+
+const getStoredRememberMeEmail = (): string => {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.REMEMBER_ME_EMAIL) ?? "";
+  } catch {
+    return "";
+  }
+};
+
+const setStoredRememberMeEmail = (email: string): void => {
+  try {
+    if (email.trim()) {
+      localStorage.setItem(STORAGE_KEYS.REMEMBER_ME_EMAIL, email.trim());
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.REMEMBER_ME_EMAIL);
+    }
+  } catch {
+    // ignore
+  }
+};
 
 export default function LoginPage() {
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({
   });
    const location = useLocation();
@@ -51,6 +73,15 @@ export default function LoginPage() {
     clearError();
   }, [clearError]);
 
+  // Pre-fill email from "Remember me" when login page loads
+  useEffect(() => {
+    const stored = getStoredRememberMeEmail();
+    if (stored) {
+      setEmailAddress(stored);
+      setRememberMe(true);
+    }
+  }, []);
+
   const validateForm = () => {
     const errors: Record<string, string> = {};
 
@@ -77,6 +108,11 @@ export default function LoginPage() {
 
     try {
       await login({ emailAddress, password });
+      if (rememberMe) {
+        setStoredRememberMeEmail(emailAddress);
+      } else {
+        setStoredRememberMeEmail("");
+      }
       popup.success("Login successful!");
 
       // Navigation is handled by the useEffect above
@@ -276,12 +312,21 @@ const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
               )}
             </button>
           </div>
-          <div className="flex">
-            {formErrors.password && (
-              <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
-            )}
-
-            <div className="text-sm mt-2">
+          {formErrors.password && (
+            <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
+          )}
+          <div className="flex items-center justify-between mt-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="rounded border-gray-300 text-[#1E4700] focus:ring-[#1E4700]"
+                aria-label="Remember me"
+              />
+              Remember me
+            </label>
+            <div className="text-sm">
               <button
                 type="button"
                 onClick={() => {

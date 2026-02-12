@@ -101,7 +101,7 @@ const Footer = ({ variant = "default" }: FooterProps) => {
 
               {[
                 "Privacy Policy",
-                "Terms of Use",
+                // "Terms of Use",
                 "Shipping and return policy",
                 "Refund Policy",
                 "Dispute Policy",
