@@ -127,7 +127,7 @@ const ResetPasswordPage: React.FC = () => {
           {error}
         </Alert>
         <Link
-          to="/auth/login"
+          to="/login"
           className="inline-flex justify-center w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
         >
           Back to sign in
@@ -250,7 +250,7 @@ const ResetPasswordPage: React.FC = () => {
             type="button"
             variant="outline"
             className="flex-1"
-            onClick={() => navigate('/auth/login')}
+            onClick={() => navigate('/login')}
             disabled={isLoading}
           >
             Back to sign in
