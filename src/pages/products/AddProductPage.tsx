@@ -10,6 +10,7 @@ import { ImageUpload } from "@/components/ui/ImageUpload";
 import { TagsInput } from "@/components/ui/TagsInput";
 import type { CreateProductRequest } from "@/types";
 import { Info } from "lucide-react";
+import { DEFAULT_COMMISSION_PERCENTAGE } from "@/lib/constants";
 
 interface ProductForm {
   productName: string;
@@ -49,6 +50,10 @@ export default function AddProductPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showMinStockInfo, setShowMinStockInfo] = useState(false);
+
+  // Commission from API - uneditable. Uses DEFAULT_COMMISSION_PERCENTAGE until API provides value.
+  // TODO: Replace with API fetch when commission endpoint is available.
+  const [commissionPercentage] = useState<number>(DEFAULT_COMMISSION_PERCENTAGE);
 
   // Load categories on component mount
   useEffect(() => {
@@ -286,8 +291,8 @@ export default function AddProductPage() {
     }
   };
 
-  // Calculate final price based on discount
-  const calculateFinalPrice = (): number => {
+  // Price after discount (before commission) - used when discount is applied
+  const priceAfterDiscount = (): number => {
     const unitPrice = parseFloat(form.unitPrice) || 0;
     const discountValue = parseFloat(form.discountValue) || 0;
     const discountType = form.discountType;
@@ -297,22 +302,27 @@ export default function AddProductPage() {
     }
 
     if (discountType === "1") {
-      // Percentage discount
       const discountAmount = (unitPrice * discountValue) / 100;
       return unitPrice - discountAmount;
     }
 
     if (discountType === "2") {
-      // Fixed amount discount
       return Math.max(0, unitPrice - discountValue);
     }
 
     return unitPrice;
   };
 
-  const finalPrice = calculateFinalPrice();
   const hasDiscount =
     form.discountType !== "0" && parseFloat(form.discountValue) > 0;
+
+  // Commission is calculated on: unit price (no discount) or discounted price (with discount)
+  const priceForCommission = priceAfterDiscount();
+  const commissionAmount =
+    priceForCommission * (commissionPercentage / 100);
+
+  // Customer Price: unit price or discounted price + commission (commission always added to what customer pays)
+  const finalPrice = priceForCommission + commissionAmount;
 
   return (
     <div className="space-y-6">
@@ -405,7 +415,7 @@ export default function AddProductPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4">
                 Pricing
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
                     Unit Price (₦) *
@@ -439,6 +449,19 @@ export default function AddProductPage() {
                     <option value="1">Percentage (%)</option>
                     <option value="2">Fixed Amount (₦)</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Commission
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${commissionPercentage}%`}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-muted text-muted-foreground cursor-not-allowed"
+                    aria-label="Commission (from API)"
+                  />
                 </div>
               </div>
 
@@ -482,9 +505,7 @@ export default function AddProductPage() {
                         Customer Price
                       </label>
                       <p className="text-xs text-muted-foreground">
-                        {hasDiscount
-                          ? "What customers will pay"
-                          : "No discount applied"}
+                        What customers will pay (includes commission)
                       </p>
                     </div>
                     <div className="text-right">
@@ -514,8 +535,8 @@ export default function AddProductPage() {
                     </div>
                   </div>
 
-                  {hasDiscount && (
-                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                  {hasDiscount ? (
+                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-orange-800 font-medium">
                           Discount amount:
@@ -523,13 +544,41 @@ export default function AddProductPage() {
                         <span className="text-orange-600 font-semibold">
                           ₦
                           {(
-                            parseFloat(form.unitPrice) - finalPrice
+                            parseFloat(form.unitPrice) - priceAfterDiscount()
                           ).toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
                           {form.discountType === "1" &&
                             ` (${form.discountValue}%)`}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm pt-1 border-t border-orange-200">
+                        <span className="text-orange-800 font-medium">
+                          Commission (added to customer price):
+                        </span>
+                        <span className="text-orange-600 font-semibold">
+                          ₦
+                          {commissionAmount.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          ({commissionPercentage}%)
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-orange-800 font-medium">
+                          Commission ({commissionPercentage}% added):
+                        </span>
+                        <span className="text-orange-600 font-semibold">
+                          ₦
+                          {commissionAmount.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
                         </span>
                       </div>
                     </div>
@@ -734,6 +783,17 @@ export default function AddProductPage() {
                       : `₦${parseFloat(
                           form.discountValue || "0"
                         ).toLocaleString()}`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Commission:</span>
+                  <span className="text-foreground">
+                    ₦
+                    {commissionAmount.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    ({commissionPercentage}%)
                   </span>
                 </div>
               </div>

@@ -1,10 +1,39 @@
 import { STORAGE_KEYS } from './constants';
 import type { User } from '@/types';
 
+/** Returns the storage to use for auth data. Defaults to localStorage when flag is unset (backwards compat). */
+function getAuthStorage(): Storage {
+  try {
+    const flag = localStorage.getItem(STORAGE_KEYS.AUTH_REMEMBER_ME);
+    return flag === 'false' ? sessionStorage : localStorage;
+  } catch {
+    return localStorage;
+  }
+}
+
+/** Set whether to persist auth across browser sessions. Call before token/user set on login. */
+export function setRememberMe(remember: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.AUTH_REMEMBER_ME, remember ? 'true' : 'false');
+  } catch (error) {
+    console.error('Error setting remember me:', error);
+  }
+}
+
+function clearAuthFromStorage(storage: Storage): void {
+  try {
+    storage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    storage.removeItem(STORAGE_KEYS.USER_DATA);
+    storage.removeItem(STORAGE_KEYS.SESSION_START_TIME);
+  } catch {
+    // ignore
+  }
+}
+
 export const tokenStorage = {
   get: (): string | null => {
     try {
-      return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      return getAuthStorage().getItem(STORAGE_KEYS.AUTH_TOKEN);
     } catch (error) {
       console.error('Error getting token from storage:', error);
       return null;
@@ -13,7 +42,9 @@ export const tokenStorage = {
 
   set: (token: string): void => {
     try {
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      const storage = getAuthStorage();
+      clearAuthFromStorage(storage === localStorage ? sessionStorage : localStorage);
+      storage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
     } catch (error) {
       console.error('Error setting token in storage:', error);
     }
@@ -22,6 +53,7 @@ export const tokenStorage = {
   remove: (): void => {
     try {
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
     } catch (error) {
       console.error('Error removing token from storage:', error);
     }
@@ -31,7 +63,7 @@ export const tokenStorage = {
 export const userStorage = {
   get: (): User | null => {
     try {
-      const userData = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+      const userData = getAuthStorage().getItem(STORAGE_KEYS.USER_DATA);
       return userData ? JSON.parse(userData) : null;
     } catch (error) {
       console.error('Error getting user data from storage:', error);
@@ -41,7 +73,9 @@ export const userStorage = {
 
   set: (user: User): void => {
     try {
-      localStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
+      const storage = getAuthStorage();
+      clearAuthFromStorage(storage === localStorage ? sessionStorage : localStorage);
+      storage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
     } catch (error) {
       console.error('Error setting user data in storage:', error);
     }
@@ -50,6 +84,7 @@ export const userStorage = {
   remove: (): void => {
     try {
       localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      sessionStorage.removeItem(STORAGE_KEYS.USER_DATA);
     } catch (error) {
       console.error('Error removing user data from storage:', error);
     }
@@ -70,7 +105,7 @@ export const isTokenExpired = (token: string): boolean => {
 export const sessionStartTimeStorage = {
   get: (): number | null => {
     try {
-      const time = localStorage.getItem(STORAGE_KEYS.SESSION_START_TIME);
+      const time = getAuthStorage().getItem(STORAGE_KEYS.SESSION_START_TIME);
       return time ? parseInt(time, 10) : null;
     } catch (error) {
       console.error('Error getting session start time from storage:', error);
@@ -80,7 +115,7 @@ export const sessionStartTimeStorage = {
 
   set: (timestamp: number): void => {
     try {
-      localStorage.setItem(STORAGE_KEYS.SESSION_START_TIME, timestamp.toString());
+      getAuthStorage().setItem(STORAGE_KEYS.SESSION_START_TIME, timestamp.toString());
     } catch (error) {
       console.error('Error setting session start time in storage:', error);
     }
@@ -89,6 +124,7 @@ export const sessionStartTimeStorage = {
   remove: (): void => {
     try {
       localStorage.removeItem(STORAGE_KEYS.SESSION_START_TIME);
+      sessionStorage.removeItem(STORAGE_KEYS.SESSION_START_TIME);
     } catch (error) {
       console.error('Error removing session start time from storage:', error);
     }
@@ -99,4 +135,9 @@ export const clearAuthData = (): void => {
   tokenStorage.remove();
   userStorage.remove();
   sessionStartTimeStorage.remove();
+  try {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_REMEMBER_ME);
+  } catch {
+    // ignore
+  }
 };

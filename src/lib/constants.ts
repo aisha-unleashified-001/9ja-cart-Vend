@@ -58,10 +58,15 @@ export const STORAGE_KEYS = {
   REFRESH_TOKEN: "refresh_token",
   SESSION_START_TIME: "session_start_time",
   REMEMBER_ME_EMAIL: "remember_me_email",
+  /** When "true", auth is in localStorage (persist). When "false", auth is in sessionStorage (session only). */
+  AUTH_REMEMBER_ME: "auth_remember_me",
 } as const;
 
 // Session timeout: 1 hour in milliseconds
 export const SESSION_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+
+/** Default commission percentage - used when API does not provide commission. Replace with API value when available. */
+export const DEFAULT_COMMISSION_PERCENTAGE = 3.5;
 
 export const HTTP_STATUS = {
   OK: 200,

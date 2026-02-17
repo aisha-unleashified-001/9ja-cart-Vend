@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/constants';
-import { tokenStorage, userStorage } from '@/lib/auth.utils';
+import { tokenStorage, userStorage, setRememberMe } from '@/lib/auth.utils';
 import { getVendorStorefrontUrl } from '@/lib/vendor.utils';
 import type { LoginRequest, LoginResponse, RegisterRequest, User, VendorProfile } from '@/types';
 import type { ResetPasswordRequest } from '@/stores/authStore';
@@ -26,8 +26,13 @@ export interface ForgotPasswordResponse {
 //         "verificationId": "1d14b016-f4ee-4c4a-b528-7bbdd586743b"
 //     }
 // }
+export interface LoginOptions {
+  /** When true, persist auth in localStorage; when false, use sessionStorage (session only). Default true. */
+  rememberMe?: boolean;
+}
+
 export class AuthService {
-  async login(credentials: LoginRequest): Promise<{ user: User; token: string }> {
+  async login(credentials: LoginRequest, options?: LoginOptions): Promise<{ user: User; token: string }> {
     try {
       const response = await apiClient.post<LoginResponse>(
         API_ENDPOINTS.AUTH.LOGIN,
@@ -50,7 +55,9 @@ export class AuthService {
           }
         : userData;
       
-      // Store auth data
+      // Set storage mode before writing so token/user go to the right place
+      const rememberMe = options?.rememberMe !== false;
+      setRememberMe(rememberMe);
       tokenStorage.set(token);
       userStorage.set(enrichedUser);
 

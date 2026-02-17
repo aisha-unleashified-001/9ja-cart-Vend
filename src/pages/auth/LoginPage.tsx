@@ -115,7 +115,7 @@ export default function LoginPage() {
     }
 
     try {
-      await login({ emailAddress, password });
+      await login({ emailAddress, password }, { rememberMe });
       if (rememberMe) {
         setStoredRememberMeEmail(emailAddress);
       } else {

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, devtools } from 'zustand/middleware';
-import { authService, type ForgotPasswordResponse } from '@/services/auth.service';
+import { authService, type ForgotPasswordResponse, type LoginOptions } from '@/services/auth.service';
 import { dashboardService } from '@/services/dashboard.service';
 import { sessionStartTimeStorage } from '@/lib/auth.utils';
 import type { User, LoginRequest, RegisterRequest } from '@/types';
@@ -30,7 +30,7 @@ interface AuthStore {
   error: string | null;
 
   // Actions
-  login: (credentials: LoginRequest) => Promise<void>;
+  login: (credentials: LoginRequest, options?: LoginOptions) => Promise<void>;
   register: (userData: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
@@ -56,11 +56,11 @@ export const useAuthStore = create<AuthStore>()(
       error: null,
 
       // Actions
-      login: async (credentials: LoginRequest) => {
+      login: async (credentials: LoginRequest, options?: LoginOptions) => {
         set({ isLoading: true, error: null });
         
         try {
-          const { user, token } = await authService.login(credentials);
+          const { user, token } = await authService.login(credentials, options);
           const normalizedUser = withNormalizedSuspension(user);
           
           // Debug: Log the user object being set in the store
