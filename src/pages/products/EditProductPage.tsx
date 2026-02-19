@@ -12,6 +12,7 @@ import { ImageUpload } from "@/components/ui/ImageUpload";
 import { TagsInput } from "@/components/ui/TagsInput";
 import { formatImageUrls } from "@/lib/image.utils";
 import { getProductStatus } from "@/lib/product.utils";
+import { DEFAULT_COMMISSION_PERCENTAGE } from "@/lib/constants";
 import type { Product, UpdateProductRequest } from "@/types";
 
 const normalizeIsActiveValue = (value: Product["isActive"]): string =>
@@ -295,8 +296,11 @@ export default function EditProductPage() {
     }
   };
 
-  // Calculate final price based on discount
-  const calculateFinalPrice = (): number => {
+  // Commission from API - uneditable. Uses DEFAULT_COMMISSION_PERCENTAGE until API provides value.
+  const commissionPercentage = DEFAULT_COMMISSION_PERCENTAGE;
+
+  // Calculate price after discount (before commission)
+  const calculatePriceAfterDiscount = (): number => {
     const unitPrice = parseFloat(form.unitPrice) || 0;
     const discountValue = parseFloat(form.discountValue) || 0;
     const discountType = form.discountType;
@@ -319,7 +323,10 @@ export default function EditProductPage() {
     return unitPrice;
   };
 
-  const finalPrice = calculateFinalPrice();
+  const priceAfterDiscount = calculatePriceAfterDiscount();
+  const commissionAmount = priceAfterDiscount * (commissionPercentage / 100);
+  // Customer price includes commission (mirrors AddProductPage logic)
+  const finalPrice = priceAfterDiscount + commissionAmount;
   const hasDiscount = form.discountType !== "0" && parseFloat(form.discountValue) > 0;
 
   // Loading state
@@ -520,7 +527,7 @@ export default function EditProductPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4">
                 Pricing
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-1">
                     Unit Price (₦) *
@@ -555,6 +562,19 @@ export default function EditProductPage() {
                     <option value="2">Fixed Amount (₦)</option>
                   </select>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Commission
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${commissionPercentage}%`}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-muted text-muted-foreground cursor-not-allowed"
+                    aria-label="Commission (from API)"
+                  />
+                </div>
               </div>
 
               {form.discountType !== "0" && (
@@ -586,7 +606,7 @@ export default function EditProductPage() {
                 </div>
               )}
 
-              {/* Final Price Display */}
+              {/* Customer Price Display */}
               {form.unitPrice && parseFloat(form.unitPrice) > 0 && (
                 <div className="mt-6 pt-4 border-t border-border">
                   <div className="flex justify-between items-center">
@@ -595,7 +615,7 @@ export default function EditProductPage() {
                         Customer Price
                       </label>
                       <p className="text-xs text-muted-foreground">
-                        {hasDiscount ? "What customers will pay" : "No discount applied"}
+                        What customers will pay (includes commission)
                       </p>
                     </div>
                     <div className="text-right">
@@ -609,16 +629,35 @@ export default function EditProductPage() {
                       )}
                     </div>
                   </div>
-                  
-                  {hasDiscount && (
-                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
+
+                  {hasDiscount ? (
+                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-orange-800 font-medium">
                           Discount amount:
                         </span>
                         <span className="text-orange-600 font-semibold">
-                          ₦{(parseFloat(form.unitPrice) - finalPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          ₦{(parseFloat(form.unitPrice) - priceAfterDiscount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           {form.discountType === "1" && ` (${form.discountValue}%)`}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm pt-1 border-t border-orange-200">
+                        <span className="text-orange-800 font-medium">
+                          Commission (added to customer price):
+                        </span>
+                        <span className="text-orange-600 font-semibold">
+                          ₦{commissionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({commissionPercentage}%)
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-orange-800 font-medium">
+                          Commission ({commissionPercentage}% added):
+                        </span>
+                        <span className="text-orange-600 font-semibold">
+                          ₦{commissionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
                     </div>
@@ -884,6 +923,12 @@ export default function EditProductPage() {
                       : form.discountType === "1"
                       ? `${form.discountValue}%`
                       : `₦${parseFloat(form.discountValue || "0").toLocaleString()}`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Commission:</span>
+                  <span className="text-foreground">
+                    ₦{commissionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({commissionPercentage}%)
                   </span>
                 </div>
               </div>

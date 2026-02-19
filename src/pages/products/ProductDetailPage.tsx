@@ -15,6 +15,7 @@ import {
 import { ProductImage } from "@/components/products/ProductImage";
 import { ProductImageUpload } from "@/components/products/ProductImageUpload";
 import { ProductDebugPanel } from "@/components/debug/ProductDebugPanel";
+import { DEFAULT_COMMISSION_PERCENTAGE } from "@/lib/constants";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -199,6 +200,17 @@ export default function ProductDetailPage() {
   const status = getProductStatus(product);
   const stockStatus = getStockStatus(product);
 
+  // Commission calculation (mirrors AddProductPage logic)
+  const commissionPercentage = DEFAULT_COMMISSION_PERCENTAGE;
+  const hasDiscount =
+    product.discountType !== "0" &&
+    parseFloat(product.discountValue ?? "0") > 0;
+  const priceForCommission = hasDiscount
+    ? parseFloat(product.discountPrice ?? product.unitPrice ?? "0")
+    : parseFloat(product.unitPrice ?? "0");
+  const commissionAmount = priceForCommission * (commissionPercentage / 100);
+  const customerPrice = priceForCommission + commissionAmount;
+
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
@@ -327,17 +339,35 @@ export default function ProductDetailPage() {
             </h3>
             <div className="space-y-2">
               {product.discountType === "0" ? (
-                // No discount - show unit price as main price
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground font-medium">
-                    Price:
-                  </span>
-                  <span className="text-xl font-bold text-foreground">
-                    {formatPriceDisplay(product.unitPrice)}
-                  </span>
-                </div>
+                // No discount - show unit price, commission, and customer price
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">
+                      Original Price:
+                    </span>
+                    <span className="text-lg font-semibold text-foreground">
+                      {formatPriceDisplay(product.unitPrice)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">
+                      Commission ({commissionPercentage}%):
+                    </span>
+                    <span className="text-sm text-orange-600">
+                      +₦{commissionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center border-t pt-2">
+                    <span className="text-muted-foreground font-medium">
+                      Customer Price:
+                    </span>
+                    <span className="text-xl font-bold text-green-600">
+                      ₦{customerPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </>
               ) : (
-                // Has discount - show original price, discount, and final price
+                // Has discount - show original price, discount, discounted price, commission, and customer price
                 <>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">
@@ -354,12 +384,28 @@ export default function ProductDetailPage() {
                       {product.discountValue}
                     </span>
                   </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">
+                      Price after discount:
+                    </span>
+                    <span className="text-base font-semibold text-foreground">
+                      {formatPriceDisplay(product.discountPrice)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">
+                      Commission ({commissionPercentage}%):
+                    </span>
+                    <span className="text-sm text-orange-600">
+                      +₦{commissionAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
                   <div className="flex justify-between items-center border-t pt-2">
                     <span className="text-muted-foreground font-medium">
-                      Final Price:
+                      Customer Price:
                     </span>
                     <span className="text-xl font-bold text-green-600">
-                      {formatPriceDisplay(product.discountPrice)}
+                      ₦{customerPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
                 </>
