@@ -1,4 +1,5 @@
 import type { Product } from "@/types";
+import { DEFAULT_COMMISSION_PERCENTAGE } from "@/lib/constants";
 
 const normalizeIsActiveValue = (value: Product["isActive"]): string => {
   if (typeof value === "boolean") {
@@ -186,6 +187,15 @@ export const getMainDisplayPrice = (product: Product): string => {
   return product.discountType === "0"
     ? product.unitPrice
     : product.discountPrice;
+};
+
+// Get customer price (price after discount + commission) - what customers actually pay
+// Mirrors ProductDetailPage, AddProductPage, and EditProductPage logic
+export const getCustomerPrice = (product: Product): string => {
+  const priceForCommission = formatPrice(getMainDisplayPrice(product));
+  const commissionAmount = priceForCommission * (DEFAULT_COMMISSION_PERCENTAGE / 100);
+  const customerPrice = priceForCommission + commissionAmount;
+  return customerPrice.toFixed(2);
 };
 
 // Get the original price for strikethrough (only when there's a discount)

@@ -13,7 +13,7 @@ import {
   getStockStatus,
   getStockStatusColor,
   truncateText,
-  getMainDisplayPrice,
+  getCustomerPrice,
   getOriginalPrice,
   shouldShowStrikethrough,
   formatSavingsDisplay,
@@ -352,7 +352,7 @@ export default function ProductsPage() {
                             : "text-foreground"
                         }`}
                       >
-                        {formatPriceDisplay(getMainDisplayPrice(product))}
+                        {formatPriceDisplay(getCustomerPrice(product))}
                       </span>
                       {shouldShowStrikethrough(product) && (
                         <span className="text-sm text-muted-foreground line-through">
