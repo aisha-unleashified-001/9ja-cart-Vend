@@ -18,6 +18,7 @@ interface UseVendorProfileReturn {
     currentPassword: string;
     newPassword: string;
   }) => Promise<void>;
+  setSecurityPin: (securityPin: string) => Promise<void>;
 }
 
 export const useVendorProfile = (): UseVendorProfileReturn => {
@@ -102,6 +103,19 @@ export const useVendorProfile = (): UseVendorProfileReturn => {
     }
   }, []);
 
+  const setSecurityPin = useCallback(async (securityPin: string) => {
+    setError(null);
+
+    try {
+      await dashboardService.setSecurityPin(securityPin);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to set security PIN';
+      setError(errorMessage);
+      console.error('Set security PIN error:', err);
+      throw err; // Re-throw so the component can handle it
+    }
+  }, []);
+
   return {
     profile,
     isLoading,
@@ -111,5 +125,6 @@ export const useVendorProfile = (): UseVendorProfileReturn => {
     updateProfile,
     updateAccountInfo,
     changePassword,
+    setSecurityPin,
   };
 };

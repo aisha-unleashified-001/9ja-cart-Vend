@@ -149,6 +149,30 @@ export class DashboardService {
   }
 
   /**
+   * Set security PIN for 2FA
+   * POST /vendor/profile/security-pin
+   * Expected request body: { securityPin: string } (6-digit PIN)
+   * Endpoint returns 200 with no response body on success
+   */
+  async setSecurityPin(securityPin: string): Promise<void> {
+    try {
+      const response = await apiClient.post<void>(
+        API_ENDPOINTS.VENDOR.SECURITY_PIN,
+        { securityPin },
+        { requiresAuth: true }
+      );
+
+      if (response.error) {
+        throw new Error(response.message || "Failed to set security PIN");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to set security PIN";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Change vendor account password
    * POST /vendor/profile/change-password
    * Expected request body: { currentPassword: string; newPassword: string }
