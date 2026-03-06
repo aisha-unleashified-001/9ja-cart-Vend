@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactCrop, { type Crop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { validateProductImages, createImagePreview, revokeImagePreview } from '@/lib/formData.utils';
 import { Star } from 'lucide-react';
 
@@ -28,6 +30,12 @@ export function ImageUpload({
   const [errors, setErrors] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewsMapRef = useRef<Map<File, ImagePreview>>(new Map());
+  const APPROVED_SIZE = 743;
+  const [croppingFile, setCroppingFile] = useState<File | null>(null);
+  const [croppingImageUrl, setCroppingImageUrl] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Crop | undefined>();
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const cropImageRef = useRef<HTMLImageElement | null>(null);
 
   // Sync previews with images when images change externally (e.g., reordering)
   useEffect(() => {
@@ -76,6 +84,23 @@ export function ImageUpload({
       return newPreviews;
     });
   }, [images]);
+  
+  // When there are pending files and no active crop, start cropping the next one
+  useEffect(() => {
+    if (!croppingFile && pendingFiles.length > 0) {
+      const [next, ...rest] = pendingFiles;
+      setPendingFiles(rest);
+
+      if (croppingImageUrl) {
+        URL.revokeObjectURL(croppingImageUrl);
+      }
+
+      const url = URL.createObjectURL(next);
+      setCroppingFile(next);
+      setCroppingImageUrl(url);
+      setCrop(undefined);
+    }
+  }, [croppingFile, pendingFiles, croppingImageUrl]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) {
@@ -92,21 +117,10 @@ export function ImageUpload({
       return;
     }
 
-    // Clear errors
+    // Clear previous errors
     setErrors([]);
 
-    // Create new previews
-    const newPreviews = files.map(file => ({
-      file,
-      url: createImagePreview(file)
-    }));
-
-    // Update state
-    const updatedImages = [...images, ...files];
-    const updatedPreviews = [...previews, ...newPreviews];
-
-    onImagesChange(updatedImages);
-    setPreviews(updatedPreviews);
+    setPendingFiles(prev => [...prev, ...files]);
 
     // Reset file input
     if (fileInputRef.current) {
@@ -262,6 +276,167 @@ export function ImageUpload({
           </div>
         )}
       </div>
+
+      {/* Cropping Modal */}
+      {croppingFile && croppingImageUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-white rounded-lg shadow-xl max-w-[90vw] max-h-[90vh] w-full md:w-[720px] p-4 flex flex-col gap-4">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Crop image to {APPROVED_SIZE}px × {APPROVED_SIZE}px
+            </h3>
+            <p className="text-xs text-gray-600">
+              Drag to choose the exact square area buyers will see. The final image will be saved at {APPROVED_SIZE}px by {APPROVED_SIZE}px.
+            </p>
+            <div className="flex-1 overflow-auto flex items-center justify-center">
+              <ReactCrop
+                crop={crop}
+                onChange={(_, percentCrop) => setCrop(percentCrop)}
+                aspect={1}
+                keepSelection
+                ruleOfThirds
+              >
+                <img
+                  src={croppingImageUrl}
+                  alt="Crop"
+                  className="max-h-[60vh] object-contain"
+                  onLoad={(event: React.SyntheticEvent<HTMLImageElement>) => {
+                    const img = event.currentTarget;
+                    cropImageRef.current = img;
+                    const { naturalWidth, naturalHeight } = img;
+
+                    if (
+                      naturalWidth < APPROVED_SIZE ||
+                      naturalHeight < APPROVED_SIZE
+                    ) {
+                      setErrors(prev => [
+                        ...prev,
+                        `${croppingFile.name}: Image must be at least ${APPROVED_SIZE}px by ${APPROVED_SIZE}px`,
+                      ]);
+                      // Skip this image
+                      if (croppingImageUrl) {
+                        URL.revokeObjectURL(croppingImageUrl);
+                      }
+                      setCroppingFile(null);
+                      setCroppingImageUrl(null);
+                      setCrop(undefined);
+                      return;
+                    }
+
+                    // Initial centered crop: fixed APPROVED_SIZE x APPROVED_SIZE in image pixels
+                    const widthPercent = (APPROVED_SIZE / naturalWidth) * 100;
+                    const heightPercent = (APPROVED_SIZE / naturalHeight) * 100;
+                    const x = (100 - widthPercent) / 2;
+                    const y = (100 - heightPercent) / 2;
+
+                    setCrop({
+                      unit: '%',
+                      width: widthPercent,
+                      height: heightPercent,
+                      x,
+                      y,
+                    });
+                  }}
+                />
+              </ReactCrop>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-gray-200">
+              <button
+                type="button"
+                className="px-3 py-1.5 text-xs border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                onClick={() => {
+                  if (croppingImageUrl) {
+                    URL.revokeObjectURL(croppingImageUrl);
+                  }
+                  setCroppingFile(null);
+                  setCroppingImageUrl(null);
+                  setCrop(undefined);
+                }}
+              >
+                Skip image
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1.5 text-xs bg-[#8DEB6E] text-black rounded-md hover:bg-[#8DEB6E]/90"
+                onClick={async () => {
+                  if (!croppingFile || !cropImageRef.current || !crop) return;
+
+                  const image = cropImageRef.current;
+                  const naturalWidth = image.naturalWidth;
+                  const naturalHeight = image.naturalHeight;
+
+                  const widthPercent = crop.width ?? 0;
+                  const heightPercent = crop.height ?? 0;
+                  const xPercent = crop.x ?? 0;
+                  const yPercent = crop.y ?? 0;
+
+                  const cropWidthPx = (widthPercent / 100) * naturalWidth;
+                  const cropHeightPx = (heightPercent / 100) * naturalHeight;
+
+                  if (
+                    cropWidthPx < APPROVED_SIZE ||
+                    cropHeightPx < APPROVED_SIZE
+                  ) {
+                    setErrors(prev => [
+                      ...prev,
+                      `${croppingFile.name}: Please select an area at least ${APPROVED_SIZE}px by ${APPROVED_SIZE}px`,
+                    ]);
+                    return;
+                  }
+
+                  const canvas = document.createElement('canvas');
+                  canvas.width = APPROVED_SIZE;
+                  canvas.height = APPROVED_SIZE;
+                  const ctx = canvas.getContext('2d');
+                  if (!ctx) return;
+
+                  const sx = (xPercent / 100) * naturalWidth;
+                  const sy = (yPercent / 100) * naturalHeight;
+
+                  ctx.drawImage(
+                    image,
+                    sx,
+                    sy,
+                    cropWidthPx,
+                    cropHeightPx,
+                    0,
+                    0,
+                    APPROVED_SIZE,
+                    APPROVED_SIZE
+                  );
+
+                  canvas.toBlob(
+                    (blob) => {
+                      if (!blob) return;
+                      const croppedFile = new File([blob], croppingFile.name, {
+                        type: croppingFile.type || 'image/jpeg',
+                      });
+
+                      const preview = {
+                        file: croppedFile,
+                        url: createImagePreview(croppedFile),
+                      };
+
+                      const updatedImages = [...images, croppedFile];
+                      onImagesChange(updatedImages);
+                      setPreviews(prev => [...prev, preview]);
+
+                      if (croppingImageUrl) {
+                        URL.revokeObjectURL(croppingImageUrl);
+                      }
+                      setCroppingFile(null);
+                      setCroppingImageUrl(null);
+                      setCrop(undefined);
+                    },
+                    croppingFile.type || 'image/jpeg'
+                  );
+                }}
+              >
+                Save crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

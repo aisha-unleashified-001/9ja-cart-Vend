@@ -66,6 +66,7 @@ export default function OrdersPage() {
   // Refs for click-outside detection
   const sortRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
+  const lastFetchedQueryKey = useRef<string>("");
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -114,19 +115,34 @@ export default function OrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query.orderNo, query.customerName, query.status]);
 
+  // Only call setQuery when search/status differ from current query to avoid cascade
   useEffect(() => {
     const mappedStatus = status === "all" ? "" : status.toUpperCase();
     const cleanSearch = debouncedSearch.trim();
     const isOrderNo = cleanSearch.toUpperCase().startsWith("ORD");
+    const nextOrderNo = isOrderNo ? cleanSearch : "";
+    const nextCustomerName = !isOrderNo ? cleanSearch : "";
 
-    setQuery({
-      page: 1,
-      status: mappedStatus,
-      orderNo: isOrderNo ? cleanSearch : "",
-      customerName: !isOrderNo ? cleanSearch : "",
-    });
-  }, [debouncedSearch, status, setQuery]);
+    const currentOrderNo = query.orderNo || "";
+    const currentCustomerName = query.customerName || "";
+    const currentStatus = query.status ?? "all";
+    const effectiveCurrentStatus = currentStatus === "all" ? "" : String(currentStatus).toUpperCase();
 
+    if (
+      nextOrderNo !== currentOrderNo ||
+      nextCustomerName !== currentCustomerName ||
+      mappedStatus !== effectiveCurrentStatus
+    ) {
+      setQuery({
+        page: 1,
+        status: mappedStatus,
+        orderNo: nextOrderNo,
+        customerName: nextCustomerName,
+      });
+    }
+  }, [debouncedSearch, status, setQuery, query.orderNo, query.customerName, query.status]);
+
+  // Fetch orders only when query actually changes (avoid duplicate calls from effect cascade)
   useEffect(() => {
     const payload = {
       page: query.page,
@@ -139,6 +155,9 @@ export default function OrdersPage() {
       paymentMethod: query.paymentMethod,
       sortBy: query.sortBy,
     };
+    const key = JSON.stringify(payload);
+    if (key === lastFetchedQueryKey.current) return;
+    lastFetchedQueryKey.current = key;
     fetchOrders(payload);
   }, [
     query.page,

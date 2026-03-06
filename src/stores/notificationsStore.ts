@@ -28,6 +28,9 @@ const INITIAL_QUERY: Required<NotificationsQuery> = {
   perPage: 10,
 };
 
+/** In-flight promise for deduplicating concurrent fetchNotifications calls */
+let notificationsFetchInFlight: Promise<void> | null = null;
+
 export const useNotificationsStore = create<NotificationsStore>()(
   devtools((set, get) => ({
     notifications: [],
@@ -40,6 +43,10 @@ export const useNotificationsStore = create<NotificationsStore>()(
     updatingIds: {},
 
     fetchNotifications: async (overrideQuery) => {
+      if (notificationsFetchInFlight) {
+        return notificationsFetchInFlight;
+      }
+
       const currentQuery = {
         ...get().query,
         ...overrideQuery,
@@ -47,28 +54,35 @@ export const useNotificationsStore = create<NotificationsStore>()(
 
       set({ isLoading: true, error: null, query: currentQuery });
 
-      try {
-        const response = await notificationsService.getNotifications(currentQuery);
-        const unreadCount = response.notifications.filter(
-          (notification) => !notification.isRead
-        ).length;
+      const promise = (async () => {
+        try {
+          const response = await notificationsService.getNotifications(currentQuery);
+          const unreadCount = response.notifications.filter(
+            (notification) => !notification.isRead
+          ).length;
 
-        set({
-          notifications: response.notifications,
-          pagination: response.pagination,
-          unreadCount,
-          isLoading: false,
-          error: null,
-          hasFetched: true,
-        });
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error
-            ? error.message
-            : "Failed to load notifications";
-        set({ error: errorMessage, isLoading: false });
-        throw error;
-      }
+          set({
+            notifications: response.notifications,
+            pagination: response.pagination,
+            unreadCount,
+            isLoading: false,
+            error: null,
+            hasFetched: true,
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Failed to load notifications";
+          set({ error: errorMessage, isLoading: false });
+          throw error;
+        } finally {
+          notificationsFetchInFlight = null;
+        }
+      })();
+
+      notificationsFetchInFlight = promise;
+      return promise;
     },
 
     refresh: async () => {

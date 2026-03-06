@@ -103,49 +103,76 @@ const normalizeVendorProfile = (data: any): VendorProfile => {
 };
 
 export class DashboardService {
+  /** Deduplicate concurrent getDashboardSummary requests - prevents multiple identical API calls */
+  private dashboardSummaryInFlight: Promise<DashboardSummary> | null = null;
+
   async getDashboardSummary(): Promise<DashboardSummary> {
-    try {
-      const response = await apiClient.get<DashboardSummaryResponse>(
-        API_ENDPOINTS.VENDOR.DASHBOARD_SUMMARY,
-        { requiresAuth: true }
-      );
-
-      if (response.error || !response.data) {
-        throw new Error(
-          response.message || "Failed to fetch dashboard summary"
-        );
-      }
-
-      return normalizeDashboardSummary(response.data);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch dashboard summary";
-      throw new Error(errorMessage);
+    if (this.dashboardSummaryInFlight) {
+      return this.dashboardSummaryInFlight;
     }
+
+    const promise = (async () => {
+      try {
+        const response = await apiClient.get<DashboardSummaryResponse>(
+          API_ENDPOINTS.VENDOR.DASHBOARD_SUMMARY,
+          { requiresAuth: true }
+        );
+
+        if (response.error || !response.data) {
+          throw new Error(
+            response.message || "Failed to fetch dashboard summary"
+          );
+        }
+
+        return normalizeDashboardSummary(response.data);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch dashboard summary";
+        throw new Error(errorMessage);
+      } finally {
+        this.dashboardSummaryInFlight = null;
+      }
+    })();
+
+    this.dashboardSummaryInFlight = promise;
+    return promise;
   }
 
+  /** Deduplicate concurrent getVendorProfile requests */
+  private vendorProfileInFlight: Promise<VendorProfile> | null = null;
+
   async getVendorProfile(): Promise<VendorProfile> {
-    try {
-      const response = await apiClient.get<VendorProfile>(
-        API_ENDPOINTS.VENDOR.PROFILE,
-        { requiresAuth: true }
-      );
-
-      if (response.error || !response.data) {
-        throw new Error(response.message || "Failed to fetch vendor profile");
-      }
-
-      // Normalize the response to handle different API field names
-      return normalizeVendorProfile(response.data);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch vendor profile";
-      throw new Error(errorMessage);
+    if (this.vendorProfileInFlight) {
+      return this.vendorProfileInFlight;
     }
+
+    const promise = (async () => {
+      try {
+        const response = await apiClient.get<VendorProfile>(
+          API_ENDPOINTS.VENDOR.PROFILE,
+          { requiresAuth: true }
+        );
+
+        if (response.error || !response.data) {
+          throw new Error(response.message || "Failed to fetch vendor profile");
+        }
+
+        return normalizeVendorProfile(response.data);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch vendor profile";
+        throw new Error(errorMessage);
+      } finally {
+        this.vendorProfileInFlight = null;
+      }
+    })();
+
+    this.vendorProfileInFlight = promise;
+    return promise;
   }
 
   /**
@@ -384,12 +411,27 @@ export class DashboardService {
     }
   }
 
+  /** Deduplicate concurrent getLogo requests - prevents multiple identical API calls */
+  private logoInFlight: Promise<string | null> | null = null;
+
   /**
    * Get business logo
    * GET /vendor/get-logo
    * Expected response: { logo: string } or { data: { logo: string } }
    */
   async getLogo(): Promise<string | null> {
+    if (this.logoInFlight) {
+      return this.logoInFlight;
+    }
+
+    const promise = this.fetchLogoInternal();
+    this.logoInFlight = promise;
+    return promise.finally(() => {
+      this.logoInFlight = null;
+    });
+  }
+
+  private async fetchLogoInternal(): Promise<string | null> {
     try {
       // Get current user token
       const token = tokenStorage.get();
