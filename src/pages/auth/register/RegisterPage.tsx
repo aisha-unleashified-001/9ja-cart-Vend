@@ -7,7 +7,7 @@ import { registrationService, RegistrationError } from '@/services/registration.
 import { LoadingButton } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { DocumentUpload } from '@/components/ui/DocumentUpload';
-import { searchBanks, type Bank } from '@/lib/banks.data';
+import { fetchBanks, searchBanks, type Bank } from '@/lib/banks.data';
 import type { CompleteRegistrationData, RegistrationFieldErrors } from '@/types';
 
 interface FormData {
@@ -96,6 +96,7 @@ export default function RegisterPage() {
   const [isHoveringDialog, setIsHoveringDialog] = useState(false);
   const [bankSuggestions, setBankSuggestions] = useState<Bank[]>([]);
   const [showBankSuggestions, setShowBankSuggestions] = useState(false);
+  const [allBanks, setAllBanks] = useState<Bank[]>([]);
   const bankInputRef = useRef<HTMLInputElement>(null);
   const bankSuggestionsRef = useRef<HTMLDivElement>(null);
   const formContainerRef = useRef<HTMLDivElement>(null);
@@ -115,6 +116,25 @@ export default function RegisterPage() {
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  // Load banks list from API (with graceful fallback handled in fetchBanks)
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchBanks()
+      .then((banks) => {
+        if (isMounted) {
+          setAllBanks(banks);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load banks:", error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -457,7 +477,7 @@ export default function RegisterPage() {
     updateFormData({ bank: value });
     
     if (value.trim()) {
-      const suggestions = searchBanks(value);
+      const suggestions = searchBanks(value, allBanks.length ? allBanks : undefined);
       setBankSuggestions(suggestions);
       setShowBankSuggestions(suggestions.length > 0);
     } else {

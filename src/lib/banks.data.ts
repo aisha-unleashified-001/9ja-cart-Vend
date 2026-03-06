@@ -1,4 +1,7 @@
-// Nigerian banks with their settlement bank codes
+import { environment } from "@/config/environment";
+import { API_ENDPOINTS } from "@/lib/constants";
+
+// Nigerian banks with their settlement bank codes (fallback list)
 export interface Bank {
   code: string;
   name: string;
@@ -30,12 +33,51 @@ export const NIGERIAN_BANKS: Bank[] = [
 ];
 
 /**
+ * Fetch banks from the 9jaCart payment/banks endpoint.
+ * Returns a minimal { code, name } list and falls back to NIGERIAN_BANKS on error.
+ */
+export const fetchBanks = async (): Promise<Bank[]> => {
+  try {
+    const url = `${environment.apiBaseUrl}${API_ENDPOINTS.PAYMENT.BANKS}`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: environment.basicAuthHeader,
+      },
+    });
+
+    if (!response.ok) {
+      // If the endpoint is unavailable, keep existing behaviour.
+      console.error("Failed to fetch banks:", response.status, response.statusText);
+      return NIGERIAN_BANKS;
+    }
+
+    const result: any = await response.json().catch(() => null);
+    const data = Array.isArray(result?.data) ? result.data : [];
+
+    if (!data.length) {
+      return NIGERIAN_BANKS;
+    }
+
+    return data
+      .map((item: any) => ({
+        code: String(item.code ?? "").trim(),
+        name: String(item.name ?? "").trim(),
+      }))
+      .filter((bank: Bank) => !!bank.code && !!bank.name);
+  } catch (error) {
+    console.error("Error fetching banks list:", error);
+    return NIGERIAN_BANKS;
+  }
+};
+
+/**
  * Search banks by name (case-insensitive)
  */
-export const searchBanks = (query: string): Bank[] => {
+export const searchBanks = (query: string, banks: Bank[] = NIGERIAN_BANKS): Bank[] => {
   if (!query.trim()) return [];
   const lowerQuery = query.toLowerCase();
-  return NIGERIAN_BANKS.filter(bank =>
+  return banks.filter(bank =>
     bank.name.toLowerCase().includes(lowerQuery)
   );
 };

@@ -1,6 +1,14 @@
 import { apiClient } from "@/lib/api/client";
 
-import type { OrdersQuery, OrdersResponse } from "@/types";
+import type {
+  ApiResponse,
+  OrdersMetrics,
+  OrdersQuery,
+  OrdersResponse,
+} from "@/types";
+
+type GetOrdersReturn = Promise<ApiResponse<OrdersResponse>>;
+type GetOrdersSummaryReturn = Promise<ApiResponse<OrdersMetrics>>;
 
 /** Create stable deduplication key regardless of object key order */
 function stableQueryKey(obj: Record<string, unknown> | undefined): string {
@@ -18,13 +26,13 @@ function stableQueryKey(obj: Record<string, unknown> | undefined): string {
 }
 
 /** Deduplicate concurrent getOrders requests - only when same query */
-let ordersInFlight: { key: string; promise: Promise<unknown> } | null = null;
+let ordersInFlight: { key: string; promise: GetOrdersReturn } | null = null;
 
 /** Deduplicate concurrent getOrdersSummary requests */
-let ordersSummaryInFlight: Promise<unknown> | null = null;
+let ordersSummaryInFlight: GetOrdersSummaryReturn | null = null;
 
 export const ordersService = {
-  async getOrders(query?: OrdersQuery) {
+  async getOrders(query?: OrdersQuery): GetOrdersReturn {
     const key = stableQueryKey((query ?? {}) as Record<string, unknown>);
     if (ordersInFlight && ordersInFlight.key === key) {
       return ordersInFlight.promise as ReturnType<
@@ -32,7 +40,7 @@ export const ordersService = {
       >;
     }
 
-    const promise = (async () => {
+    const promise: GetOrdersReturn = (async () => {
       try {
         const response = await apiClient.get<OrdersResponse>(
           "/vendor/orders",
@@ -58,16 +66,18 @@ export const ordersService = {
     return response;
   },
 
-  async getOrdersSummary() {
+  async getOrdersSummary(): GetOrdersSummaryReturn {
     if (ordersSummaryInFlight) {
       return ordersSummaryInFlight as ReturnType<
         typeof ordersService.getOrdersSummary
       >;
     }
 
-    const promise = (async () => {
+    const promise: GetOrdersSummaryReturn = (async () => {
       try {
-        const response = await apiClient.get(`/vendor/orders/summary`);
+        const response = await apiClient.get<OrdersMetrics>(
+          `/vendor/orders/summary`
+        );
         return response;
       } finally {
         ordersSummaryInFlight = null;

@@ -43,6 +43,9 @@ export const API_ENDPOINTS = {
   BUSINESS: {
     CATEGORIES: "/business/get-categories",
   },
+  PAYMENT: {
+    BANKS: "/payment/banks",
+  },
   ORDERS: {
     LIST: "/vendor/orders",
     UPDATE: "/vendor/orders",
