@@ -10,9 +10,10 @@ interface UseVendorProfileReturn {
   refreshProfile: () => Promise<void>;
   updateProfile: (profileData: Partial<VendorProfile>) => Promise<void>;
   updateAccountInfo: (accountInfo: {
-    accountName?: string;
-    accountNumber?: string;
-    bank?: string;
+    accountNumber: string;
+    settlementBank: string;
+    settlementBankName: string;
+    securityPin: string;
   }) => Promise<void>;
   changePassword: (params: {
     currentPassword: string;
@@ -64,9 +65,10 @@ export const useVendorProfile = (): UseVendorProfileReturn => {
   }, []);
 
   const updateAccountInfo = useCallback(async (accountInfo: {
-    accountName?: string;
-    accountNumber?: string;
-    bank?: string;
+    accountNumber: string;
+    settlementBank: string;
+    settlementBankName: string;
+    securityPin: string;
   }) => {
     setIsLoading(true);
     setError(null);

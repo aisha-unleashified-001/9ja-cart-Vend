@@ -311,35 +311,42 @@ export class DashboardService {
   }
 
   /**
-   * Update account information (account name, account number, bank)
-   * TODO: Backend endpoint to be implemented - endpoint: /vendor/account-info
-   * Expected request body: { accountName?: string; accountNumber?: string; bank?: string; }
-   * Expected response: Updated VendorProfile or accountInfo object
+   * Update account information (account number, settlement bank)
+   * POST /vendor/profile/update-account-info
+   * Expected request body (matches registration & API docs):
+   * { accountNumber: string; settlementBank: string; settlementBankName: string; securityPin: string }
+   * securityPin is required for verification.
    */
   async updateAccountInfo(
     accountInfo: {
-      accountName?: string;
-      accountNumber?: string;
-      bank?: string;
+      accountNumber: string;
+      settlementBank: string;
+      settlementBankName: string;
+      securityPin: string;
     }
   ): Promise<VendorProfile> {
     try {
-      // TODO: Replace with actual endpoint once backend is ready
-      // For now, this will use the general profile update endpoint as a fallback
-      // Use PATCH instead of PUT for partial updates
-      const response = await apiClient.patch<VendorProfile>(
+      const payload = {
+        accountNumber: accountInfo.accountNumber,
+        settlementBank: accountInfo.settlementBank,
+        settlementBankName: accountInfo.settlementBankName,
+        securityPin: accountInfo.securityPin,
+      };
+
+      const response = await apiClient.post<void>(
         API_ENDPOINTS.VENDOR.UPDATE_ACCOUNT_INFO,
-        { accountInfo },
+        payload,
         { requiresAuth: true }
       );
 
-      if (response.error || !response.data) {
+      if (response.error) {
         throw new Error(
           response.message || "Failed to update account information"
         );
       }
 
-      return response.data;
+      // API doesn't return the updated profile, so fetch it separately.
+      return await this.getVendorProfile();
     } catch (error) {
       const errorMessage =
         error instanceof Error

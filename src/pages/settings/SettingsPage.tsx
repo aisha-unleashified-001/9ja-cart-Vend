@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { popup } from '@/lib/popup';
 import { useVendorProfile } from '@/hooks/useVendorProfile';
@@ -6,13 +6,34 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import DocumentViewerModal from '@/components/document/DocumentViewerModal';
+import { fetchBanks, searchBanks, type Bank } from '@/lib/banks.data';
 import type { VendorProfile } from '@/types';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
-  const { profile, isLoading, error, fetchProfile, updateProfile, changePassword, setSecurityPin } = useVendorProfile();
+  const { profile, isLoading, error, fetchProfile, updateProfile, updateAccountInfo, changePassword, setSecurityPin } = useVendorProfile();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<VendorProfile>>({});
+  const [isEditingAccountInfo, setIsEditingAccountInfo] = useState(false);
+  const [accountInfoForm, setAccountInfoForm] = useState<{
+    accountNumber: string;
+    bank: string;
+    settlementBank: string;
+    settlementBankName: string;
+    securityPin: string;
+  }>({
+    accountNumber: '',
+    bank: '',
+    settlementBank: '',
+    settlementBankName: '',
+    securityPin: '',
+  });
+  const [showAccountInfoSecurityPin, setShowAccountInfoSecurityPin] = useState(false);
+  const [allBanks, setAllBanks] = useState<Bank[]>([]);
+  const [bankSuggestions, setBankSuggestions] = useState<Bank[]>([]);
+  const [showBankSuggestions, setShowBankSuggestions] = useState(false);
+  const bankInputRef = useRef<HTMLInputElement>(null);
+  const bankSuggestionsRef = useRef<HTMLDivElement>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isHoveringDialog, setIsHoveringDialog] = useState(false);
   const [documentViewer, setDocumentViewer] = useState<{
@@ -48,12 +69,51 @@ export default function SettingsPage() {
     fetchProfile();
   }, [fetchProfile]);
 
+  // Fetch banks from same endpoint as registration
+  useEffect(() => {
+    let isMounted = true;
+    fetchBanks()
+      .then((banks) => {
+        if (isMounted) setAllBanks(banks);
+      })
+      .catch((err) => console.error('Failed to load banks:', err));
+    return () => { isMounted = false; };
+  }, []);
+
   // Update form data when profile is loaded
   useEffect(() => {
     if (profile) {
       setFormData(profile);
+      const bankVal = profile.accountInfo?.bank || '';
+      const banks = allBanks.length ? allBanks : [];
+      const resolved = banks.find(
+        (b) => b.code === bankVal || b.name.toLowerCase() === bankVal.toLowerCase()
+      );
+      setAccountInfoForm({
+        accountNumber: profile.accountInfo?.accountNumber || '',
+        bank: resolved ? resolved.name : bankVal,
+        settlementBank: resolved?.code || '',
+        settlementBankName: resolved?.name || bankVal || '',
+      });
     }
-  }, [profile]);
+  }, [profile, allBanks]);
+
+  // Close bank suggestions on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        showBankSuggestions &&
+        bankSuggestionsRef.current &&
+        !bankSuggestionsRef.current.contains(e.target as Node) &&
+        bankInputRef.current &&
+        !bankInputRef.current.contains(e.target as Node)
+      ) {
+        setShowBankSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showBankSuggestions]);
 
   const tabs = [
     { id: 'profile', name: 'Profile', icon: '👤' },
@@ -74,6 +134,110 @@ export default function SettingsPage() {
     setIsEditing(false);
     if (profile) {
       setFormData(profile);
+    }
+  };
+
+  const handleEditAccountInfo = () => {
+    if (!profile) return;
+    const bankVal = profile.accountInfo?.bank || '';
+    const banks = allBanks.length ? allBanks : [];
+    const resolved = banks.find(
+      (b) => b.code === bankVal || b.name.toLowerCase() === bankVal.toLowerCase()
+    );
+    setAccountInfoForm({
+      accountNumber: profile.accountInfo?.accountNumber || '',
+      bank: resolved ? resolved.name : bankVal,
+      settlementBank: resolved?.code || '',
+      settlementBankName: resolved?.name || bankVal || '',
+      securityPin: '',
+    });
+    setIsEditingAccountInfo(true);
+  };
+
+  const handleCancelAccountInfo = () => {
+    if (profile) {
+      const bankVal = profile.accountInfo?.bank || '';
+      const banks = allBanks.length ? allBanks : [];
+      const resolved = banks.find(
+        (b) => b.code === bankVal || b.name.toLowerCase() === bankVal.toLowerCase()
+      );
+      setAccountInfoForm({
+        accountNumber: profile.accountInfo?.accountNumber || '',
+        bank: resolved ? resolved.name : bankVal,
+        settlementBank: resolved?.code || '',
+        settlementBankName: resolved?.name || bankVal || '',
+        securityPin: '',
+      });
+    }
+    setShowBankSuggestions(false);
+    setIsEditingAccountInfo(false);
+  };
+
+  const handleBankInputChange = (value: string) => {
+    setAccountInfoForm((prev) => ({ ...prev, bank: value }));
+    if (value.trim()) {
+      const suggestions = searchBanks(value, allBanks.length ? allBanks : undefined);
+      setBankSuggestions(suggestions);
+      setShowBankSuggestions(suggestions.length > 0);
+    } else {
+      setBankSuggestions([]);
+      setShowBankSuggestions(false);
+      setAccountInfoForm((prev) => ({ ...prev, settlementBank: '', settlementBankName: '' }));
+    }
+  };
+
+  const handleBankSelect = (bank: Bank) => {
+    setAccountInfoForm({
+      ...accountInfoForm,
+      bank: bank.name,
+      settlementBank: bank.code,
+      settlementBankName: bank.name,
+    });
+    setShowBankSuggestions(false);
+    setBankSuggestions([]);
+  };
+
+  const handleSaveAccountInfo = async () => {
+    const acct = accountInfoForm.accountNumber.trim();
+    const pin = accountInfoForm.securityPin.trim();
+    if (!acct || !accountInfoForm.settlementBank || !accountInfoForm.settlementBankName) {
+      popup.error('Please fill in account number and select a bank from the list.');
+      return;
+    }
+    if (acct.length !== 10 || !/^\d+$/.test(acct)) {
+      popup.error('Account number must be exactly 10 digits.');
+      return;
+    }
+    if (!pin || !/^\d{6}$/.test(pin)) {
+      popup.error('Please enter your 6-digit security PIN.');
+      return;
+    }
+    try {
+      await updateAccountInfo({
+        accountNumber: acct,
+        settlementBank: accountInfoForm.settlementBank,
+        settlementBankName: accountInfoForm.settlementBankName,
+        securityPin: pin,
+      });
+      popup.success('Account information updated successfully!');
+      setIsEditingAccountInfo(false);
+    } catch (error) {
+      console.error('Failed to update account information:', error);
+      const msg = error instanceof Error ? error.message : '';
+      const needsSetup =
+        msg.toLowerCase().includes('security') &&
+        msg.toLowerCase().includes('pin') &&
+        (msg.toLowerCase().includes('required') ||
+          msg.toLowerCase().includes('not found') ||
+          msg.toLowerCase().includes('invalid') ||
+          msg.toLowerCase().includes('set up'));
+      if (needsSetup) {
+        popup.warning(
+          'Please set up your security PIN in the Security tab (2FA section) before updating your account information.'
+        );
+      } else {
+        popup.error(msg || 'Failed to update account information. Please try again.');
+      }
     }
   };
 
@@ -357,6 +521,14 @@ export default function SettingsPage() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-foreground">Account Information</h3>
+              {!isEditingAccountInfo && (
+                <button
+                  onClick={handleEditAccountInfo}
+                  className="px-4 py-2 text-sm bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
+                >
+                  Edit
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -373,20 +545,135 @@ export default function SettingsPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Account Number
                 </label>
-                <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
-                  {profile.accountInfo?.accountNumber || 'Nil'}
-                </p>
+                {isEditingAccountInfo ? (
+                  <input
+                    type="text"
+                    value={accountInfoForm.accountNumber}
+                    onChange={(e) =>
+                      setAccountInfoForm((prev) => ({
+                        ...prev,
+                        accountNumber: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                  />
+                ) : (
+                  <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
+                    {profile.accountInfo?.accountNumber || 'Nil'}
+                  </p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Bank
                 </label>
-                <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
-                  {profile.accountInfo?.bank || 'Nil'}
-                </p>
+                {isEditingAccountInfo ? (
+                  <div className="relative">
+                    <input
+                      ref={bankInputRef}
+                      type="text"
+                      value={accountInfoForm.bank}
+                      onChange={(e) => handleBankInputChange(e.target.value)}
+                      onFocus={() => {
+                        if (accountInfoForm.bank.trim()) {
+                          const suggestions = searchBanks(accountInfoForm.bank, allBanks.length ? allBanks : undefined);
+                          setBankSuggestions(suggestions);
+                          setShowBankSuggestions(suggestions.length > 0);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                      placeholder="Type to search bank name"
+                    />
+                    {showBankSuggestions && bankSuggestions.length > 0 && (
+                      <div
+                        ref={bankSuggestionsRef}
+                        className="absolute z-10 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto"
+                      >
+                        {bankSuggestions.map((bank) => (
+                          <button
+                            key={bank.code}
+                            type="button"
+                            onClick={() => handleBankSelect(bank)}
+                            className="w-full text-left px-4 py-2 hover:bg-secondary focus:bg-secondary focus:outline-none text-foreground"
+                          >
+                            <div className="font-medium">{bank.name}</div>
+                            <div className="text-xs text-muted-foreground">Code: {bank.code}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {accountInfoForm.settlementBank && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Selected: {accountInfoForm.settlementBankName} ({accountInfoForm.settlementBank})
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="px-3 py-2 bg-secondary/50 rounded-md text-foreground">
+                    {profile.accountInfo?.bank || 'Nil'}
+                  </p>
+                )}
               </div>
+
+              {isEditingAccountInfo && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Security PIN
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showAccountInfoSecurityPin ? 'text' : 'password'}
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={accountInfoForm.securityPin}
+                      onChange={(e) =>
+                        setAccountInfoForm((prev) => ({
+                          ...prev,
+                          securityPin: e.target.value.replace(/\D/g, ''),
+                        }))
+                      }
+                      className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                      placeholder="Enter your 6-digit security PIN"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowAccountInfoSecurityPin((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                      aria-label={showAccountInfoSecurityPin ? 'Hide PIN' : 'Show PIN'}
+                    >
+                      {showAccountInfoSecurityPin ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Required to verify changes to your settlement account
+                  </p>
+                </div>
+              )}
             </div>
+
+            {isEditingAccountInfo && (
+              <div className="mt-6 pt-6 border-t border-border">
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={handleCancelAccountInfo}
+                    className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveAccountInfo}
+                    className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         );
 
