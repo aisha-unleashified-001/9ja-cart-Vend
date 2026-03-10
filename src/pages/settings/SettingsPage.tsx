@@ -94,6 +94,7 @@ export default function SettingsPage() {
         bank: resolved ? resolved.name : bankVal,
         settlementBank: resolved?.code || '',
         settlementBankName: resolved?.name || bankVal || '',
+        securityPin: '',
       });
     }
   }, [profile, allBanks]);
