@@ -200,6 +200,50 @@ export class DashboardService {
   }
 
   /**
+   * Enable 2FA — requires the user's security PIN as verification
+   * POST /vendor/profile/enable-2fa
+   */
+  async enable2FA(securityPin: string): Promise<void> {
+    try {
+      const response = await apiClient.post<void>(
+        API_ENDPOINTS.VENDOR.ENABLE_2FA,
+        { securityPin },
+        { requiresAuth: true }
+      );
+
+      if (response.error) {
+        throw new Error(response.message || "Failed to enable 2FA");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to enable 2FA";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Disable 2FA — requires the user's security PIN as verification
+   * POST /vendor/profile/disable-2fa
+   */
+  async disable2FA(securityPin: string): Promise<void> {
+    try {
+      const response = await apiClient.post<void>(
+        API_ENDPOINTS.VENDOR.DISABLE_2FA,
+        { securityPin },
+        { requiresAuth: true }
+      );
+
+      if (response.error) {
+        throw new Error(response.message || "Failed to disable 2FA");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to disable 2FA";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Change vendor account password
    * POST /vendor/profile/change-password
    * Expected request body: { currentPassword: string; newPassword: string }
