@@ -7,6 +7,7 @@ import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { ProfileImageUpload } from '@/components/profile/ProfileImageUpload';
 import DocumentViewerModal from '@/components/document/DocumentViewerModal';
 import { fetchBanks, searchBanks, type Bank } from '@/lib/banks.data';
+import { STORAGE_KEYS } from '@/lib/constants';
 import type { VendorProfile } from '@/types';
 
 export default function SettingsPage() {
@@ -41,8 +42,6 @@ export default function SettingsPage() {
     name: string;
   } | null>(null);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
-  const [showTwoFactorDialog, setShowTwoFactorDialog] = useState(false);
-  const [isTwoFactorSubmitting, setIsTwoFactorSubmitting] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -52,17 +51,21 @@ export default function SettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isTwoFactorEnabled, setIsTwoFactorEnabled] = useState(false);
-  const [twoFactorMode, setTwoFactorMode] = useState<'enable' | 'disable'>('enable');
-  const [enablePinValue, setEnablePinValue] = useState('');
-  const [showEnablePin, setShowEnablePin] = useState(false);
-  // Security PIN — separate from 2FA toggle
-  const [hasPinSet, setHasPinSet] = useState(false);
-  const [showSecurityPinDialog, setShowSecurityPinDialog] = useState(false);
-  const [isSecurityPinSubmitting, setIsSecurityPinSubmitting] = useState(false);
-  const [securityPinForm, setSecurityPinForm] = useState({ pin: '', confirmPin: '' });
-  const [showSecurityPinPin, setShowSecurityPinPin] = useState(false);
-  const [showSecurityPinConfirm, setShowSecurityPinConfirm] = useState(false);
+  const [isTwoFactorEnabled, setIsTwoFactorEnabledState] = useState(
+    () => localStorage.getItem(STORAGE_KEYS.VENDOR_2FA_ENABLED) === 'true'
+  );
+  const setIsTwoFactorEnabled = (enabled: boolean) => {
+    setIsTwoFactorEnabledState(enabled);
+    localStorage.setItem(STORAGE_KEYS.VENDOR_2FA_ENABLED, String(enabled));
+  };
+  const [hasPinSet, setHasPinSet] = useState(true);
+  const [show2FAPopup, setShow2FAPopup] = useState(false);
+  const [twoFactorPopupMode, setTwoFactorPopupMode] = useState<'setup' | 'verify-enable' | 'verify-disable'>('setup');
+  const [pinValue, setPinValue] = useState('');
+  const [confirmPinValue, setConfirmPinValue] = useState('');
+  const [showPin, setShowPin] = useState(false);
+  const [showConfirmPin, setShowConfirmPin] = useState(false);
+  const [is2FASubmitting, setIs2FASubmitting] = useState(false);
 
   // Fetch profile data on component mount
   useEffect(() => {
@@ -234,7 +237,7 @@ export default function SettingsPage() {
           msg.toLowerCase().includes('set up'));
       if (needsSetup) {
         popup.warning(
-          'Please set up your security PIN in the Security tab (2FA section) before updating your account information.'
+          'Please set up your security PIN by enabling 2FA in the Security tab before updating your account information.'
         );
       } else {
         popup.error(msg || 'Failed to update account information. Please try again.');
@@ -275,18 +278,17 @@ export default function SettingsPage() {
     setShowChangePasswordDialog(true);
   };
 
-  const handleOpenTwoFactor = () => {
-    setTwoFactorMode(isTwoFactorEnabled ? 'disable' : 'enable');
-    setEnablePinValue('');
-    setShowEnablePin(false);
-    setShowTwoFactorDialog(true);
-  };
-
-  const handleOpenSecurityPin = () => {
-    setSecurityPinForm({ pin: '', confirmPin: '' });
-    setShowSecurityPinPin(false);
-    setShowSecurityPinConfirm(false);
-    setShowSecurityPinDialog(true);
+  const handle2FAToggleClick = () => {
+    setPinValue('');
+    setConfirmPinValue('');
+    setShowPin(false);
+    setShowConfirmPin(false);
+    if (isTwoFactorEnabled) {
+      setTwoFactorPopupMode('verify-disable');
+    } else {
+      setTwoFactorPopupMode(hasPinSet ? 'verify-enable' : 'setup');
+    }
+    setShow2FAPopup(true);
   };
 
   const handleCloseChangePassword = () => {
@@ -294,14 +296,9 @@ export default function SettingsPage() {
     setShowChangePasswordDialog(false);
   };
 
-  const handleCloseTwoFactor = () => {
-    if (isTwoFactorSubmitting) return;
-    setShowTwoFactorDialog(false);
-  };
-
-  const handleCloseSecurityPin = () => {
-    if (isSecurityPinSubmitting) return;
-    setShowSecurityPinDialog(false);
+  const handleClose2FAPopup = () => {
+    if (is2FASubmitting) return;
+    setShow2FAPopup(false);
   };
 
   const handleSubmitChangePassword = async (e: React.FormEvent) => {
@@ -337,89 +334,101 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSubmitTwoFactor = async (e: React.FormEvent) => {
+  const handleSubmit2FAPopup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (twoFactorMode === 'enable') {
-      if (!enablePinValue || !/^\d{6}$/.test(enablePinValue)) {
+    if (twoFactorPopupMode === 'setup') {
+      if (!pinValue || !confirmPinValue) {
+        popup.error('Please enter and confirm your 6-digit PIN.');
+        return;
+      }
+      if (!/^\d{6}$/.test(pinValue)) {
+        popup.error('PIN must be exactly 6 digits.');
+        return;
+      }
+      if (pinValue !== confirmPinValue) {
+        popup.error('PIN and confirmation PIN do not match.');
+        return;
+      }
+      try {
+        setIs2FASubmitting(true);
+        await setSecurityPin(pinValue);
+        await enable2FA(pinValue);
+        setHasPinSet(true);
+        setIsTwoFactorEnabled(true);
+        popup.success('Two-step verification enabled successfully.');
+        setShow2FAPopup(false);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : '';
+        if (msg.toLowerCase().includes('already exists')) {
+          setHasPinSet(true);
+          try {
+            await enable2FA(pinValue);
+            setIsTwoFactorEnabled(true);
+            popup.success('2FA enabled successfully.');
+          } catch (e2) {
+            const m2 = e2 instanceof Error ? e2.message : String(e2);
+            if (m2.toLowerCase().includes('already enabled')) {
+              setIsTwoFactorEnabled(true);
+              popup.success('2FA is already enabled for your account.');
+            } else {
+              popup.error(m2 || 'Failed to enable 2FA.');
+            }
+          }
+          setShow2FAPopup(false);
+        } else {
+          popup.error(msg || 'Failed to set up 2FA. Please try again.');
+        }
+      } finally {
+        setIs2FASubmitting(false);
+      }
+      return;
+    }
+
+    if (twoFactorPopupMode === 'verify-enable') {
+      if (!pinValue || !/^\d{6}$/.test(pinValue)) {
         popup.error('Please enter your 6-digit security PIN.');
         return;
       }
       try {
-        setIsTwoFactorSubmitting(true);
-        await enable2FA(enablePinValue);
+        setIs2FASubmitting(true);
+        await enable2FA(pinValue);
         setIsTwoFactorEnabled(true);
         popup.success('Two-step verification enabled successfully.');
-        setShowTwoFactorDialog(false);
+        setShow2FAPopup(false);
       } catch (err) {
         const msg = err instanceof Error ? err.message : '';
         if (msg.toLowerCase().includes('already enabled')) {
           setIsTwoFactorEnabled(true);
-          setShowTwoFactorDialog(false);
+          setShow2FAPopup(false);
           popup.success('2FA is already enabled for your account.');
         } else {
           popup.error(msg || 'Failed to enable 2FA. Please try again.');
         }
       } finally {
-        setIsTwoFactorSubmitting(false);
+        setIs2FASubmitting(false);
       }
       return;
     }
 
-    if (twoFactorMode === 'disable') {
-      if (!enablePinValue || !/^\d{6}$/.test(enablePinValue)) {
+    if (twoFactorPopupMode === 'verify-disable') {
+      if (!pinValue || !/^\d{6}$/.test(pinValue)) {
         popup.error('Please enter your 6-digit security PIN.');
         return;
       }
       try {
-        setIsTwoFactorSubmitting(true);
-        await disable2FA(enablePinValue);
+        setIs2FASubmitting(true);
+        await disable2FA(pinValue);
         setIsTwoFactorEnabled(false);
         popup.success('Two-step verification disabled successfully.');
-        setShowTwoFactorDialog(false);
+        setShow2FAPopup(false);
       } catch (err) {
         popup.error(
           err instanceof Error ? err.message : 'Failed to disable 2FA. Please try again.'
         );
       } finally {
-        setIsTwoFactorSubmitting(false);
+        setIs2FASubmitting(false);
       }
-    }
-  };
-
-  const handleSubmitSecurityPin = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!securityPinForm.pin || !securityPinForm.confirmPin) {
-      popup.error('Please enter and confirm your 6-digit PIN.');
-      return;
-    }
-    if (!/^\d{6}$/.test(securityPinForm.pin)) {
-      popup.error('PIN must be exactly 6 digits.');
-      return;
-    }
-    if (securityPinForm.pin !== securityPinForm.confirmPin) {
-      popup.error('PIN and confirmation PIN do not match.');
-      return;
-    }
-
-    try {
-      setIsSecurityPinSubmitting(true);
-      await setSecurityPin(securityPinForm.pin);
-      setHasPinSet(true);
-      popup.success('Security PIN set successfully.');
-      setShowSecurityPinDialog(false);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.toLowerCase().includes('already exists')) {
-        setHasPinSet(true);
-        setShowSecurityPinDialog(false);
-        popup.success('Security PIN is already configured for your account.');
-      } else {
-        popup.error(msg || 'Failed to set security PIN. Please try again.');
-      }
-    } finally {
-      setIsSecurityPinSubmitting(false);
     }
   };
 
@@ -883,22 +892,21 @@ export default function SettingsPage() {
                       Keep your account secure with strong authentication
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {!hasPinSet && (
-                      <button
-                        className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors text-sm"
-                        onClick={handleOpenSecurityPin}
-                      >
-                        Security PIN
-                      </button>
-                    )}
-                    <button
-                      className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors text-sm"
-                      onClick={handleOpenTwoFactor}
-                    >
-                      2FA
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isTwoFactorEnabled}
+                    onClick={handle2FAToggleClick}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                      isTwoFactorEnabled ? 'bg-[#8DEB6E]' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-6 w-5 transform rounded-full bg-white shadow ring-0 transition ${
+                        isTwoFactorEnabled ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
                 </div>
               </div>
             </div>
@@ -1195,12 +1203,12 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Two-Factor Authentication Dialog */}
-      {showTwoFactorDialog && (
+      {/* 2FA Popup - setup, enable, or disable */}
+      {show2FAPopup && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
           onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseTwoFactor();
+            if (e.target === e.currentTarget) handleClose2FAPopup();
           }}
         >
           <div
@@ -1208,195 +1216,135 @@ export default function SettingsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold text-foreground mb-1">
-              {twoFactorMode === 'enable' ? 'Enable Two-Step Verification' : 'Disable Two-Step Verification'}
+              {twoFactorPopupMode === 'setup' && 'Set Up Security PIN'}
+              {twoFactorPopupMode === 'verify-enable' && 'Enable Two-Step Verification'}
+              {twoFactorPopupMode === 'verify-disable' && 'Disable Two-Step Verification'}
             </h2>
-            <div className="flex items-center gap-2 mb-5">
-              <span className={`px-2 py-0.5 text-xs rounded-full ${isTwoFactorEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
-                {isTwoFactorEnabled ? '2FA Enabled' : '2FA Disabled'}
-              </span>
-            </div>
 
-            <form onSubmit={handleSubmitTwoFactor}>
-              {twoFactorMode === 'enable' ? (
-                <div className="space-y-4 mb-6">
+            <form className="space-y-4" onSubmit={handleSubmit2FAPopup}>
+              {twoFactorPopupMode === 'setup' && (
+                <>
                   <p className="text-sm text-muted-foreground">
-                    Enter your security PIN to enable two-step verification.
+                    Create a 6-digit PIN to protect sensitive account actions. You will need this to update your settlement details.
                   </p>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Security PIN
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-2">New 6-digit PIN</label>
                     <div className="relative">
                       <input
-                        type={showEnablePin ? 'text' : 'password'}
+                        type={showPin ? 'text' : 'password'}
                         inputMode="numeric"
                         maxLength={6}
-                        value={enablePinValue}
-                        onChange={(e) => setEnablePinValue(e.target.value.replace(/\D/g, ''))}
+                        value={pinValue}
+                        onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ''))}
                         className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                        placeholder="Enter your 6-digit PIN"
+                        placeholder="Enter 6-digit PIN"
                         autoFocus
                       />
                       <button
                         type="button"
-                        onClick={() => setShowEnablePin((prev) => !prev)}
+                        onClick={() => setShowPin((prev) => !prev)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-                        aria-label={showEnablePin ? 'Hide PIN' : 'Show PIN'}
+                        aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
                       >
-                        {showEnablePin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="space-y-4 mb-6">
-                  <p className="text-sm text-foreground">
-                    Enter your security PIN to disable two-step verification.
-                  </p>
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Security PIN
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-2">Confirm PIN</label>
                     <div className="relative">
                       <input
-                        type={showEnablePin ? 'text' : 'password'}
+                        type={showConfirmPin ? 'text' : 'password'}
                         inputMode="numeric"
                         maxLength={6}
-                        value={enablePinValue}
-                        onChange={(e) => setEnablePinValue(e.target.value.replace(/\D/g, ''))}
+                        value={confirmPinValue}
+                        onChange={(e) => setConfirmPinValue(e.target.value.replace(/\D/g, ''))}
+                        className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                        placeholder="Re-enter 6-digit PIN"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPin((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                        aria-label={showConfirmPin ? 'Hide PIN' : 'Show PIN'}
+                      >
+                        {showConfirmPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Forgot your PIN? Use <span className="font-medium text-foreground">Forgot Password</span> on the login page, then set up a new PIN here.
+                  </p>
+                </>
+              )}
+
+              {(twoFactorPopupMode === 'verify-enable' || twoFactorPopupMode === 'verify-disable') && (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    {twoFactorPopupMode === 'verify-enable'
+                      ? 'Enter your security PIN to enable two-step verification.'
+                      : 'Enter your security PIN to disable two-step verification.'}
+                  </p>
+                  {twoFactorPopupMode === 'verify-enable' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPinValue('');
+                        setConfirmPinValue('');
+                        setTwoFactorPopupMode('setup');
+                      }}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Don't have a PIN? Set one up
+                    </button>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Security PIN</label>
+                    <div className="relative">
+                      <input
+                        type={showPin ? 'text' : 'password'}
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={pinValue}
+                        onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ''))}
                         className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                         placeholder="Enter your 6-digit PIN"
                         autoFocus
                       />
                       <button
                         type="button"
-                        onClick={() => setShowEnablePin((prev) => !prev)}
+                        onClick={() => setShowPin((prev) => !prev)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-                        aria-label={showEnablePin ? 'Hide PIN' : 'Show PIN'}
+                        aria-label={showPin ? 'Hide PIN' : 'Show PIN'}
                       >
-                        {showEnablePin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {showPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
                 </div>
               )}
 
-              <div className="flex justify-end space-x-3">
+              <div className="flex justify-end space-x-3 pt-2">
                 <button
                   type="button"
-                  onClick={handleCloseTwoFactor}
-                  disabled={isTwoFactorSubmitting}
+                  onClick={handleClose2FAPopup}
+                  disabled={is2FASubmitting}
                   className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isTwoFactorSubmitting}
+                  disabled={is2FASubmitting}
                   className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors disabled:opacity-50"
                 >
-                  {isTwoFactorSubmitting ? 'Saving...' : twoFactorMode === 'enable' ? 'Enable 2FA' : 'Disable 2FA'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Security PIN Setup Dialog */}
-      {showSecurityPinDialog && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseSecurityPin();
-          }}
-        >
-          <div
-            className="bg-white rounded-lg w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-xl font-bold text-foreground mb-1">Set Security PIN</h2>
-            <p className="text-sm text-muted-foreground mb-5">
-              Create a 6-digit PIN to protect sensitive account actions such as updating your settlement details.
-            </p>
-
-            <form className="space-y-4" onSubmit={handleSubmitSecurityPin}>
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  New 6-digit PIN
-                </label>
-                <div className="relative">
-                  <input
-                    type={showSecurityPinPin ? 'text' : 'password'}
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={securityPinForm.pin}
-                    onChange={(e) =>
-                      setSecurityPinForm((prev) => ({ ...prev, pin: e.target.value.replace(/\D/g, '') }))
-                    }
-                    className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Enter 6-digit PIN"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSecurityPinPin((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-                    aria-label={showSecurityPinPin ? 'Hide PIN' : 'Show PIN'}
-                  >
-                    {showSecurityPinPin ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Confirm PIN
-                </label>
-                <div className="relative">
-                  <input
-                    type={showSecurityPinConfirm ? 'text' : 'password'}
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={securityPinForm.confirmPin}
-                    onChange={(e) =>
-                      setSecurityPinForm((prev) => ({ ...prev, confirmPin: e.target.value.replace(/\D/g, '') }))
-                    }
-                    className="w-full px-3 py-2 pr-10 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Re-enter 6-digit PIN"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSecurityPinConfirm((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
-                    aria-label={showSecurityPinConfirm ? 'Hide PIN' : 'Show PIN'}
-                  >
-                    {showSecurityPinConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-xs text-muted-foreground pt-1">
-                Forgot your PIN? Use{' '}
-                <span className="font-medium text-foreground">Forgot Password</span>{' '}
-                on the login page, then set up a new PIN here.
-              </p>
-
-              <div className="mt-2 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={handleCloseSecurityPin}
-                  disabled={isSecurityPinSubmitting}
-                  className="px-4 py-2 border border-border rounded-md text-foreground hover:bg-secondary transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSecurityPinSubmitting}
-                  className="px-4 py-2 bg-[#8DEB6E] text-primary rounded-md hover:bg-[#8DEB6E]/90 transition-colors disabled:opacity-50"
-                >
-                  {isSecurityPinSubmitting ? 'Saving...' : 'Set PIN'}
+                  {is2FASubmitting
+                    ? 'Saving...'
+                    : twoFactorPopupMode === 'setup'
+                    ? 'Set PIN & Enable'
+                    : twoFactorPopupMode === 'verify-enable'
+                    ? 'Enable 2FA'
+                    : 'Disable 2FA'}
                 </button>
               </div>
             </form>

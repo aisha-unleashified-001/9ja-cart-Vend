@@ -66,6 +66,8 @@ export const STORAGE_KEYS = {
   REMEMBER_ME_EMAIL: "remember_me_email",
   /** When "true", auth is in localStorage (persist). When "false", auth is in sessionStorage (session only). */
   AUTH_REMEMBER_ME: "auth_remember_me",
+  /** Persisted 2FA enabled state for the current session/device. */
+  VENDOR_2FA_ENABLED: "vendor_2fa_enabled",
 } as const;
 
 // Session timeout: 1 hour in milliseconds
