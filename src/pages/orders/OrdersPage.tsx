@@ -58,7 +58,7 @@ export default function OrdersPage() {
     query.customerName || query.orderNo || ""
   );
   const [debouncedSearch, setDebouncedSearch] = useState(search);
-  const [status, setStatus] = useState(query.status ?? "all");
+  const [status, setStatus] = useState(query.status ? query.status.toLowerCase() : "all");
 
   const currentPage = query.page || 1;
   const totalPages = pagination?.totalPages || 1;
@@ -110,14 +110,14 @@ export default function OrdersPage() {
       setDebouncedSearch(storeSearch);
     }
 
-    const currentStatus = query.status || "all";
+    const currentStatus = query.status ? query.status.toLowerCase() : "all";
     if (currentStatus !== status) setStatus(currentStatus);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query.orderNo, query.customerName, query.status]);
 
   // Only call setQuery when search/status differ from current query to avoid cascade
   useEffect(() => {
-    const mappedStatus = status === "all" ? "" : status.toUpperCase();
+    const mappedStatus = status === "all" ? undefined : status.toUpperCase();
     const cleanSearch = debouncedSearch.trim();
     const isOrderNo = cleanSearch.toUpperCase().startsWith("ORD");
     const nextOrderNo = isOrderNo ? cleanSearch : "";
@@ -125,20 +125,27 @@ export default function OrdersPage() {
 
     const currentOrderNo = query.orderNo || "";
     const currentCustomerName = query.customerName || "";
-    const currentStatus = query.status ?? "all";
-    const effectiveCurrentStatus = currentStatus === "all" ? "" : String(currentStatus).toUpperCase();
+    const effectiveCurrentStatus = query.status;
 
     if (
       nextOrderNo !== currentOrderNo ||
       nextCustomerName !== currentCustomerName ||
       mappedStatus !== effectiveCurrentStatus
     ) {
-      setQuery({
+      const next: Partial<typeof query> = {
         page: 1,
-        status: mappedStatus,
         orderNo: nextOrderNo,
         customerName: nextCustomerName,
-      });
+      };
+
+      // Only include status when not "all" so backend sees unfiltered list.
+      if (mappedStatus !== undefined) {
+        next.status = mappedStatus;
+      } else {
+        next.status = undefined;
+      }
+
+      setQuery(next);
     }
   }, [debouncedSearch, status, setQuery, query.orderNo, query.customerName, query.status]);
 

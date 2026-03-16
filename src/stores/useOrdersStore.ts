@@ -33,7 +33,6 @@ const initialState: OrdersState = {
   query: {
     page: 1,
     perPage: 10,
-    status: "all",
     // search: "",
     sortBy: "recent",
   },

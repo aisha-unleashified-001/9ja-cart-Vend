@@ -4,7 +4,7 @@ import type { CreateProductRequest, CreateProductPayload, EditProductPayload } f
  * Convert CreateProductRequest to CreateProductPayload for JSON API
  */
 export const createProductPayload = (request: CreateProductRequest): CreateProductPayload => {
-  return {
+  const payload: CreateProductPayload = {
     productName: request.productName,
     productCategory: request.categoryId, // Send UUID string directly
     unitPrice: parseFloat(request.unitPrice),
@@ -15,6 +15,16 @@ export const createProductPayload = (request: CreateProductRequest): CreateProdu
     minStock: parseInt(request.minStock),
     tag: request.productTags,
   };
+
+  if (request.productVariations && request.productVariations.length > 0) {
+    payload.productVariations = request.productVariations;
+  }
+
+  if (request.productFeatures && request.productFeatures.length > 0) {
+    payload.productFeatures = request.productFeatures;
+  }
+
+  return payload;
 };
 
 /**
@@ -32,6 +42,13 @@ export const createEditProductPayload = (request: Partial<CreateProductRequest>)
   if (request.stock) payload.stock = parseInt(request.stock);
   if (request.minStock) payload.minStock = parseInt(request.minStock);
   if (request.productTags) payload.tag = request.productTags;
+  if (request.productVariations && request.productVariations.length > 0) {
+    payload.productVariations = request.productVariations;
+  }
+
+  if (request.productFeatures && request.productFeatures.length > 0) {
+    payload.productFeatures = request.productFeatures;
+  }
 
   return payload;
 };

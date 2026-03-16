@@ -13,7 +13,8 @@ import { TagsInput } from "@/components/ui/TagsInput";
 import { formatImageUrls } from "@/lib/image.utils";
 import { getProductStatus } from "@/lib/product.utils";
 import { DEFAULT_COMMISSION_PERCENTAGE } from "@/lib/constants";
-import type { Product, UpdateProductRequest } from "@/types";
+import type { Product, UpdateProductRequest, ProductVariation, ProductFeature } from "@/types";
+import { Plus, X, Layers } from "lucide-react";
 
 const normalizeIsActiveValue = (value: Product["isActive"]): string =>
   value === "1" || value === 1 || value === true ? "1" : "0";
@@ -73,6 +74,14 @@ export default function EditProductPage() {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
+  // Product Variations state
+  const [hasVariations, setHasVariations] = useState(false);
+  const [productVariations, setProductVariations] = useState<ProductVariation[]>([]);
+  const [variationInputs, setVariationInputs] = useState<string[]>([]);
+
+  // Product Features state
+  const [productFeatures, setProductFeatures] = useState<ProductFeature[]>([]);
+
   // Load product and categories on component mount
   useEffect(() => {
     if (id) {
@@ -105,8 +114,99 @@ export default function EditProductPage() {
       });
       // Store existing images separately
       setExistingImages(product.images || []);
+
+      // Restore variations state from saved product data
+      const savedVariations = product.productVariations ?? [];
+      if (savedVariations.length > 0) {
+        setHasVariations(true);
+        setProductVariations(savedVariations);
+        setVariationInputs(savedVariations.map(() => ""));
+      } else {
+        setHasVariations(false);
+        setProductVariations([]);
+        setVariationInputs([]);
+      }
+
+      // Restore features state from saved product data
+      const savedFeatures = product.productFeatures ?? [];
+      if (savedFeatures.length > 0) {
+        setProductFeatures(savedFeatures);
+      } else {
+        setProductFeatures([]);
+      }
     }
   }, [product]);
+
+  // ── Variation helpers ──────────────────────────────────────────────────────
+
+  const VARIATION_PRESETS = ["Size", "Color", "Measurement"];
+
+  const toggleVariations = () => {
+    setHasVariations((prev) => {
+      if (!prev && productVariations.length === 0) {
+        setProductVariations([{ name: "", options: [] }]);
+        setVariationInputs([""]);
+      }
+      return !prev;
+    });
+  };
+
+  const addVariation = () => {
+    setProductVariations((prev) => [...prev, { name: "", options: [] }]);
+    setVariationInputs((prev) => [...prev, ""]);
+  };
+
+  const removeVariation = (index: number) => {
+    setProductVariations((prev) => prev.filter((_, i) => i !== index));
+    setVariationInputs((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateVariationName = (index: number, name: string) => {
+    setProductVariations((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, name } : v))
+    );
+  };
+
+  const addVariationOption = (index: number, option: string) => {
+    const trimmed = option.trim();
+    if (!trimmed) return;
+    setProductVariations((prev) =>
+      prev.map((v, i) => {
+        if (i !== index) return v;
+        if (v.options.includes(trimmed)) return v;
+        return { ...v, options: [...v.options, trimmed] };
+      })
+    );
+    setVariationInputs((prev) => prev.map((val, i) => (i === index ? "" : val)));
+  };
+
+  const removeVariationOption = (varIndex: number, optIndex: number) => {
+    setProductVariations((prev) =>
+      prev.map((v, i) =>
+        i === varIndex
+          ? { ...v, options: v.options.filter((_, oi) => oi !== optIndex) }
+          : v
+      )
+    );
+  };
+
+  const handleVariationInputKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addVariationOption(index, variationInputs[index] || "");
+    } else if (
+      e.key === "Backspace" &&
+      (variationInputs[index] || "") === "" &&
+      productVariations[index].options.length > 0
+    ) {
+      removeVariationOption(index, productVariations[index].options.length - 1);
+    }
+  };
+
+  // ──────────────────────────────────────────────────────────────────────────
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -157,6 +257,24 @@ export default function EditProductPage() {
       }
     }
 
+    // Validate product variations when enabled
+    if (hasVariations) {
+      const filledVariations = productVariations.filter(
+        (v) => v.name.trim() !== "" || v.options.length > 0
+      );
+      for (let i = 0; i < filledVariations.length; i++) {
+        const v = filledVariations[i];
+        if (!v.name.trim()) {
+          newErrors.variations = `Variation #${i + 1} must have a name`;
+          break;
+        }
+        if (v.options.length === 0) {
+          newErrors.variations = `Variation "${v.name}" must have at least one option`;
+          break;
+        }
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -177,6 +295,10 @@ export default function EditProductPage() {
     setIsUpdating(true);
 
     try {
+      const validatedVariations: ProductVariation[] = hasVariations
+        ? productVariations.filter((v) => v.name.trim() !== "" && v.options.length > 0)
+        : [];
+
       const productData: UpdateProductRequest = {
         productId: id,
         productName: form.productName,
@@ -190,6 +312,8 @@ export default function EditProductPage() {
         minStock: form.minStock,
         images: [], // Images handled separately
         isActive: form.isActive,
+        productVariations: validatedVariations.length > 0 ? validatedVariations : undefined,
+        productFeatures: productFeatures.length > 0 ? productFeatures : undefined,
       };
 
       await updateProduct(productData);
@@ -793,6 +917,235 @@ export default function EditProductPage() {
               />
               {errors.productTags && (
                 <ErrorMessage message={errors.productTags} className="mt-2" />
+              )}
+            </div>
+
+            {/* Product Features */}
+            <div className="bg-card border border-border rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4">
+                Product Features
+              </h2>
+              <p className="text-xs text-muted-foreground mb-3">
+                Edit key attributes like material, weight, or specs.
+              </p>
+
+              <div className="space-y-3">
+                {productFeatures.map((feature, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center"
+                  >
+                    <input
+                      type="text"
+                      value={feature.name}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setProductFeatures((prev) =>
+                          prev.map((f, i) =>
+                            i === index ? { ...f, name: value } : f
+                          )
+                        );
+                      }}
+                      placeholder="Feature name (e.g. Material)"
+                      className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                      disabled={isUpdating || isSuspended}
+                    />
+                    <input
+                      type="text"
+                      value={feature.value}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setProductFeatures((prev) =>
+                          prev.map((f, i) =>
+                            i === index ? { ...f, value } : f
+                          )
+                        );
+                      }}
+                      placeholder="Value (e.g. Leather)"
+                      className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                      disabled={isUpdating || isSuspended}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setProductFeatures((prev) =>
+                          prev.filter((_, i) => i !== index)
+                        )
+                      }
+                      disabled={isUpdating || isSuspended}
+                      className="inline-flex items-center justify-center px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md border border-border disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setProductFeatures((prev) => [
+                      ...prev,
+                      { name: "", value: "" },
+                    ])
+                  }
+                  disabled={isUpdating || isSuspended}
+                  className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add feature
+                </button>
+              </div>
+            </div>
+
+            {/* Product Variations */}
+            <div className="bg-card border border-border rounded-lg p-6">
+              <div className="flex items-start justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground">
+                      Product Variations
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      e.g. Size, Color, Measurement
+                    </p>
+                  </div>
+                </div>
+                {/* Toggle switch */}
+                <button
+                  type="button"
+                  onClick={toggleVariations}
+                  disabled={isUpdating || isSuspended}
+                  aria-pressed={hasVariations}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 ${
+                    hasVariations ? "bg-[#8DEB6E]" : "bg-muted"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      hasVariations ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {hasVariations && (
+                <div className="mt-4 space-y-4">
+                  {productVariations.map((variation, vIdx) => (
+                    <div
+                      key={vIdx}
+                      className="border border-border rounded-md p-4 space-y-3 bg-secondary/20"
+                    >
+                      {/* Variation header row */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={variation.name}
+                          onChange={(e) => updateVariationName(vIdx, e.target.value)}
+                          placeholder="Variation name (e.g. Size, Color)"
+                          disabled={isUpdating || isSuspended}
+                          className="flex-1 px-3 py-2 border border-border rounded-md bg-input text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeVariation(vIdx)}
+                          disabled={isUpdating || isSuspended}
+                          className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                          aria-label="Remove variation"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {/* Preset name suggestions */}
+                      <div className="flex flex-wrap gap-2">
+                        {VARIATION_PRESETS.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            disabled={isUpdating || isSuspended}
+                            onClick={() => updateVariationName(vIdx, preset)}
+                            className={`px-2.5 py-1 text-xs rounded-full border transition-colors disabled:opacity-50 ${
+                              variation.name === preset
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                            }`}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Options chip input */}
+                      <div>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">
+                          Options{" "}
+                          <span className="text-muted-foreground/60">
+                            — press Enter or comma to add
+                          </span>
+                        </label>
+                        <div className="min-h-[42px] px-3 py-2 border border-border rounded-md bg-input focus-within:ring-2 focus-within:ring-ring">
+                          <div className="flex flex-wrap gap-2">
+                            {variation.options.map((opt, oIdx) => (
+                              <span
+                                key={oIdx}
+                                className="inline-flex items-center px-2 py-1 bg-primary/10 text-primary text-sm rounded-md"
+                              >
+                                {opt}
+                                <button
+                                  type="button"
+                                  onClick={() => removeVariationOption(vIdx, oIdx)}
+                                  disabled={isUpdating || isSuspended}
+                                  className="ml-1 text-primary/60 hover:text-primary focus:outline-none disabled:opacity-50"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            ))}
+                            <input
+                              type="text"
+                              value={variationInputs[vIdx] || ""}
+                              onChange={(e) =>
+                                setVariationInputs((prev) =>
+                                  prev.map((val, i) =>
+                                    i === vIdx ? e.target.value : val
+                                  )
+                                )
+                              }
+                              onKeyDown={(e) =>
+                                handleVariationInputKeyDown(e, vIdx)
+                              }
+                              onBlur={() =>
+                                addVariationOption(vIdx, variationInputs[vIdx] || "")
+                              }
+                              disabled={isUpdating || isSuspended}
+                              placeholder={
+                                variation.options.length === 0
+                                  ? "e.g. S, M, L or Red, Blue..."
+                                  : ""
+                              }
+                              className="flex-1 min-w-[160px] bg-transparent border-none outline-none text-foreground text-sm placeholder-muted-foreground disabled:opacity-50"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={addVariation}
+                    disabled={isUpdating || isSuspended}
+                    className="flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add another variation
+                  </button>
+
+                  {errors.variations && (
+                    <ErrorMessage message={errors.variations} className="mt-1" />
+                  )}
+                </div>
               )}
             </div>
           </div>

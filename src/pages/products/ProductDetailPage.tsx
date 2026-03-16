@@ -16,6 +16,7 @@ import { ProductImage } from "@/components/products/ProductImage";
 import { ProductImageUpload } from "@/components/products/ProductImageUpload";
 import { ProductDebugPanel } from "@/components/debug/ProductDebugPanel";
 import { DEFAULT_COMMISSION_PERCENTAGE } from "@/lib/constants";
+import { Layers } from "lucide-react";
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -480,6 +481,59 @@ export default function ProductDetailPage() {
                       >
                         {tag}
                       </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {product.productFeatures && product.productFeatures.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Features
+                  </label>
+                  <div className="mt-2 space-y-1 text-sm">
+                    {product.productFeatures.map((feature, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between gap-4 border-b border-border/60 pb-1 last:border-b-0"
+                      >
+                        <span className="text-muted-foreground">
+                          {feature.name}
+                        </span>
+                        <span className="text-foreground font-medium text-right">
+                          {feature.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {product.productVariations && product.productVariations.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Layers className="h-4 w-4 text-muted-foreground" />
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Product Variations
+                    </label>
+                  </div>
+                  <div className="space-y-3">
+                    {product.productVariations.map((variation, vIdx) => (
+                      <div key={vIdx} className="border border-border rounded-md p-3 bg-secondary/10">
+                        <p className="text-sm font-semibold text-foreground mb-2">
+                          {variation.name}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {variation.options.map((opt, oIdx) => (
+                            <span
+                              key={oIdx}
+                              className="px-2.5 py-1 bg-primary/10 text-primary text-sm rounded-md"
+                            >
+                              {opt}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>

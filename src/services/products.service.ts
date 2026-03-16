@@ -21,6 +21,106 @@ import type {
   UploadProductImagesRequest,
 } from "@/types";
 import type { ProductsApiResponseWrapper } from "@/types/api.types";
+import type { ProductVariation, ProductFeature } from "@/types";
+
+// Local storage helpers for caching product extras (variations/features) per product ID.
+// This is a non-breaking enhancement used to ensure that variations/features entered
+// during product creation/editing remain visible on view/edit pages even if
+// the backend doesn't yet include them in all responses.
+const LOCAL_EXTRAS_KEY = "product_variations_by_id";
+
+type ProductExtras = {
+  productVariations?: ProductVariation[];
+  productFeatures?: ProductFeature[];
+};
+
+type ProductExtrasMap = Record<string, ProductExtras>;
+
+const loadLocalExtras = (): ProductExtrasMap => {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(LOCAL_EXTRAS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+
+    const map = parsed as Record<string, unknown>;
+    const normalized: ProductExtrasMap = {};
+
+    Object.keys(map).forEach((key) => {
+      const value = map[key];
+      if (Array.isArray(value)) {
+        // Legacy shape: array of variations only
+        normalized[key] = { productVariations: value as ProductVariation[] };
+      } else if (value && typeof value === "object") {
+        const obj = value as ProductExtras;
+        normalized[key] = {
+          productVariations: Array.isArray(obj.productVariations)
+            ? obj.productVariations
+            : undefined,
+          productFeatures: Array.isArray(obj.productFeatures)
+            ? obj.productFeatures
+            : undefined,
+        };
+      }
+    });
+
+    return normalized;
+  } catch (error) {
+    console.warn("Failed to load local product extras cache:", error);
+  }
+  return {};
+};
+
+const saveLocalExtras = (map: ProductExtrasMap) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LOCAL_EXTRAS_KEY, JSON.stringify(map));
+  } catch (error) {
+    console.warn("Failed to save local product extras cache:", error);
+  }
+};
+
+const attachLocalExtrasIfMissing = (product: Product): Product => {
+  if (typeof product.productId !== "string") {
+    return product;
+  }
+
+  const map = loadLocalExtras();
+  const cached = map[product.productId];
+
+  if (!cached) {
+    return product;
+  }
+
+  let updated = product;
+
+  // Only attach variations if backend didn't send any but cache has some.
+  if (
+    (!product.productVariations || product.productVariations.length === 0) &&
+    cached.productVariations &&
+    cached.productVariations.length > 0
+  ) {
+    updated = {
+      ...updated,
+      productVariations: cached.productVariations,
+    };
+  }
+
+  // Only attach features if backend didn't send any but cache has some.
+  if (
+    (!product.productFeatures || product.productFeatures.length === 0) &&
+    cached.productFeatures &&
+    cached.productFeatures.length > 0
+  ) {
+    updated = {
+      ...updated,
+      productFeatures: cached.productFeatures,
+    };
+  }
+
+  return updated;
+};
 
 export class ProductsService {
   async getProducts(query: ProductsQuery = {}): Promise<ProductsResponse> {
@@ -56,16 +156,24 @@ export class ProductsService {
 
       // Enrich products with vendorStorefrontUrl if vendorId is available
       const enrichedProducts = vendorId
-        ? productsData.map((product) => ({
-            ...product,
-            vendorId: product.vendorId || vendorId,
-            vendorStorefrontUrl: getVendorStorefrontUrl(product.vendorId || vendorId),
-          }))
-        : productsData.map((product) => ({
-            ...product,
-            vendorId: product.vendorId,
-            vendorStorefrontUrl: product.vendorId ? getVendorStorefrontUrl(product.vendorId) : undefined,
-          }));
+        ? productsData.map((product) =>
+            attachLocalExtrasIfMissing({
+              ...product,
+              vendorId: product.vendorId || vendorId,
+              vendorStorefrontUrl: getVendorStorefrontUrl(
+                product.vendorId || vendorId
+              ),
+            })
+          )
+        : productsData.map((product) =>
+            attachLocalExtrasIfMissing({
+              ...product,
+              vendorId: product.vendorId,
+              vendorStorefrontUrl: product.vendorId
+                ? getVendorStorefrontUrl(product.vendorId)
+                : undefined,
+            })
+          );
 
       return {
         data: enrichedProducts,
@@ -94,11 +202,13 @@ export class ProductsService {
       const currentUser = userStorage.get();
       const vendorId = product.vendorId || currentUser?.vendorId || currentUser?.userId;
       
-      const enrichedProduct: Product = {
+      const enrichedProduct: Product = attachLocalExtrasIfMissing({
         ...product,
         vendorId: product.vendorId || vendorId,
-        vendorStorefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
-      };
+        vendorStorefrontUrl: vendorId
+          ? getVendorStorefrontUrl(vendorId)
+          : undefined,
+      });
 
       return enrichedProduct;
     } catch (error) {
@@ -122,16 +232,18 @@ export class ProductsService {
       // The API returns { status, error, message, data: Product }
       // apiClient.get returns the full response, so response.data contains the Product
       const product = response.data as Product;
-      
+
       // Enrich product with vendorStorefrontUrl
       const currentUser = userStorage.get();
       const vendorId = product.vendorId || currentUser?.vendorId || currentUser?.userId;
-      
-      const enrichedProduct: Product = {
+
+      const enrichedProduct: Product = attachLocalExtrasIfMissing({
         ...product,
         vendorId: product.vendorId || vendorId,
-        vendorStorefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
-      };
+        vendorStorefrontUrl: vendorId
+          ? getVendorStorefrontUrl(vendorId)
+          : undefined,
+      });
 
       return enrichedProduct;
     } catch (error) {
@@ -180,11 +292,42 @@ export class ProductsService {
       const currentUser = userStorage.get();
       const vendorId = product.vendorId || currentUser?.vendorId || currentUser?.userId;
       
-      const enrichedProduct: Product = {
+      const enrichedProduct: Product = attachLocalExtrasIfMissing({
         ...product,
         vendorId: product.vendorId || vendorId,
-        vendorStorefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
-      };
+        vendorStorefrontUrl: vendorId
+          ? getVendorStorefrontUrl(vendorId)
+          : undefined,
+      });
+
+      // Cache variations/features locally if they were part of the creation payload.
+      if (enrichedProduct.productId) {
+        const map = loadLocalExtras();
+        const existing = map[enrichedProduct.productId] || {};
+        const updatedExtras: ProductExtras = { ...existing };
+
+        if (
+          productData.productVariations &&
+          productData.productVariations.length > 0
+        ) {
+          updatedExtras.productVariations = productData.productVariations;
+        }
+
+        if (
+          productData.productFeatures &&
+          productData.productFeatures.length > 0
+        ) {
+          updatedExtras.productFeatures = productData.productFeatures;
+        }
+
+        if (
+          updatedExtras.productVariations ||
+          updatedExtras.productFeatures
+        ) {
+          map[enrichedProduct.productId] = updatedExtras;
+          saveLocalExtras(map);
+        }
+      }
 
       return enrichedProduct;
     } catch (error) {
@@ -293,11 +436,42 @@ export class ProductsService {
       const currentUser = userStorage.get();
       const vendorId = product.vendorId || currentUser?.vendorId || currentUser?.userId;
       
-      const enrichedProduct: Product = {
+      const enrichedProduct: Product = attachLocalExtrasIfMissing({
         ...product,
         vendorId: product.vendorId || vendorId,
-        vendorStorefrontUrl: vendorId ? getVendorStorefrontUrl(vendorId) : undefined,
-      };
+        vendorStorefrontUrl: vendorId
+          ? getVendorStorefrontUrl(vendorId)
+          : undefined,
+      });
+
+      // If variations/features were edited, keep them in the local cache as well.
+      if (enrichedProduct.productId) {
+        const map = loadLocalExtras();
+        const existing = map[enrichedProduct.productId] || {};
+        const updatedExtras: ProductExtras = { ...existing };
+
+        if (
+          productData.productVariations &&
+          productData.productVariations.length > 0
+        ) {
+          updatedExtras.productVariations = productData.productVariations;
+        }
+
+        if (
+          productData.productFeatures &&
+          productData.productFeatures.length > 0
+        ) {
+          updatedExtras.productFeatures = productData.productFeatures;
+        }
+
+        if (
+          updatedExtras.productVariations ||
+          updatedExtras.productFeatures
+        ) {
+          map[enrichedProduct.productId] = updatedExtras;
+          saveLocalExtras(map);
+        }
+      }
 
       return enrichedProduct;
     } catch (error) {
