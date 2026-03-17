@@ -82,6 +82,8 @@ export default function EditProductPage() {
   // Product Features state
   const [productFeatures, setProductFeatures] = useState<ProductFeature[]>([]);
 
+  const PRODUCT_DESCRIPTION_MAX_LENGTH = 500;
+
   // Load product and categories on component mount
   useEffect(() => {
     if (id) {
@@ -626,16 +628,22 @@ export default function EditProductPage() {
                   <label className="block text-sm font-medium text-foreground mb-1">
                     Description *
                   </label>
-                  <textarea
-                    rows={4}
-                    value={form.productDescription}
-                    onChange={(e) =>
-                      updateForm("productDescription", e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                    placeholder="Describe your product"
-                    disabled={isUpdating || isSuspended}
-                  />
+                  <div className="relative">
+                    <textarea
+                      rows={4}
+                      value={form.productDescription}
+                      onChange={(e) =>
+                        updateForm("productDescription", e.target.value)
+                      }
+                      maxLength={PRODUCT_DESCRIPTION_MAX_LENGTH}
+                      className="w-full px-3 py-2 pr-16 pb-6 border border-border rounded-md bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                      placeholder="Describe your product"
+                      disabled={isUpdating || isSuspended}
+                    />
+                    <span className="pointer-events-none absolute bottom-1.5 right-3 text-xs text-muted-foreground">
+                      {form.productDescription.length}/{PRODUCT_DESCRIPTION_MAX_LENGTH}
+                    </span>
+                  </div>
                   {errors.productDescription && (
                     <ErrorMessage
                       message={errors.productDescription}
