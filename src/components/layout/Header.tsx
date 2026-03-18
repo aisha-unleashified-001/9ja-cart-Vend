@@ -140,7 +140,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const visibleNotifications = notifications.slice(0, 5);
 
   return (
-    <header className="bg-card border-b border-border h-16 flex items-center justify-between px-4 sm:px-6">
+    <header className="sticky top-0 z-50 bg-card border-b border-border h-16 flex items-center justify-between px-4 sm:px-6">
       <div className="flex items-center space-x-4">
         {/* Mobile menu button */}
         <button
@@ -180,7 +180,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </button>
 
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 sm:w-80 bg-card border border-border rounded-md shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-72 sm:w-80 h-96 bg-card border border-border rounded-md shadow-lg z-[60] flex flex-col overflow-hidden">
               <div className="p-4 border-b border-border flex items-center justify-between gap-4">
                 <div>
                   <h3 className="font-semibold text-foreground">
@@ -200,7 +200,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   {notificationsLoading ? "..." : "Refresh"}
                 </button>
               </div>
-              <div className="max-h-64 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto">
                 {notificationsLoading && !visibleNotifications.length && (
                   <div className="p-4 text-sm text-muted-foreground">
                     Loading notifications...
@@ -303,7 +303,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </button>
 
           {showProfile && (
-            <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-card border border-border rounded-md shadow-lg z-50">
+            <div className="absolute right-0 mt-2 w-56 sm:w-64 h-80 bg-card border border-border rounded-md shadow-lg z-[60] flex flex-col overflow-hidden">
               {/* User Info Header */}
               <div className="p-4 border-b border-border">
                 <div className="flex items-center space-x-3">
@@ -336,7 +336,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
               </div>
 
               {/* Menu Items */}
-              <div className="p-2">
+              <div className="flex-1 overflow-y-auto p-2">
                 <Link
                   to="/settings"
                   className="flex items-center px-3 py-2 text-sm text-foreground hover:bg-secondary rounded-md"
