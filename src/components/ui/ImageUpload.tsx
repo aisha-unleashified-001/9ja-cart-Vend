@@ -36,6 +36,7 @@ export function ImageUpload({
   const [crop, setCrop] = useState<Crop | undefined>();
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const cropImageRef = useRef<HTMLImageElement | null>(null);
+  const [wasUpscaled, setWasUpscaled] = useState(false);
 
   // Sync previews with images when images change externally (e.g., reordering)
   useEffect(() => {
@@ -99,6 +100,7 @@ export function ImageUpload({
       setCroppingFile(next);
       setCroppingImageUrl(url);
       setCrop(undefined);
+      setWasUpscaled(false);
     }
   }, [croppingFile, pendingFiles, croppingImageUrl]);
 
@@ -287,6 +289,11 @@ export function ImageUpload({
             <p className="text-xs text-gray-600">
               Drag to choose the exact square area buyers will see. The final image will be saved at {APPROVED_SIZE}px by {APPROVED_SIZE}px.
             </p>
+            {wasUpscaled && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                This image was smaller than {APPROVED_SIZE}px and has been upscaled so you can crop it. Select the area you want to keep.
+              </p>
+            )}
             <div className="flex-1 overflow-auto flex items-center justify-center">
               <ReactCrop
                 crop={crop}
@@ -308,17 +315,56 @@ export function ImageUpload({
                       naturalWidth < APPROVED_SIZE ||
                       naturalHeight < APPROVED_SIZE
                     ) {
-                      setErrors(prev => [
-                        ...prev,
-                        `${croppingFile.name}: Image must be at least ${APPROVED_SIZE}px by ${APPROVED_SIZE}px`,
-                      ]);
-                      // Skip this image
-                      if (croppingImageUrl) {
-                        URL.revokeObjectURL(croppingImageUrl);
+                      // Upscale the image so both dimensions reach APPROVED_SIZE,
+                      // then reload it in the crop modal instead of rejecting it.
+                      const scale = Math.max(
+                        APPROVED_SIZE / naturalWidth,
+                        APPROVED_SIZE / naturalHeight,
+                      );
+                      const upW = Math.ceil(naturalWidth * scale);
+                      const upH = Math.ceil(naturalHeight * scale);
+
+                      const canvas = document.createElement('canvas');
+                      canvas.width = upW;
+                      canvas.height = upH;
+                      const ctx = canvas.getContext('2d');
+
+                      if (!ctx) {
+                        setErrors(prev => [
+                          ...prev,
+                          `${croppingFile.name}: Could not process image — please try another file.`,
+                        ]);
+                        if (croppingImageUrl) URL.revokeObjectURL(croppingImageUrl);
+                        setCroppingFile(null);
+                        setCroppingImageUrl(null);
+                        setCrop(undefined);
+                        return;
                       }
-                      setCroppingFile(null);
-                      setCroppingImageUrl(null);
-                      setCrop(undefined);
+
+                      ctx.imageSmoothingEnabled = true;
+                      ctx.imageSmoothingQuality = 'high';
+                      ctx.drawImage(img, 0, 0, upW, upH);
+
+                      canvas.toBlob(
+                        (blob) => {
+                          if (!blob) {
+                            setErrors(prev => [
+                              ...prev,
+                              `${croppingFile?.name}: Could not upscale image — please try another file.`,
+                            ]);
+                            if (croppingImageUrl) URL.revokeObjectURL(croppingImageUrl);
+                            setCroppingFile(null);
+                            setCroppingImageUrl(null);
+                            setCrop(undefined);
+                            return;
+                          }
+                          // Replace the crop source with the upscaled version
+                          if (croppingImageUrl) URL.revokeObjectURL(croppingImageUrl);
+                          setCroppingImageUrl(URL.createObjectURL(blob));
+                          setWasUpscaled(true);
+                        },
+                        croppingFile?.type || 'image/jpeg',
+                      );
                       return;
                     }
 
@@ -350,6 +396,7 @@ export function ImageUpload({
                   setCroppingFile(null);
                   setCroppingImageUrl(null);
                   setCrop(undefined);
+                  setWasUpscaled(false);
                 }}
               >
                 Skip image
@@ -426,6 +473,7 @@ export function ImageUpload({
                       setCroppingFile(null);
                       setCroppingImageUrl(null);
                       setCrop(undefined);
+                      setWasUpscaled(false);
                     },
                     croppingFile.type || 'image/jpeg'
                   );
