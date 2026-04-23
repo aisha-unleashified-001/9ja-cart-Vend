@@ -118,6 +118,7 @@ export class RegistrationService {
       formData.append("businessRegNumber", "");
       formData.append("storeName", "Email Check");
       formData.append("businessAddress", "placeholder");
+      formData.append("state", "Lagos");
       formData.append("taxIdNumber", "");
 
       const response = await fetch(
@@ -191,6 +192,7 @@ export class RegistrationService {
       formData.append("businessRegNumber", data.businessRegNumber || "");
       formData.append("storeName", data.storeName);
       formData.append("businessAddress", data.businessAddress);
+      formData.append("state", data.state);
       formData.append("taxIdNumber", data.taxIdNumber || "");
 
       // Append files
@@ -360,6 +362,10 @@ export class RegistrationService {
 
     if (!data.businessAddress?.trim()) {
       errors.businessAddress = "Business address is required";
+    }
+
+    if (!data.state?.trim()) {
+      errors.state = "State is required";
     }
 
     // Document validation

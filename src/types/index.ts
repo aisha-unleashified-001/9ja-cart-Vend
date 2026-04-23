@@ -9,3 +9,4 @@ export * from "./dashboard.types";
 export * from "./notification.types";
 export * from "./order.types";
 export * from "./contact.types";
+export * from "./analytics.types";

@@ -22,6 +22,7 @@ export const API_ENDPOINTS = {
     UPDATE_ACCOUNT_INFO: "/vendor/profile/update-account-info",
     UPLOAD_PROFILE_IMAGE: "/vendor/profile-image", // TODO: Backend endpoint to be implemented
     DASHBOARD_SUMMARY: "/vendor/dashboard-summary",
+    ANALYTICS: "/vendor/analytics",
     CONTACT_ADMIN: "/ticket/contact-admin",
     GET_LOGO: "/vendor/get-logo",
     UPLOAD_LOGO: "/vendor/upload-logo",

@@ -31,6 +31,7 @@ interface FormData {
   businessRegNumber: string;
   storeName: string;
   businessAddress: string;
+  businessState: string;
   taxIdNumber: string;
   idDocument: File | null;
   businessRegCertificate: File | null;
@@ -52,12 +53,52 @@ const initialFormData: FormData = {
   businessRegNumber: '',
   storeName: '',
   businessAddress: '',
+  businessState: '',
   taxIdNumber: '',
   idDocument: null,
   businessRegCertificate: null,
 };
 
 const businessRegPattern = /^RC-?\d{7}$/i;
+const NIGERIAN_STATES = [
+  'Abia',
+  'Adamawa',
+  'Akwa Ibom',
+  'Anambra',
+  'Bauchi',
+  'Bayelsa',
+  'Benue',
+  'Borno',
+  'Cross River',
+  'Delta',
+  'Ebonyi',
+  'Edo',
+  'Ekiti',
+  'Enugu',
+  'Federal Capital Territory',
+  'Gombe',
+  'Imo',
+  'Jigawa',
+  'Kaduna',
+  'Kano',
+  'Katsina',
+  'Kebbi',
+  'Kogi',
+  'Kwara',
+  'Lagos',
+  'Nasarawa',
+  'Niger',
+  'Ogun',
+  'Ondo',
+  'Osun',
+  'Oyo',
+  'Plateau',
+  'Rivers',
+  'Sokoto',
+  'Taraba',
+  'Yobe',
+  'Zamfara',
+];
 
 const FIELD_STEP_MAP: Record<keyof RegistrationFieldErrors, number> = {
   emailAddress: 1,
@@ -73,6 +114,7 @@ const FIELD_STEP_MAP: Record<keyof RegistrationFieldErrors, number> = {
   settlementBankName: 3,
   storeName: 4,
   businessAddress: 4,
+  state: 4,
   businessRegNumber: 4,
   taxIdNumber: 4,
   idDocument: 4,
@@ -309,7 +351,7 @@ export default function RegisterPage() {
     }
     
     if (step === 4) {
-      const isValid = !!(formData.storeName && formData.businessAddress && formData.taxIdNumber && formData.idDocument && formData.businessRegCertificate);
+      const isValid = !!(formData.storeName && formData.businessAddress && formData.businessState && formData.taxIdNumber && formData.idDocument && formData.businessRegCertificate);
       if (!isValid) {
         popup.error('Please fill in all required fields and upload documents');
       }
@@ -571,6 +613,7 @@ export default function RegisterPage() {
         businessRegNumber: formData.businessRegNumber || '',
         storeName: formData.storeName,
         businessAddress: formData.businessAddress,
+        state: formData.businessState,
         taxIdNumber: formData.taxIdNumber || '',
         idDocument: formData.idDocument,
         businessRegCertificate: formData.businessRegCertificate,
@@ -1144,6 +1187,33 @@ export default function RegisterPage() {
         />
         {formErrors.businessAddress && (
           <p className="mt-1 text-sm text-red-600">{formErrors.businessAddress}</p>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="businessState" className="block text-sm font-medium text-gray-700 mb-2">
+          State
+        </label>
+        <select
+          id="businessState"
+          value={formData.businessState}
+          onChange={(e) => updateFormData({ businessState: e.target.value })}
+          disabled={isLoading}
+          className={`w-full px-4 py-3 border rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 disabled:opacity-50 ${
+            formErrors.state
+              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-primary focus:border-transparent'
+          }`}
+        >
+          <option value="">Select your state</option>
+          {NIGERIAN_STATES.map((state) => (
+            <option key={state} value={state}>
+              {state}
+            </option>
+          ))}
+        </select>
+        {formErrors.state && (
+          <p className="mt-1 text-sm text-red-600">{formErrors.state}</p>
         )}
       </div>
 

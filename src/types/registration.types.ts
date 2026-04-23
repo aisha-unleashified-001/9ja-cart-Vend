@@ -17,6 +17,7 @@ export interface RegistrationStep3Data {
   businessRegNumber: string;
   storeName: string;
   businessAddress: string;
+  state: string;
   taxIdNumber: string;
   idDocument: File;
   businessRegCertificate: File;
@@ -39,6 +40,7 @@ export interface RegistrationFormData {
   businessRegNumber: string;
   storeName: string;
   businessAddress: string;
+  state: string;
   taxIdNumber: string;
   idDocument: File | null;
   businessRegCertificate: File | null;
@@ -70,6 +72,7 @@ export interface CompleteRegistrationData {
   businessRegNumber: string;
   storeName: string;
   businessAddress: string;
+  state: string;
   taxIdNumber: string;
 
   // Documents
@@ -105,6 +108,7 @@ export interface RegistrationFieldErrors {
   settlementBankName?: string;
   storeName?: string;
   businessAddress?: string;
+  state?: string;
   businessRegNumber?: string;
   taxIdNumber?: string;
   idDocument?: string;
