@@ -16,6 +16,40 @@ import { DEFAULT_COMMISSION_PERCENTAGE } from "@/lib/constants";
 import type { Product, UpdateProductRequest, ProductVariation, ProductFeature } from "@/types";
 import { Plus, X, Layers } from "lucide-react";
 
+const WEIGHT_FEATURE_NAME = "Weight";
+
+const parseWeightToKgInputValue = (rawValue: string): string => {
+  const normalized = rawValue.trim().toLowerCase();
+  if (!normalized) return "";
+
+  const match = normalized.match(/^(\d+(\.\d+)?)\s*(kg|g)?$/);
+  if (!match) return "";
+
+  const numericWeight = Number(match[1]);
+  if (Number.isNaN(numericWeight) || numericWeight <= 0) return "";
+
+  if (match[3] === "g") {
+    return String(numericWeight / 1000);
+  }
+  return String(numericWeight);
+};
+
+const normalizeWeightForFeature = (rawValue: string): string => {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return "";
+  const numericValue = Number(trimmed);
+  if (Number.isNaN(numericValue) || numericValue <= 0) return "";
+  return `${numericValue * 1000}g`;
+};
+
+const getWeightKgString = (rawValue: string): string | undefined => {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return undefined;
+  const numericValue = Number(trimmed);
+  if (Number.isNaN(numericValue) || numericValue <= 0) return undefined;
+  return String(numericValue);
+};
+
 const normalizeIsActiveValue = (value: Product["isActive"]): string =>
   value === "1" || value === 1 || value === true ? "1" : "0";
 
@@ -80,7 +114,9 @@ export default function EditProductPage() {
   const [variationInputs, setVariationInputs] = useState<string[]>([]);
 
   // Product Features state
-  const [productFeatures, setProductFeatures] = useState<ProductFeature[]>([]);
+  const [productFeatures, setProductFeatures] = useState<ProductFeature[]>([
+    { name: WEIGHT_FEATURE_NAME, value: "" },
+  ]);
 
   const PRODUCT_DESCRIPTION_MAX_LENGTH = 500;
 
@@ -131,11 +167,21 @@ export default function EditProductPage() {
 
       // Restore features state from saved product data
       const savedFeatures = product.productFeatures ?? [];
-      if (savedFeatures.length > 0) {
-        setProductFeatures(savedFeatures);
-      } else {
-        setProductFeatures([]);
-      }
+      const savedWeightFeature = savedFeatures.find(
+        (feature) =>
+          feature.name.trim().toLowerCase() === WEIGHT_FEATURE_NAME.toLowerCase()
+      );
+      const otherFeatures = savedFeatures.filter(
+        (feature) =>
+          feature.name.trim().toLowerCase() !== WEIGHT_FEATURE_NAME.toLowerCase()
+      );
+      setProductFeatures([
+        {
+          name: WEIGHT_FEATURE_NAME,
+          value: parseWeightToKgInputValue(savedWeightFeature?.value ?? product.weightKg ?? ""),
+        },
+        ...otherFeatures,
+      ]);
     }
   }, [product]);
 
@@ -277,6 +323,16 @@ export default function EditProductPage() {
       }
     }
 
+    const weightFeature = productFeatures.find(
+      (feature) => feature.name.trim().toLowerCase() === WEIGHT_FEATURE_NAME.toLowerCase()
+    );
+    const parsedWeight = Number(weightFeature?.value?.trim() || "");
+    if (!weightFeature || !weightFeature.value.trim()) {
+      newErrors.weightFeature = "Weight is required";
+    } else if (Number.isNaN(parsedWeight) || parsedWeight <= 0) {
+      newErrors.weightFeature = "Weight must be a valid number greater than 0";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -300,6 +356,16 @@ export default function EditProductPage() {
       const validatedVariations: ProductVariation[] = hasVariations
         ? productVariations.filter((v) => v.name.trim() !== "" && v.options.length > 0)
         : [];
+      // Raw weight input value (numeric, in kg)
+      const rawWeightInput = productFeatures.find(
+        (f) => f.name.trim().toLowerCase() === WEIGHT_FEATURE_NAME.toLowerCase()
+      )?.value ?? "";
+
+      const normalizedProductFeatures = productFeatures.map((feature) =>
+        feature.name.trim().toLowerCase() === WEIGHT_FEATURE_NAME.toLowerCase()
+          ? { ...feature, value: normalizeWeightForFeature(feature.value) }
+          : feature
+      );
 
       const productData: UpdateProductRequest = {
         productId: id,
@@ -308,15 +374,20 @@ export default function EditProductPage() {
         productDescription: form.productDescription,
         productTags: form.productTags,
         unitPrice: form.unitPrice,
-        discountType: form.discountType, // Always send discount type (0, 1, or 2)
+        discountType: form.discountType,
         discountValue: form.discountType === "0" ? undefined : form.discountValue,
         stock: form.stock,
         minStock: form.minStock,
-        images: [], // Images handled separately
+        weightKg: getWeightKgString(rawWeightInput),
+        images: [],
         isActive: form.isActive,
         productVariations: validatedVariations.length > 0 ? validatedVariations : undefined,
-        productFeatures: productFeatures.length > 0 ? productFeatures : undefined,
+        productFeatures:
+          normalizedProductFeatures.length > 0 ? normalizedProductFeatures : undefined,
       };
+
+      console.log("📦 EDIT — weightKg being sent:", productData.weightKg);
+      console.log("📦 EDIT — productFeatures being sent:", JSON.stringify(productData.productFeatures));
 
       await updateProduct(productData);
       
@@ -947,6 +1018,7 @@ export default function EditProductPage() {
                       type="text"
                       value={feature.name}
                       onChange={(e) => {
+                        if (feature.name === WEIGHT_FEATURE_NAME) return;
                         const value = e.target.value;
                         setProductFeatures((prev) =>
                           prev.map((f, i) =>
@@ -957,22 +1029,51 @@ export default function EditProductPage() {
                       placeholder="Feature name (e.g. Material)"
                       className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                       disabled={isUpdating || isSuspended}
+                      readOnly={feature.name === WEIGHT_FEATURE_NAME}
                     />
-                    <input
-                      type="text"
-                      value={feature.value}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setProductFeatures((prev) =>
-                          prev.map((f, i) =>
-                            i === index ? { ...f, value } : f
-                          )
-                        );
-                      }}
-                      placeholder="Value (e.g. Leather)"
-                      className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                      disabled={isUpdating || isSuspended}
-                    />
+                    {feature.name === WEIGHT_FEATURE_NAME ? (
+                      <div className="md:col-span-2 relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={feature.value}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setProductFeatures((prev) =>
+                              prev.map((f, i) =>
+                                i === index ? { ...f, value } : f
+                              )
+                            );
+                            if (errors.weightFeature) {
+                              setErrors((prev) => ({ ...prev, weightFeature: "" }));
+                            }
+                          }}
+                          placeholder="Enter weight"
+                          className="w-full px-3 py-2 pr-12 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                          disabled={isUpdating || isSuspended}
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                          kg
+                        </span>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={feature.value}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setProductFeatures((prev) =>
+                            prev.map((f, i) =>
+                              i === index ? { ...f, value } : f
+                            )
+                          );
+                        }}
+                        placeholder="Value (e.g. Leather)"
+                        className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                        disabled={isUpdating || isSuspended}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() =>
@@ -980,13 +1081,21 @@ export default function EditProductPage() {
                           prev.filter((_, i) => i !== index)
                         )
                       }
-                      disabled={isUpdating || isSuspended}
+                      disabled={
+                        isUpdating ||
+                        isSuspended ||
+                        feature.name === WEIGHT_FEATURE_NAME
+                      }
                       className="inline-flex items-center justify-center px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md border border-border disabled:opacity-50"
                     >
                       Remove
                     </button>
                   </div>
                 ))}
+                {errors.weightFeature && (
+                  <ErrorMessage message={errors.weightFeature} className="mt-1" />
+                )}
+                <p className="text-xs text-muted-foreground">Weight is in kilograms (kg).</p>
 
                 <button
                   type="button"

@@ -25,6 +25,25 @@ interface ProductForm {
   images: File[];
 }
 
+const WEIGHT_FEATURE_NAME = "Weight";
+
+const normalizeWeightForFeature = (rawValue: string): string => {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return "";
+  const numericValue = Number(trimmed);
+  if (Number.isNaN(numericValue) || numericValue <= 0) return "";
+  // API example expects grams string e.g. "500g" — user inputs kg
+  return `${numericValue * 1000}g`;
+};
+
+const getWeightKgString = (rawValue: string): string | undefined => {
+  const trimmed = rawValue.trim();
+  if (!trimmed) return undefined;
+  const numericValue = Number(trimmed);
+  if (Number.isNaN(numericValue) || numericValue <= 0) return undefined;
+  return String(numericValue);
+};
+
 export default function AddProductPage() {
   const PRODUCT_DESCRIPTION_MAX_LENGTH = 500;
   const navigate = useNavigate();
@@ -58,7 +77,9 @@ export default function AddProductPage() {
   const [variationInputs, setVariationInputs] = useState<string[]>([]); // live text input per variation
 
   // Product Features state
-  const [productFeatures, setProductFeatures] = useState<ProductFeature[]>([]);
+  const [productFeatures, setProductFeatures] = useState<ProductFeature[]>([
+    { name: WEIGHT_FEATURE_NAME, value: "" },
+  ]);
 
   // Commission from API - uneditable. Uses DEFAULT_COMMISSION_PERCENTAGE until API provides value.
   // TODO: Replace with API fetch when commission endpoint is available.
@@ -222,6 +243,16 @@ export default function AddProductPage() {
       }
     }
 
+    const weightFeature = productFeatures.find(
+      (feature) => feature.name.trim().toLowerCase() === WEIGHT_FEATURE_NAME.toLowerCase()
+    );
+    const parsedWeight = Number(weightFeature?.value?.trim() || "");
+    if (!weightFeature || !weightFeature.value.trim()) {
+      newErrors.weightFeature = "Weight is required";
+    } else if (Number.isNaN(parsedWeight) || parsedWeight <= 0) {
+      newErrors.weightFeature = "Weight must be a valid number greater than 0";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -330,23 +361,38 @@ export default function AddProductPage() {
       const validatedVariations: ProductVariation[] = hasVariations
         ? productVariations.filter((v) => v.name.trim() !== "" && v.options.length > 0)
         : [];
+      // Raw weight input value (numeric, in kg)
+      const rawWeightInput = productFeatures.find(
+        (f) => f.name.trim().toLowerCase() === WEIGHT_FEATURE_NAME.toLowerCase()
+      )?.value ?? "";
+
+      const normalizedProductFeatures = productFeatures.map((feature) =>
+        feature.name.trim().toLowerCase() === WEIGHT_FEATURE_NAME.toLowerCase()
+          ? { ...feature, value: normalizeWeightForFeature(feature.value) }
+          : feature
+      );
 
       const productData: CreateProductRequest = {
         productName: form.productName,
-        categoryId: selectedCategory.id, // Use the resolved category ID
+        categoryId: selectedCategory.id,
         productDescription: form.productDescription,
         productTags: form.productTags,
         unitPrice: form.unitPrice,
-        discountType: form.discountType, // Always send discount type (0, 1, or 2)
+        discountType: form.discountType,
         discountValue:
           form.discountType === "0" ? undefined : form.discountValue,
         stock: form.stock,
         minStock: form.minStock,
-        images: [], // No images during creation
-        isActive: "1", // Active by default
+        weightKg: getWeightKgString(rawWeightInput),
+        images: [],
+        isActive: "1",
         productVariations: validatedVariations.length > 0 ? validatedVariations : undefined,
-        productFeatures: productFeatures.length > 0 ? productFeatures : undefined,
+        productFeatures:
+          normalizedProductFeatures.length > 0 ? normalizedProductFeatures : undefined,
       };
+
+      console.log("📦 CREATE — weightKg being sent:", productData.weightKg);
+      console.log("📦 CREATE — productFeatures being sent:", JSON.stringify(productData.productFeatures));
 
       const createdProduct = await createProduct(productData);
 
@@ -808,6 +854,7 @@ export default function AddProductPage() {
                       type="text"
                       value={feature.name}
                       onChange={(e) => {
+                        if (feature.name === WEIGHT_FEATURE_NAME) return;
                         const value = e.target.value;
                         setProductFeatures((prev) =>
                           prev.map((f, i) =>
@@ -818,22 +865,51 @@ export default function AddProductPage() {
                       placeholder="Feature name (e.g. Material)"
                       className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
                       disabled={isCreating || isSubmitting}
+                      readOnly={feature.name === WEIGHT_FEATURE_NAME}
                     />
-                    <input
-                      type="text"
-                      value={feature.value}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setProductFeatures((prev) =>
-                          prev.map((f, i) =>
-                            i === index ? { ...f, value } : f
-                          )
-                        );
-                      }}
-                      placeholder="Value (e.g. Leather)"
-                      className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                      disabled={isCreating || isSubmitting}
-                    />
+                    {feature.name === WEIGHT_FEATURE_NAME ? (
+                      <div className="md:col-span-2 relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={feature.value}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setProductFeatures((prev) =>
+                              prev.map((f, i) =>
+                                i === index ? { ...f, value } : f
+                              )
+                            );
+                            if (errors.weightFeature) {
+                              setErrors((prev) => ({ ...prev, weightFeature: "" }));
+                            }
+                          }}
+                          placeholder="Enter weight"
+                          className="w-full px-3 py-2 pr-12 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                          disabled={isCreating || isSubmitting}
+                        />
+                        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground">
+                          kg
+                        </span>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={feature.value}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setProductFeatures((prev) =>
+                            prev.map((f, i) =>
+                              i === index ? { ...f, value } : f
+                            )
+                          );
+                        }}
+                        placeholder="Value (e.g. Leather)"
+                        className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                        disabled={isCreating || isSubmitting}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() =>
@@ -841,13 +917,21 @@ export default function AddProductPage() {
                           prev.filter((_, i) => i !== index)
                         )
                       }
-                      disabled={isCreating || isSubmitting}
+                      disabled={
+                        isCreating ||
+                        isSubmitting ||
+                        feature.name === WEIGHT_FEATURE_NAME
+                      }
                       className="inline-flex items-center justify-center px-3 py-2 text-sm text-destructive hover:bg-destructive/10 rounded-md border border-border disabled:opacity-50"
                     >
                       Remove
                     </button>
                   </div>
                 ))}
+                {errors.weightFeature && (
+                  <ErrorMessage message={errors.weightFeature} className="mt-1" />
+                )}
+                <p className="text-xs text-muted-foreground">Weight is in kilograms (kg).</p>
 
                 <button
                   type="button"

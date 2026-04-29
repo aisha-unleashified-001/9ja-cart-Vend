@@ -21,6 +21,7 @@ export interface Product {
   discountPrice: string;
   stock: string;
   minStock: string;
+  weightKg?: string;
   images: string[];
   isActive: string | number | boolean;
   vendorId?: string;
@@ -71,6 +72,7 @@ export interface CreateProductRequest {
   discountValue?: string;
   stock: string;
   minStock: string;
+  weightKg?: string;
   images: File[];
   isActive?: string;
   productVariations?: ProductVariation[];
@@ -87,6 +89,7 @@ export interface CreateProductPayload {
   productDescription: string;
   stock: number;
   minStock: number;
+  weightKg?: number;
   tag: string[];
   productVariations?: ProductVariation[];
   productFeatures?: ProductFeature[];
@@ -126,6 +129,7 @@ export interface EditProductPayload {
   productDescription?: string;
   stock?: number;
   minStock?: number;
+  weightKg?: number;
   tag?: string[];
   productVariations?: ProductVariation[];
   productFeatures?: ProductFeature[];

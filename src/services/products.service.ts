@@ -272,10 +272,8 @@ export class ProductsService {
       const productPayload = createProductPayload(productData);
       
       // Log the payload for debugging
-      console.log("📦 Creating product with payload:", {
-        productPayload,
-        originalCategoryId: productData.categoryId,
-      });
+      console.log("📦 CREATE PRODUCT — exact outbound JSON:");
+      console.log(JSON.stringify(productPayload, null, 2));
       
       const createResponse = await apiClient.post<Product>(
         API_ENDPOINTS.PRODUCTS.CREATE,
@@ -421,6 +419,8 @@ export class ProductsService {
 
       // Update product data (JSON only - images handled separately)
       const editPayload = createEditProductPayload(updateData);
+      console.log("📦 UPDATE PRODUCT — exact outbound JSON:");
+      console.log(JSON.stringify(editPayload, null, 2));
       const response = await apiClient.put<Product>(
         `${API_ENDPOINTS.PRODUCTS.EDIT}/${productId}`,
         editPayload,

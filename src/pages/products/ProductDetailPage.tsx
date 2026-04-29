@@ -18,6 +18,20 @@ import { ProductDebugPanel } from "@/components/debug/ProductDebugPanel";
 import { DEFAULT_COMMISSION_PERCENTAGE } from "@/lib/constants";
 import { Layers } from "lucide-react";
 
+const WEIGHT_FEATURE_NAME = "Weight";
+
+const formatWeightDisplay = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  const numericWeight = Number(trimmed);
+  if (!Number.isNaN(numericWeight)) {
+    return `${numericWeight}kg`;
+  }
+
+  return trimmed;
+};
+
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -211,6 +225,13 @@ export default function ProductDetailPage() {
     : parseFloat(product.unitPrice ?? "0");
   const commissionAmount = priceForCommission * (commissionPercentage / 100);
   const customerPrice = priceForCommission + commissionAmount;
+  const weightFeature = product.productFeatures?.find(
+    (feature) => feature.name.trim().toLowerCase() === WEIGHT_FEATURE_NAME.toLowerCase()
+  );
+  const otherFeatures =
+    product.productFeatures?.filter(
+      (feature) => feature.name.trim().toLowerCase() !== WEIGHT_FEATURE_NAME.toLowerCase()
+    ) ?? [];
 
   return (
     <div className="space-y-6">
@@ -486,13 +507,24 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {product.productFeatures && product.productFeatures.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Weight
+                </label>
+                <p className="text-foreground mt-1">
+                  {formatWeightDisplay(
+                    weightFeature?.value?.trim() || product.weightKg?.trim() || ""
+                  ) || "Not specified"}
+                </p>
+              </div>
+
+              {otherFeatures.length > 0 && (
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">
                     Features
                   </label>
                   <div className="mt-2 space-y-1 text-sm">
-                    {product.productFeatures.map((feature, index) => (
+                    {otherFeatures.map((feature, index) => (
                       <div
                         key={index}
                         className="flex justify-between gap-4 border-b border-border/60 pb-1 last:border-b-0"
