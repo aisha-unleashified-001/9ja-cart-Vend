@@ -850,23 +850,36 @@ export default function AddProductPage() {
                     key={index}
                     className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center"
                   >
-                    <input
-                      type="text"
-                      value={feature.name}
-                      onChange={(e) => {
-                        if (feature.name === WEIGHT_FEATURE_NAME) return;
-                        const value = e.target.value;
-                        setProductFeatures((prev) =>
-                          prev.map((f, i) =>
-                            i === index ? { ...f, name: value } : f
-                          )
-                        );
-                      }}
-                      placeholder="Feature name (e.g. Material)"
-                      className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
-                      disabled={isCreating || isSubmitting}
-                      readOnly={feature.name === WEIGHT_FEATURE_NAME}
-                    />
+                    {feature.name === WEIGHT_FEATURE_NAME ? (
+                      <div className="md:col-span-2 relative">
+                        <input
+                          type="text"
+                          value={feature.name}
+                          onChange={() => {}}
+                          placeholder="Feature name (e.g. Material)"
+                          className="w-full px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                          disabled={isCreating || isSubmitting}
+                          readOnly
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-destructive font-bold text-sm">*</span>
+                      </div>
+                    ) : (
+                      <input
+                        type="text"
+                        value={feature.name}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setProductFeatures((prev) =>
+                            prev.map((f, i) =>
+                              i === index ? { ...f, name: value } : f
+                            )
+                          );
+                        }}
+                        placeholder="Feature name (e.g. Material)"
+                        className="md:col-span-2 px-3 py-2 border border-border rounded-md bg-input text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
+                        disabled={isCreating || isSubmitting}
+                      />
+                    )}
                     {feature.name === WEIGHT_FEATURE_NAME ? (
                       <div className="md:col-span-2 relative">
                         <input

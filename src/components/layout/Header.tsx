@@ -159,13 +159,13 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
       <div className="flex items-center space-x-2 sm:space-x-4">
         {/* Search */}
-        <div className="hidden lg:block">
+        {/* <div className="hidden lg:block">
           <input
             type="text"
             placeholder="Search..."
             className="w-48 xl:w-64 px-3 py-2 text-sm border border-border rounded-md bg-input text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent"
           />
-        </div>
+        </div> */}
 
         {/* Notifications */}
         <div className="relative" ref={notificationsRef}>
